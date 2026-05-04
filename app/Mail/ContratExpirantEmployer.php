@@ -15,7 +15,7 @@ class ContratExpirantEmployer extends Mailable
 
     public function build()
     {
-        return $this->subject('⚠️ Votre contrat expire bientôt')
+        return $this->subject('Votre contrat expire bientôt')
             ->view('emails.contrat_expirant_employer');
     }
 }
