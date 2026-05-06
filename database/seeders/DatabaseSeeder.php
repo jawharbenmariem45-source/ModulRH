@@ -44,19 +44,83 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // ══════════════════════════════════════════════
+        // MOIS FRANÇAIS
+        // ══════════════════════════════════════════════
+        $moisFrancais = [
+            1  => 'JANVIER',   2  => 'FEVRIER',   3  => 'MARS',
+            4  => 'AVRIL',     5  => 'MAI',        6  => 'JUIN',
+            7  => 'JUILLET',   8  => 'AOUT',       9  => 'SEPTEMBRE',
+            10 => 'OCTOBRE',   11 => 'NOVEMBRE',   12 => 'DECEMBRE',
+        ];
+
+        // ══════════════════════════════════════════════
+        // DONNÉES POUR L'EMPLOYÉ FIXE
+        // ══════════════════════════════════════════════
+        $employerFixe = Employer::where('email', 'employer@gmail.com')->first();
+
+        if ($employerFixe) {
+            $this->command->info('-> Génération des données pour l\'employé fixe...');
+
+            for ($m = 0; $m < 6; $m++) {
+                $date  = Carbon::now()->subMonths($m);
+                $mois  = $moisFrancais[$date->month];
+                $annee = (string) $date->year;
+
+                try {
+                    Salaire::create([
+                        'employer_id' => $employerFixe->id,
+                        'montant'     => 1500,
+                        'created_at'  => $date,
+                        'updated_at'  => $date,
+                    ]);
+                } catch (\Exception $e) {
+                    $this->command->error('Salaire fixe: ' . $e->getMessage());
+                }
+
+                try {
+                    Payment::factory()->create([
+                        'employer_id' => $employerFixe->id,
+                        'month'       => $mois,
+                        'year'        => $annee,
+                    ]);
+                } catch (\Exception $e) {
+                    $this->command->error('Payment fixe: ' . $e->getMessage());
+                }
+            }
+
+            try {
+                Conge::factory()->count(3)->create(['employer_id' => $employerFixe->id]);
+            } catch (\Exception $e) {
+                $this->command->error('Conge fixe: ' . $e->getMessage());
+            }
+
+            try {
+                $debut = Carbon::now()->subMonths(6);
+                $fin   = Carbon::now();
+                $jour  = $debut->copy();
+                while ($jour->lte($fin)) {
+                    if (!$jour->isWeekend()) {
+                        Attendance::factory()->create([
+                            'employer_id' => $employerFixe->id,
+                            'date'        => $jour->format('Y-m-d'),
+                        ]);
+                    }
+                    $jour->addDay();
+                }
+            } catch (\Exception $e) {
+                $this->command->error('Attendance fixe: ' . $e->getMessage());
+            }
+
+            $this->command->info('✓ Données employé fixe générées.');
+        }
+
+        // ══════════════════════════════════════════════
         // 3. GÉNÉRATION DYNAMIQUE PAR PALIER
         // ══════════════════════════════════════════════
         $paliers = [
             ['min' => 1,   'max' => 9,   'mois' => 6,  'label' => 'Micro entreprise (1-9 employés)'],
             ['min' => 10,  'max' => 49,  'mois' => 12, 'label' => 'Petite entreprise (10-49 employés)'],
             ['min' => 200, 'max' => 249, 'mois' => 60, 'label' => 'Moyenne entreprise (200-249 employés)'],
-        ];
-
-        $moisFrancais = [
-            1  => 'JANVIER',   2  => 'FEVRIER',   3  => 'MARS',
-            4  => 'AVRIL',     5  => 'MAI',        6  => 'JUIN',
-            7  => 'JUILLET',   8  => 'AOUT',       9  => 'SEPTEMBRE',
-            10 => 'OCTOBRE',   11 => 'NOVEMBRE',   12 => 'DECEMBRE',
         ];
 
         $palierChoisi   = $paliers[$this->palierIndex];
@@ -85,7 +149,7 @@ class DatabaseSeeder extends Seeder
 
         foreach ($employers as $employer) {
 
-            // -- Salaires (1 par mois d'historique) --
+            // -- Salaires --
             try {
                 for ($m = 0; $m < $moisHistorique; $m++) {
                     $date = Carbon::now()->subMonths($m);
@@ -100,7 +164,7 @@ class DatabaseSeeder extends Seeder
                 $this->command->error('Salaire: ' . $e->getMessage());
             }
 
-            // -- Paiements (1 par mois d'historique avec le bon mois/année) --
+            // -- Paiements --
             try {
                 for ($m = 0; $m < $moisHistorique; $m++) {
                     $date  = Carbon::now()->subMonths($m);
@@ -109,15 +173,15 @@ class DatabaseSeeder extends Seeder
 
                     Payment::factory()->create([
                         'employer_id' => $employer->id,
-                        'month'       => $mois,   // ✅ vrai mois
-                        'year'        => $annee,  // ✅ vraie année
+                        'month'       => $mois,
+                        'year'        => $annee,
                     ]);
                 }
             } catch (\Exception $e) {
                 $this->command->error('Payment: ' . $e->getMessage());
             }
 
-            // -- Congés (1 à 4 par employé) --
+            // -- Congés --
             try {
                 Conge::factory()
                     ->count(rand(1, 4))
@@ -126,7 +190,7 @@ class DatabaseSeeder extends Seeder
                 $this->command->error('Conge: ' . $e->getMessage());
             }
 
-            // -- Pointages (jours ouvrables sur la période) --
+            // -- Pointages --
             try {
                 $debut = Carbon::now()->subMonths($moisHistorique);
                 $fin   = Carbon::now();

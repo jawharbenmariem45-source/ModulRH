@@ -97,32 +97,42 @@ class EmployerDashboardController extends Controller
     // DASHBOARD
     // =============================================
     public function dashboard()
-    {
-        $employer = auth('employer')->user();
+{
+    $employer = auth('employer')->user();
 
-        if ($employer->type_contrat === 'CDI') {
-            $contrat = true;
-        } elseif ($employer->type_contrat && $employer->date_fin) {
+    if ($employer->type_contrat === 'CDI') {
+        $contrat = true;
+    } elseif ($employer->type_contrat && $employer->date_fin) {
+        try {
             $contrat = Carbon::parse($employer->date_fin)->isFuture();
-        } else {
-            $contrat = $employer->type_contrat ? true : false;
+        } catch (\Exception $e) {
+            $contrat = true;
         }
-
-        $congesEnAttente  = $employer->conges()->where('statut', 'en_attente')->count();
-        $congesApprouves  = $employer->conges()->where('statut', 'accepte')->count();
-        $totalPaiements   = $employer->payments()->count();
-        $dernierConges    = $employer->conges()->latest()->take(5)->get();
-        $dernierPaiements = $employer->payments()->latest()->take(5)->get();
-
-        return view('dashboard.employer', compact(
-            'contrat',
-            'congesEnAttente',
-            'congesApprouves',
-            'totalPaiements',
-            'dernierConges',
-            'dernierPaiements'
-        ));
+    } else {
+        $contrat = $employer->type_contrat ? true : false;
     }
+
+    $congesEnAttente = $employer->conge()
+        ->whereIn('statut', ['en_attente', 'En attente', 'en attente'])
+        ->count();
+
+    $congesApprouves = $employer->conge()
+        ->whereIn('statut', ['accepte', 'Approuvé', 'approuvé', 'APPROUVE', 'Approuve'])
+        ->count();
+
+    $totalPaiements   = $employer->payments()->count();
+    $dernierConges    = $employer->conge()->latest()->take(5)->get();
+    $dernierPaiements = $employer->payments()->latest()->take(5)->get();
+
+    return view('dashboard.employer', compact(
+        'contrat',
+        'congesEnAttente',
+        'congesApprouves',
+        'totalPaiements',
+        'dernierConges',
+        'dernierPaiements'
+    ));
+}
 
     // =============================================
     // CONTRAT (lecture seule)
