@@ -25,7 +25,6 @@ return new class extends Migration
             $table->string('amount')->nullable();
             $table->string('launch_date')->nullable();
             $table->string('done_time')->nullable();
-            $table->string('status')->nullable();
             $table->string('month')->nullable();
             $table->string('year')->nullable();
             $table->timestamps();

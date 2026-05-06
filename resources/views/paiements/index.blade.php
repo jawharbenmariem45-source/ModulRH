@@ -74,7 +74,6 @@
                         <th>Date de transaction</th>
                         <th>Mois</th>
                         <th>Année</th>
-                        <th>Statut</th>
                         <th>Actions</th>
                     </tr>
                 </thead>

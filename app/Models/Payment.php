@@ -14,7 +14,6 @@ class Payment extends Model
         'amount',
         'launch_date',
         'done_time',
-        'status',
         'month',
         'year',
         'type_contrat',

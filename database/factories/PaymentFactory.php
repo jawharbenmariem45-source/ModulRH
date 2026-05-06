@@ -112,18 +112,6 @@ class PaymentFactory extends Factory
             null,                                              // ❌ null
         ]);
 
-        // ══════════════════════════════════════════════
-        // STATUS SALE — incohérent avec le montant
-        // ══════════════════════════════════════════════
-        $statusSale = $this->faker->randomElement([
-            'SUCCESS',   // ✅
-            'FAILED',    // ✅
-            'success',   // ❌ minuscule
-            'failed',    // ❌ minuscule
-            'PENDING',   // ❌ inexistant
-            null,        // ❌ null
-        ]);
-
         return [
             'reference'          => $referenceSale,
             'employer_id'        => $employer->id,
@@ -140,7 +128,6 @@ class PaymentFactory extends Factory
             'amount'             => $amountSale,
             'launch_date'        => $launchDateSale,
             'done_time'          => $doneTime,
-            'status'             => $statusSale,
             'month'              => $moisSale,
             'year'               => $anneSale,
         ];

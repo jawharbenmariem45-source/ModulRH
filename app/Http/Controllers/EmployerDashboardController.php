@@ -112,16 +112,16 @@ class EmployerDashboardController extends Controller
         $contrat = $employer->type_contrat ? true : false;
     }
 
-    $congesEnAttente = $employer->conge()
+    $congesEnAttente = $employer->conges()
         ->whereIn('statut', ['en_attente', 'En attente', 'en attente'])
         ->count();
 
-    $congesApprouves = $employer->conge()
+    $congesApprouves = $employer->conges()
         ->whereIn('statut', ['accepte', 'Approuvé', 'approuvé', 'APPROUVE', 'Approuve'])
         ->count();
 
     $totalPaiements   = $employer->payments()->count();
-    $dernierConges    = $employer->conge()->latest()->take(5)->get();
+    $dernierConges    = $employer->conges()->latest()->take(5)->get();
     $dernierPaiements = $employer->payments()->latest()->take(5)->get();
 
     return view('dashboard.employer', compact(
