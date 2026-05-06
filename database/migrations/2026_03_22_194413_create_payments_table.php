@@ -10,27 +10,24 @@ return new class extends Migration
     {
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
-            $table->string('reference');
+            $table->string('reference')->nullable();
             $table->foreignId('employer_id')->constrained('employers')->onDelete('cascade');
             $table->string('type_contrat')->nullable();
-            $table->decimal('salaire_base', 10, 3)->default(0);
-            $table->decimal('heures_sup', 10, 3)->default(0);
-            $table->decimal('montant_heures_sup', 10, 3)->default(0);
-            $table->decimal('primes', 10, 3)->default(0);
-            $table->decimal('indemnites', 10, 3)->default(0);
-            $table->decimal('salaire_brut', 10, 3)->default(0);
-            $table->decimal('cnss', 10, 3)->default(0);
-            $table->decimal('irpp', 10, 3)->default(0);
-            $table->decimal('css', 10, 3)->default(0);
-            $table->decimal('amount', 10, 3); // salaire net
-            $table->dateTime('launch_date');
-            $table->dateTime('done_time');
-            $table->enum('status', ['SUCCESS', 'FAILED'])->default('SUCCESS');
-            $table->enum('month', [
-                'JANVIER', 'FEVRIER', 'MARS', 'AVRIL', 'MAI', 'JUIN',
-                'JUILLET', 'AOUT', 'SEPTEMBRE', 'OCTOBRE', 'NOVEMBRE', 'DECEMBRE'
-            ]);
-            $table->string('year');
+            $table->string('salaire_base')->nullable();
+            $table->string('heures_sup')->nullable();
+            $table->string('montant_heures_sup')->nullable();
+            $table->string('primes')->nullable();
+            $table->string('indemnites')->nullable();
+            $table->string('salaire_brut')->nullable();
+            $table->string('cnss')->nullable();
+            $table->string('irpp')->nullable();
+            $table->string('css')->nullable();
+            $table->string('amount')->nullable();
+            $table->string('launch_date')->nullable();
+            $table->string('done_time')->nullable();
+            $table->string('status')->nullable();
+            $table->string('month')->nullable();
+            $table->string('year')->nullable();
             $table->timestamps();
         });
     }

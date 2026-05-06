@@ -9,7 +9,8 @@ class CompanySeeder extends Seeder
 {
     public function run(): void
     {
-        Company::updateOrCreate(['name' => 'summitrise']);
-        
+        Company::updateOrCreate(['name' => 'SummitRise']);
+        Company::updateOrCreate(['name' => 'TechNova']);
+        Company::updateOrCreate(['name' => 'AlphaCorp']);
     }
 }

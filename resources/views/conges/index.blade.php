@@ -25,27 +25,47 @@
                         @foreach($conges as $c)
                         <tr>
                             <td>{{ $c->employer->nom ?? 'N/A' }} {{ $c->employer->prenom ?? '' }}</td>
-                            <td><span class="badge bg-info">{{ $c->type }}</span></td>
+                            <td>
+                                @if($c->type)
+                                    <span class="badge bg-info">{{ $c->type }}</span>
+                                @else
+                                    <span class="badge bg-secondary">N/A</span>
+                                @endif
+                            </td>
                             <td>Du {{ $c->date_debut }} au {{ $c->date_fin }}</td>
                             <td>
-                                @if($c->statut == 'en_attente')
+                                @php
+                                    $statut = strtolower(trim($c->statut ?? ''));
+                                @endphp
+
+                                @if(in_array($statut, ['en attente', 'en_attente']))
                                     <span class="badge bg-warning text-dark">En attente</span>
-                                @elseif($c->statut == 'accepte')
-                                    <span class="badge bg-success">Accepté</span>
+                                @elseif(in_array($statut, ['approuvé', 'approuve', 'accepté', 'accepte']))
+                                    <span class="badge bg-success">Approuvé</span>
+                                @elseif(in_array($statut, ['refusé', 'refuse', 'rejeté', 'rejete']))
+                                    <span class="badge bg-danger">Refusé</span>
+                                @elseif(is_null($c->statut))
+                                    <span class="badge bg-secondary">N/A</span>
                                 @else
-                                    <span class="badge bg-danger">Rejeté</span>
+                                    <span class="badge bg-secondary">{{ $c->statut }}</span>
                                 @endif
                             </td>
                             <td>
-                                @if($c->statut == 'en_attente')
+                                @php
+                                    $statutRaw = strtolower(trim($c->statut ?? ''));
+                                @endphp
+                                @if(in_array($statutRaw, ['en attente', 'en_attente']))
                                     <form action="{{ route('conge.accepter', $c->id) }}" method="POST" style="display:inline">
                                         @csrf @method('PATCH')
-                                        <button class="btn btn-sm btn-success" title="Accepter"><i class="fas fa-check"></i></button>
+                                        <button class="btn btn-sm btn-success" title="Accepter">
+                                            <i class="fas fa-check"></i>
+                                        </button>
                                     </form>
-                                    
                                     <form action="{{ route('conge.rejeter', $c->id) }}" method="POST" style="display:inline">
                                         @csrf @method('PATCH')
-                                        <button class="btn btn-sm btn-danger" title="Refuser"><i class="fas fa-times"></i></button>
+                                        <button class="btn btn-sm btn-danger" title="Refuser">
+                                            <i class="fas fa-times"></i>
+                                        </button>
                                     </form>
                                 @endif
                             </td>

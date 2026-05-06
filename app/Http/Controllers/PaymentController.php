@@ -299,37 +299,32 @@ class PaymentController extends Controller
     // INDEX
     // =========================================================
     public function index(Request $request)
-    {
-        $user         = auth()->user();
-        $isPaymentDay = false;
+{
+    $user         = auth()->user();
+    $isPaymentDay = false;
 
-        $query = Payment::with('employer');
+    $query = Payment::with('employer');
 
-        if ($user->hasRole('rh')) {
-            $config = Configuration::where('company_id', $user->company_id)
-                ->where('type', 'PAYMENT_DATEE')->first();
-            $isPaymentDay = $config
-                ? intval(date('d')) == intval($config->value)
-                : false;
-
-            $query->whereHas('employer', fn($q) =>
-                $q->where('company_id', $user->company_id)
-            );
-        }
-
-        if ($request->filled('month'))    $query->where('month', $request->month);
-        if ($request->filled('year'))     $query->where('year', $request->year);
-        if ($request->filled('employer')) {
-            $s = $request->employer;
-            $query->whereHas('employer', fn($q) =>
-                $q->where('nom', 'like', "%$s%")->orWhere('prenom', 'like', "%$s%")
-            );
-        }
-
-        $payments = $query->orderBy('id', 'desc')->paginate(10)->withQueryString();
-
-        return view('paiements.index', compact('payments', 'isPaymentDay'));
+    if ($user->hasRole('rh')) {
+        $config = Configuration::where('key', 'payment_date')->first();
+        $isPaymentDay = $config
+            ? intval(date('d')) == intval($config->value)
+            : false;
     }
+
+    if ($request->filled('month'))    $query->where('month', $request->month);
+    if ($request->filled('year'))     $query->where('year', $request->year);
+    if ($request->filled('employer')) {
+        $s = $request->employer;
+        $query->whereHas('employer', fn($q) =>
+            $q->where('nom', 'like', "%$s%")->orWhere('prenom', 'like', "%$s%")
+        );
+    }
+
+    $payments = $query->orderBy('id', 'desc')->paginate(10)->withQueryString();
+
+    return view('paiements.index', compact('payments', 'isPaymentDay'));
+}
 
     // =========================================================
     // INIT PAYMENT

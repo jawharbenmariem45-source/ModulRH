@@ -6,27 +6,21 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('attendances', function (Blueprint $table) {
             $table->id();
             $table->foreignId('employer_id')->nullable()->constrained('employers')->onDelete('cascade');
-            $table->date('date')->nullable();
-            $table->timestamp('check_in_morning_time')->nullable();
-            $table->timestamp('check_out_morning_time')->nullable();
-            $table->timestamp('check_in_afternoon_time')->nullable();
-            $table->timestamp('check_out_afternoon_time')->nullable();
-            $table->enum('status', ['present', 'absent', 'late', 'on_leave'])->default('present');
+            $table->string('date')->nullable();                      // ✅ string pour formats sales
+            $table->string('check_in_morning_time')->nullable();     // ✅ string pour heures sales
+            $table->string('check_out_morning_time')->nullable();    // ✅ string pour heures sales
+            $table->string('check_in_afternoon_time')->nullable();   // ✅ string pour heures sales
+            $table->string('check_out_afternoon_time')->nullable();  // ✅ string pour heures sales
+            $table->string('status')->nullable();                    // ✅ string pour statuts sales
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('attendances');

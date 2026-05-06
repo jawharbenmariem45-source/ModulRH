@@ -43,25 +43,33 @@
 <div class="row g-3 mb-4">
     <div class="col-md-3">
         <div class="app-card shadow-sm p-3 text-center">
-            <div class="fs-4 fw-bold text-success">{{ $attendances->where('status', 'present')->count() }}</div>
+            <div class="fs-4 fw-bold text-success">
+                {{ $attendances->filter(fn($a) => strtolower(trim($a->status)) === 'present')->count() }}
+            </div>
             <div class="text-muted small">Présents</div>
         </div>
     </div>
     <div class="col-md-3">
         <div class="app-card shadow-sm p-3 text-center">
-            <div class="fs-4 fw-bold text-danger">{{ $attendances->where('status', 'absent')->count() }}</div>
+            <div class="fs-4 fw-bold text-danger">
+                {{ $attendances->filter(fn($a) => strtolower(trim($a->status)) === 'absent')->count() }}
+            </div>
             <div class="text-muted small">Absents</div>
         </div>
     </div>
     <div class="col-md-3">
         <div class="app-card shadow-sm p-3 text-center">
-            <div class="fs-4 fw-bold text-warning">{{ $attendances->where('status', 'late')->count() }}</div>
+            <div class="fs-4 fw-bold text-warning">
+                {{ $attendances->filter(fn($a) => strtolower(trim($a->status)) === 'late')->count() }}
+            </div>
             <div class="text-muted small">En retard</div>
         </div>
     </div>
     <div class="col-md-3">
         <div class="app-card shadow-sm p-3 text-center">
-            <div class="fs-4 fw-bold text-info">{{ $attendances->where('status', 'on_leave')->count() }}</div>
+            <div class="fs-4 fw-bold text-info">
+                {{ $attendances->filter(fn($a) => strtolower(trim($a->status)) === 'on_leave')->count() }}
+            </div>
             <div class="text-muted small">En congé</div>
         </div>
     </div>
@@ -94,56 +102,108 @@
                             <strong>{{ $attendance->employer->nom }} {{ $attendance->employer->prenom }}</strong>
                         </td>
                         <td>{{ $attendance->employer->departement->name ?? '-' }}</td>
+
+                        {{-- Check-in Matin --}}
                         <td>
                             @if($attendance->check_in_morning_time)
-                                <span class="badge bg-success">
-                                    {{ Carbon::parse($attendance->check_in_morning_time)->format('H:i') }}
-                                </span>
+                                @php
+                                    try {
+                                        $time = Carbon::parse($attendance->check_in_morning_time)->format('H:i');
+                                    } catch (\Exception $e) {
+                                        $time = $attendance->check_in_morning_time;
+                                    }
+                                @endphp
+                                <span class="badge bg-success">{{ $time }}</span>
                             @else
                                 <span class="text-muted">-</span>
                             @endif
                         </td>
+
+                        {{-- Check-out Matin --}}
                         <td>
                             @if($attendance->check_out_morning_time)
-                                <span class="badge bg-warning text-dark">
-                                    {{ Carbon::parse($attendance->check_out_morning_time)->format('H:i') }}
-                                </span>
+                                @php
+                                    try {
+                                        $time = Carbon::parse($attendance->check_out_morning_time)->format('H:i');
+                                    } catch (\Exception $e) {
+                                        $time = $attendance->check_out_morning_time;
+                                    }
+                                @endphp
+                                <span class="badge bg-warning text-dark">{{ $time }}</span>
                             @else
                                 <span class="text-muted">-</span>
                             @endif
                         </td>
+
+                        {{-- Check-in Après-midi --}}
                         <td>
                             @if($attendance->check_in_afternoon_time)
-                                <span class="badge bg-success">
-                                    {{ Carbon::parse($attendance->check_in_afternoon_time)->format('H:i') }}
-                                </span>
+                                @php
+                                    try {
+                                        $time = Carbon::parse($attendance->check_in_afternoon_time)->format('H:i');
+                                    } catch (\Exception $e) {
+                                        $time = $attendance->check_in_afternoon_time;
+                                    }
+                                @endphp
+                                <span class="badge bg-success">{{ $time }}</span>
                             @else
                                 <span class="text-muted">-</span>
                             @endif
                         </td>
+
+                        {{-- Check-out Après-midi --}}
                         <td>
                             @if($attendance->check_out_afternoon_time)
-                                <span class="badge bg-warning text-dark">
-                                    {{ Carbon::parse($attendance->check_out_afternoon_time)->format('H:i') }}
-                                </span>
+                                @php
+                                    try {
+                                        $time = Carbon::parse($attendance->check_out_afternoon_time)->format('H:i');
+                                    } catch (\Exception $e) {
+                                        $time = $attendance->check_out_afternoon_time;
+                                    }
+                                @endphp
+                                <span class="badge bg-warning text-dark">{{ $time }}</span>
                             @else
                                 <span class="text-muted">-</span>
                             @endif
                         </td>
+
+                        {{-- Heures totales --}}
                         <td>
-                            <strong>{{ $attendance->heures_totales ?? '-' }} h</strong>
+                            @php
+                                try {
+                                    $checkIn  = $attendance->check_in_morning_time
+                                        ? Carbon::parse($attendance->check_in_morning_time)
+                                        : null;
+                                    $checkOut = $attendance->check_out_afternoon_time
+                                        ? Carbon::parse($attendance->check_out_afternoon_time)
+                                        : null;
+                                    $heures = ($checkIn && $checkOut)
+                                        ? round($checkIn->diffInMinutes($checkOut) / 60, 2)
+                                        : null;
+                                } catch (\Exception $e) {
+                                    $heures = null;
+                                }
+                            @endphp
+                            @if($heures !== null)
+                                <strong>{{ $heures }} h</strong>
+                            @else
+                                <span class="text-muted">- h</span>
+                            @endif
                         </td>
+
+                        {{-- Statut --}}
                         <td>
-                            @if($attendance->status === 'present')
+                            @php $status = strtolower(trim($attendance->status ?? '')); @endphp
+                            @if($status === 'present')
                                 <span class="badge bg-success">Présent</span>
-                            @elseif($attendance->status === 'absent')
+                            @elseif($status === 'absent')
                                 <span class="badge bg-danger">Absent</span>
-                            @elseif($attendance->status === 'late')
+                            @elseif($status === 'late')
                                 <span class="badge bg-warning text-dark">En retard</span>
-                            @elseif($attendance->status === 'on_leave')
+                            @elseif($status === 'on_leave')
                                 <span class="badge bg-info">En congé</span>
                             @else
-                                <span class="badge bg-secondary">{{ $attendance->status }}</span>
+                                <span class="badge bg-secondary">{{ $attendance->status ?? 'N/A' }}</span>
                             @endif
                         </td>
                     </tr>

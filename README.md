@@ -20,7 +20,10 @@ c'est un projet pour module RH pour gerer les employer et leur paie,conger,contr
 
 - Calcul automatique du salaire selon le type de contrat
 - Calcul **CNSS** (9.68% plafonné + 1% maladie)
-- Calcul **IRPP** (barème progressif 2025 — 8 tranches)
+
+
+
+- Calcul **IRPP** (barème progressif 2026 — 8 tranches)
 - Calcul **CSS** (0.5%)
 - Calcul des **heures supplémentaires** (régime 40h/48h)
 - Proratisation du salaire selon les jours travaillés
@@ -52,7 +55,7 @@ c'est un projet pour module RH pour gerer les employer et leur paie,conger,contr
 - **Manager** : gestion des congés
 - **Employé** : espace personnel (pointage, congés, paiements, contrat)
 
-### ⚙️ Configurations
+### Configurations
 
 - Date de paiement mensuelle
 - Régime horaire (40h / 48h)
@@ -108,7 +111,11 @@ npm run dev
 
 ```bash
 
-cp .env.example .env
+git clone https://github.com/jawharbenmariem45-source/ModulRH.git
+
+
+
+copy .env.example .env
 
 ```
 

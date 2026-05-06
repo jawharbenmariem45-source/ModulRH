@@ -33,36 +33,32 @@ class PointageController extends Controller
     // VUE RH/ADMIN — tous les pointages
     // =============================================
     public function adminIndex(Request $request)
-    {
-        $user                 = auth()->user();
-        $selectedDate         = $request->get('date', Carbon::today()->toDateString());
-        $selectedEmployerName = $request->get('employer_name');
+{
+    $selectedDate         = $request->get('date', Carbon::today()->toDateString());
+    $selectedEmployerName = $request->get('employer_name');
 
-        $query = Attendance::with('employer')
-            ->where('date', $selectedDate)
-            ->whereHas('employer', function($q) use ($user, $selectedEmployerName) {
-                $q->where('company_id', $user->company_id);
-                if ($selectedEmployerName) {
-                    $q->where(function($q2) use ($selectedEmployerName) {
-                        $q2->where('nom', 'like', "%$selectedEmployerName%")
-                           ->orWhere('prenom', 'like', "%$selectedEmployerName%");
-                    });
-                }
-            });
+    $query = Attendance::with('employer')
+        ->where('date', $selectedDate)
+        ->whereHas('employer', function($q) use ($selectedEmployerName) {
+            if ($selectedEmployerName) {
+                $q->where(function($q2) use ($selectedEmployerName) {
+                    $q2->where('nom', 'like', "%$selectedEmployerName%")
+                       ->orWhere('prenom', 'like', "%$selectedEmployerName%");
+                });
+            }
+        });
 
-        $attendances = $query->orderBy('employer_id')->get();
+    $attendances = $query->orderBy('employer_id')->get();
 
-        $employers = Employer::where('company_id', $user->company_id)
-                             ->orderBy('nom')
-                             ->get();
+    $employers = Employer::orderBy('nom')->get();
 
-        return view('pointage.admin', compact(
-            'attendances',
-            'employers',
-            'selectedDate',
-            'selectedEmployerName'
-        ));
-    }
+    return view('pointage.admin', compact(
+        'attendances',
+        'employers',
+        'selectedDate',
+        'selectedEmployerName'
+    ));
+}
 
     // =============================================
     // HELPERS

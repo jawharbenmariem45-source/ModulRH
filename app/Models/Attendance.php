@@ -2,18 +2,21 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Attendance extends Model
 {
-    protected $guarded = [];
+    use HasFactory;
 
-    protected $casts = [
-        'check_in_morning_time'    => 'datetime',
-        'check_out_morning_time'   => 'datetime',
-        'check_in_afternoon_time'  => 'datetime',
-        'check_out_afternoon_time' => 'datetime',
-        'date'                     => 'date',
+    protected $fillable = [
+        'employer_id',
+        'date',
+        'check_in_morning_time',
+        'check_out_morning_time',
+        'check_in_afternoon_time',
+        'check_out_afternoon_time',
+        'status',
     ];
 
     public function employer()

@@ -274,7 +274,7 @@
         <div class="app-sidepanel-footer">
             <nav class="app-nav app-nav-footer">
                 <ul class="app-menu footer-menu list-unstyled">
-                    @if($user && ($user->hasRole('rh') || $user->hasRole('admin')))
+                    @if($user && ($user->hasRole('rh') ))
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('configurations') ? 'active' : '' }}" href="{{ route('configurations') }}">
                             <span class="nav-icon">
