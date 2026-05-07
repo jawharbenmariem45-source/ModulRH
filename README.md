@@ -61,6 +61,13 @@ php artisan serve
 
 L'application sera disponible sur http://127.0.0.1:8000
 
+## Comptes par défaut
+
+- Admin : admin@gmail.com / azerty
+- RH : rh@gmail.com / 123456
+- Manager : manager@gmail.com / 123456
+- Employé : employer@gmail.com / 123456
+
 ## Fonctionnalités
 
 ### Gestion des Employés & Contrats
@@ -100,4 +107,3 @@ L'application sera disponible sur http://127.0.0.1:8000
 - resources/views : vues Blade
 - routes/web.php : routes web
 - routes/api.php : routes API
-
