@@ -168,14 +168,23 @@ class EmployerController extends Controller
     }
 
     public function delete(Employer $employer)
-    {
-        if ($employer->rib_image) {
-            Storage::disk('public')->delete($employer->rib_image);
-        }
-        $employer->delete();
-        return redirect()->route('employer.index')
-            ->with('success_message', 'Employé supprimé.');
+{
+    if ($employer->rib_image) {
+        Storage::disk('public')->delete($employer->rib_image);
     }
+
+    
+    $employer->salaires()->delete();
+    $employer->payments()->delete();
+    $employer->conges()->delete();
+    $employer->attendances()->delete();
+    $employer->contracts()->detach();
+
+    $employer->delete();
+
+    return redirect()->route('employer.index')
+        ->with('success_message', 'Employé supprimé.');
+}
 
     public function showContracts()
     {

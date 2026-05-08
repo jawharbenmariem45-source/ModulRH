@@ -21,7 +21,7 @@ class ConfigurationSeeder extends Seeder
                 'key'            => 'nom_application',
                 'type'           => 'APP_NAME',
                 'regime_horaire' => '40h',
-                'value'          => 'RiseTruck',
+                'value'          => 'RiseTrack',
                 'company_id'     => null,
             ],
             [
@@ -56,7 +56,7 @@ class ConfigurationSeeder extends Seeder
                 'key'            => 'developper_name',
                 'type'           => 'DEVELOPPER_NAME',
                 'regime_horaire' => '40h',
-                'value'          => 'RiseTruck',
+                'value'          => 'RiseTrack',
                 'company_id'     => null,
             ],
         ];

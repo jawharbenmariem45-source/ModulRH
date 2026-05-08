@@ -16,7 +16,7 @@ npm =11.9.0
 
 ```bash
 git clone https://github.com/jawharbenmariem45-source/ModulRH.git
-cd salaire-employer
+cd ModulRH
 ```
 
 2. **Installer les dépendances PHP via Composer :**
@@ -25,7 +25,7 @@ cd salaire-employer
 composer install
 ```
 
-3. **Installer les dépendances front-end (si nécessaire):**
+3. **Installer les dépendances front-end :**
 
 ```bash
 npm install
@@ -35,7 +35,7 @@ npm run dev
 4. **Copier le fichier d'environnement:**
 
 ```bash
-cp .env.example
+cp .env.example .env
 ```
 
 5. **Configurer la base de données:**
