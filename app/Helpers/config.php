@@ -8,8 +8,6 @@ class Config
 {
     public static function getAppName(): ?string
     {
-        
-        $appName = config('app.name');
-        return $appName ?: 'RiseTrack';
+        return config('app.name');
     }
 }

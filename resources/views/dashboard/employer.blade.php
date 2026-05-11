@@ -117,16 +117,17 @@
                         <thead>
                             <tr>
                                 <th>Mois</th>
-                                <th>Montant</th>
+                                <th>Montant net</th>
                                 <th>Fiche</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach($dernierPaiements as $paiement)
                             <tr>
-                                <td>{{ \Carbon\Carbon::parse($paiement->date)->format('m/Y') }}</td>
-                                <td>{{ number_format($paiement->montant, 2) }} TND</td>
+                                <td>{{ $paiement->month }} {{ $paiement->year }}</td>
+                                <td>{{ number_format((float)$paiement->amount, 2) }} TND</td>
                                 <td>
+                                    <a href="{{ route('employer_space.paiements.pdf', $paiement->id) }}">
                                         <i class="fas fa-file-pdf"></i> PDF
                                     </a>
                                 </td>

@@ -10,7 +10,7 @@
         <div class="app-branding">
             <a class="app-logo d-flex align-items-center" href="{{ $isEmployer ? route('employer_space.dashboard') : route('dashboard') }}">
                 <img src="{{ asset('assets/images/logo.png') }}" alt="Logo" class="logo-icon me-2" style="width:40px; height:40px; object-fit:contain;">
-                <span class="logo-text">{{ AppNameGetter::getAppName() ?: 'RiseTrack' }}</span>
+                <span class="logo-text">{{ \App\Helpers\Config::getAppName() ?: 'RiseTrack' }}</span>
             </a>
         </div>
 

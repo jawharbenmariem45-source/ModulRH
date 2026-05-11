@@ -14,7 +14,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-            class_alias(Config::class, 'AppNameGetter');
+            
     }
 
     /**

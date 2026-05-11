@@ -159,28 +159,27 @@ class EmployerDashboardController extends Controller
     // PAIEMENTS
     // =============================================
     public function paiements(Request $request)
-    {
-        $employer = auth('employer')->user();
+{
+    $employer = auth('employer')->user();
 
-        $defaultPaymentDateQuery = Configuration::where('company_id', $employer->company_id)
-            ->where('type', 'PAYMENT_DATEE')->first();
-        $defaultPaymentDate = $defaultPaymentDateQuery->value ?? null;
-        $isPaymentDay       = intval(date('d')) == intval($defaultPaymentDate);
+    $configs            = Configuration::where('company_id', $employer->company_id)->get();
+    $defaultPaymentDate = $configs->firstWhere('type', 'PAYMENT_DATEE')?->value ?? null;
+    $isPaymentDay       = intval(date('d')) == intval($defaultPaymentDate);
 
-        $query = Payment::where('employer_id', $employer->id);
+    $query = Payment::where('employer_id', $employer->id);
 
-        if ($request->filled('month')) {
-            $query->where('month', $request->month);
-        }
-
-        if ($request->filled('year')) {
-            $query->where('year', $request->year);
-        }
-
-        $payments = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
-
-        return view('employers.paiements', compact('payments', 'isPaymentDay'));
+    if ($request->filled('month')) {
+        $query->where('month', strtoupper($request->month));
     }
+
+    if ($request->filled('year')) {
+        $query->where('year', $request->year);
+    }
+
+    $payments = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
+
+    return view('employers.paiements', compact('payments', 'isPaymentDay'));
+}
 
     // =============================================
     // DOWNLOAD PAIEMENT
