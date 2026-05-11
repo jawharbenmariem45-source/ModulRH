@@ -9,20 +9,10 @@ class ConfigurationController extends Controller
 {
     public function index()
     {
-        $user = auth()->user();
-        $companyId = $user->company_id;
+        $companyId = auth()->user()->company_id;
+        $config    = Configuration::where('company_id', $companyId)->first();
 
-        if (!$companyId) {
-            return redirect()->route('dashboard')
-                ->with('error_message', 'Vous n\'êtes pas lié à une entreprise.');
-        }
-
-        $configs = [
-            'PAYMENT_DATEE'  => Configuration::where('company_id', $companyId)->where('type', 'PAYMENT_DATEE')->value('value') ?? '',
-            'REGIME_HORAIRE' => Configuration::where('company_id', $companyId)->where('type', 'REGIME_HORAIRE')->value('value') ?? '40h',
-        ];
-
-        return view('config.index', compact('configs'));
+        return view('config.index', compact('config'));
     }
 
     public function save(Request $request)
@@ -34,20 +24,13 @@ class ConfigurationController extends Controller
 
         $companyId = auth()->user()->company_id;
 
-        if (!$companyId) {
-            return redirect()->back()->with('error_message', 'Pas de company');
-        }
-
-        $allowed = ['PAYMENT_DATEE', 'REGIME_HORAIRE'];
-
-        foreach ($allowed as $type) {
-            if ($request->has($type)) {
-                Configuration::updateOrCreate(
-                    ['company_id' => $companyId, 'type' => $type],
-                    ['value' => $request->input($type)]
-                );
-            }
-        }
+        Configuration::updateOrCreate(
+            ['company_id' => $companyId],
+            [
+                'payment_date'   => $request->input('PAYMENT_DATEE'),
+                'regime_horaire' => $request->input('REGIME_HORAIRE'),
+            ]
+        );
 
         return redirect()->back()->with('success_message', 'Configuration enregistrée !');
     }

@@ -123,12 +123,10 @@ Route::middleware('auth')->prefix('admin/contracts')->name('contracts.')->group(
 // PAIEMENTS
 // ============================================
 Route::middleware('auth')->group(function () {
+    Route::get('/payments', [PaymentController::class, 'index'])->name('payments');
     Route::post('/payment/init', [PaymentController::class, 'initPayment'])->name('payment.init');
-    Route::prefix('payment')->group(function () {
-        Route::get('/', [PaymentController::class, 'index'])->name('payments');
-        Route::get('/download-invoice/{payment}', [PaymentController::class, 'download_invoice'])->name('payment.download');
-        Route::get('/preview-invoice/{payment}', [PaymentController::class, 'preview_invoice'])->name('payment.preview');
-    });
+    Route::get('/payment/download-invoice/{payment}', [PaymentController::class, 'download_invoice'])->name('payment.download');
+    Route::get('/payment/preview-invoice/{payment}', [PaymentController::class, 'preview_invoice'])->name('payment.preview');
 });
 
 // ============================================
@@ -175,11 +173,10 @@ Route::prefix('espace-employe')->name('employer_space.')->group(function () {
         Route::post('/logout', [EmployerAuthController::class, 'logout'])->name('logout');
         Route::get('/dashboard', [EmployerDashboardController::class, 'dashboard'])->name('dashboard');
 
-        // Paiements
         Route::get('/paiements', [EmployerDashboardController::class, 'paiements'])->name('paiements');
         Route::get('/paiements/pdf/{payment}', [EmployerDashboardController::class, 'downloadPaiement'])->name('paiements.pdf');
         Route::get('/paiements/preview/{payment}', [EmployerDashboardController::class, 'previewPaiement'])->name('paiements.preview');
-        // Congés
+
         Route::get('/conges', [EmployerDashboardController::class, 'conges'])->name('conges');
         Route::get('/conges/create', [EmployerDashboardController::class, 'createConge'])->name('conges.create');
         Route::post('/conges/store', [EmployerDashboardController::class, 'storeConge'])->name('conges.store');
@@ -187,17 +184,14 @@ Route::prefix('espace-employe')->name('employer_space.')->group(function () {
         Route::put('/conges/update/{conge}', [EmployerDashboardController::class, 'updateConge'])->name('conges.update');
         Route::delete('/conges/delete/{conge}', [EmployerDashboardController::class, 'deleteConge'])->name('conges.delete');
 
-        // Contrat
         Route::get('/contrat', [EmployerDashboardController::class, 'contrat'])->name('contrat');
 
-        // Pointage
         Route::get('/pointage', [PointageController::class, 'index'])->name('pointage.index');
         Route::post('/pointage/check-in-matin', [PointageController::class, 'checkInMatin'])->name('pointage.check_in_matin');
         Route::post('/pointage/check-out-matin', [PointageController::class, 'checkOutMatin'])->name('pointage.check_out_matin');
         Route::post('/pointage/check-in-apres-midi', [PointageController::class, 'checkInApresMidi'])->name('pointage.check_in_apres_midi');
         Route::post('/pointage/check-out-apres-midi', [PointageController::class, 'checkOutApresMidi'])->name('pointage.check_out_apres_midi');
     });
-
 });
 
 require __DIR__.'/auth.php';

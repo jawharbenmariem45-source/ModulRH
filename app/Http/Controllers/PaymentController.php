@@ -16,9 +16,6 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class PaymentController extends Controller
 {
-    // =========================================================
-    // CONSTANTES FISCALES 2025 (Tunisie)
-    // =========================================================
     const CNSS_TAUX_PLAFO = 0.0918;
     const CNSS_PLAFOND    = 6000;
     const CNSS_MALADIE    = 0.01;
@@ -32,9 +29,7 @@ class PaymentController extends Controller
     private function getHeuresJournee(int $companyId): float
     {
         $regime = Configuration::where('company_id', $companyId)
-            ->where('type', 'REGIME_HORAIRE')
-            ->value('value') ?? '40h';
-
+                                ->value('regime_horaire') ?? '40h';
         return $regime === '48h' ? 9.6 : 8.0;
     }
 
@@ -46,8 +41,7 @@ class PaymentController extends Controller
     private function getRegimeLabel(int $companyId): string
     {
         return Configuration::where('company_id', $companyId)
-            ->where('type', 'REGIME_HORAIRE')
-            ->value('value') ?? '40h';
+                            ->value('regime_horaire') ?? '40h';
     }
 
     // =========================================================
@@ -67,12 +61,10 @@ class PaymentController extends Controller
         $minutesTravail  = 0;
 
         foreach ($attendances as $att) {
-
             if ($att->status === 'absent') {
                 $joursAbsent++;
                 continue;
             }
-
             if ($att->status === 'on_leave') {
                 continue;
             }
@@ -80,13 +72,17 @@ class PaymentController extends Controller
             $minutesJour = 0;
 
             if ($att->check_in_morning_time && $att->check_out_morning_time) {
-                $minutesJour += Carbon::parse($att->check_in_morning_time)
-                    ->diffInMinutes(Carbon::parse($att->check_out_morning_time));
+                try {
+                    $minutesJour += Carbon::parse($att->check_in_morning_time)
+                        ->diffInMinutes(Carbon::parse($att->check_out_morning_time));
+                } catch (\Exception $e) {}
             }
 
             if ($att->check_in_afternoon_time && $att->check_out_afternoon_time) {
-                $minutesJour += Carbon::parse($att->check_in_afternoon_time)
-                    ->diffInMinutes(Carbon::parse($att->check_out_afternoon_time));
+                try {
+                    $minutesJour += Carbon::parse($att->check_in_afternoon_time)
+                        ->diffInMinutes(Carbon::parse($att->check_out_afternoon_time));
+                } catch (\Exception $e) {}
             }
 
             if ($minutesJour > 0) {
@@ -108,7 +104,7 @@ class PaymentController extends Controller
     }
 
     // =========================================================
-    // CONGÉS — statut 'accepte' (pas 'Approuvé')
+    // CONGÉS
     // =========================================================
     private function getConges(Employer $employer, int $mois, int $annee): array
     {
@@ -116,7 +112,7 @@ class PaymentController extends Controller
         $fin   = Carbon::create($annee, $mois, 1)->endOfMonth();
 
         $congesApprouves = Conge::where('employer_id', $employer->id)
-            ->where('statut', 'accepte') // ← corrigé
+            ->where('statut', 'accepte')
             ->where(function ($q) use ($debut, $fin) {
                 $q->whereBetween('date_debut', [$debut, $fin])
                   ->orWhereBetween('date_fin', [$debut, $fin])
@@ -128,19 +124,26 @@ class PaymentController extends Controller
 
         $joursConge = 0;
         foreach ($congesApprouves as $c) {
-            $d = Carbon::parse($c->date_debut)->max($debut);
-            $f = Carbon::parse($c->date_fin)->min($fin);
-            if ($f->gte($d)) {
-                $joursConge += $c->nombre_jours ?? ($d->diffInWeekdays($f) + 1);
-            }
+            try {
+                $d = Carbon::parse($c->date_debut)->max($debut);
+                $f = Carbon::parse($c->date_fin)->min($fin);
+                if ($f->gte($d)) {
+                    $joursConge += $c->nombre_jours ?? ($d->diffInWeekdays($f) + 1);
+                }
+            } catch (\Exception $e) {}
         }
 
-        $dateEmbauche   = Carbon::parse($employer->date_debut ?? $employer->created_at);
-        $moisAnciennete = $dateEmbauche->diffInMonths(Carbon::create($annee, $mois, 1));
-        $soldeAcquis    = $moisAnciennete * self::CONGES_PAR_MOIS;
+        try {
+            $dateEmbauche   = Carbon::parse($employer->date_debut ?? $employer->created_at);
+            $moisAnciennete = $dateEmbauche->diffInMonths(Carbon::create($annee, $mois, 1));
+        } catch (\Exception $e) {
+            $moisAnciennete = 0;
+        }
+
+        $soldeAcquis = $moisAnciennete * self::CONGES_PAR_MOIS;
 
         $totalPris = Conge::where('employer_id', $employer->id)
-            ->where('statut', 'accepte') // ← corrigé
+            ->where('statut', 'accepte')
             ->where('date_fin', '<', $debut)
             ->sum('nombre_jours');
 
@@ -156,7 +159,7 @@ class PaymentController extends Controller
     }
 
     // =========================================================
-    // CNSS salarié
+    // CNSS
     // =========================================================
     private function calculerCNSS(float $brut): float
     {
@@ -166,7 +169,7 @@ class PaymentController extends Controller
     }
 
     // =========================================================
-    // IRPP annuel — barème 2025
+    // IRPP
     // =========================================================
     private function calculerIRPPAnnuel(float $base): float
     {
@@ -213,7 +216,7 @@ class PaymentController extends Controller
         float $primes     = 0,
         float $indemnites = 0
     ): array {
-        $salaireBase = $employer->salaire ?? 0;
+        $salaireBase = floatval($employer->salaire) ?? 0;
         $companyId   = $employer->company_id;
         $regime      = $this->getRegimeLabel($companyId);
 
@@ -299,32 +302,32 @@ class PaymentController extends Controller
     // INDEX
     // =========================================================
     public function index(Request $request)
-{
-    $user         = auth()->user();
-    $isPaymentDay = false;
+    {
+        $user         = auth()->user();
+        $isPaymentDay = false;
 
-    $query = Payment::with('employer');
+        $query = Payment::with('employer');
 
-    if ($user->hasRole('rh')) {
-        $config = Configuration::where('key', 'payment_date')->first();
-        $isPaymentDay = $config
-            ? intval(date('d')) == intval($config->value)
-            : false;
+        if ($user->hasRole('rh')) {
+            $config = Configuration::where('company_id', $user->company_id)->first();
+            $isPaymentDay = $config
+                ? intval(date('d')) == intval($config->payment_date)
+                : false;
+        }
+
+        if ($request->filled('month'))    $query->where('month', $request->month);
+        if ($request->filled('year'))     $query->where('year', $request->year);
+        if ($request->filled('employer')) {
+            $s = $request->employer;
+            $query->whereHas('employer', fn($q) =>
+                $q->where('nom', 'like', "%$s%")->orWhere('prenom', 'like', "%$s%")
+            );
+        }
+
+        $payments = $query->orderBy('id', 'desc')->paginate(10)->withQueryString();
+
+        return view('paiements.index', compact('payments', 'isPaymentDay'));
     }
-
-    if ($request->filled('month'))    $query->where('month', $request->month);
-    if ($request->filled('year'))     $query->where('year', $request->year);
-    if ($request->filled('employer')) {
-        $s = $request->employer;
-        $query->whereHas('employer', fn($q) =>
-            $q->where('nom', 'like', "%$s%")->orWhere('prenom', 'like', "%$s%")
-        );
-    }
-
-    $payments = $query->orderBy('id', 'desc')->paginate(10)->withQueryString();
-
-    return view('paiements.index', compact('payments', 'isPaymentDay'));
-}
 
     // =========================================================
     // INIT PAYMENT
@@ -430,7 +433,7 @@ class PaymentController extends Controller
             $fin     = Carbon::create($payment->year, $moisInt, 1)->endOfMonth();
 
             $conges = Conge::where('employer_id', $payment->employer_id)
-                ->where('statut', 'accepte') // ← corrigé
+                ->where('statut', 'accepte')
                 ->where(function ($q) use ($debut, $fin) {
                     $q->whereBetween('date_debut', [$debut, $fin])
                       ->orWhereBetween('date_fin', [$debut, $fin]);
@@ -458,7 +461,7 @@ class PaymentController extends Controller
             $fin     = Carbon::create($payment->year, $moisInt, 1)->endOfMonth();
 
             $conges = Conge::where('employer_id', $payment->employer_id)
-                ->where('statut', 'accepte') // ← corrigé
+                ->where('statut', 'accepte')
                 ->where(function ($q) use ($debut, $fin) {
                     $q->whereBetween('date_debut', [$debut, $fin])
                       ->orWhereBetween('date_fin', [$debut, $fin]);

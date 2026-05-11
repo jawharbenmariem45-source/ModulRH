@@ -10,17 +10,9 @@ return new class extends Migration
     {
         Schema::create('configurations', function (Blueprint $table) {
             $table->id();
-            $table->string('key')->unique()->nullable(); // ← nullable() ajouté
-            $table->enum('regime_horaire', ['40h', '48h'])->default('40h');
-            $table->enum('type', [
-                'PAYMENT_DATEE',
-                'APP_NAME',
-                'DEVELOPPER_NAME',
-                'ANOTHER',
-                'REGIME_HORAIRE'
-            ])->default('ANOTHER')->comment('table de configuration');
-            $table->string('value');
             $table->foreignId('company_id')->nullable()->constrained('companies')->onDelete('cascade');
+            $table->integer('payment_date')->default(30);
+            $table->enum('regime_horaire', ['40h', '48h'])->default('40h');
             $table->timestamps();
         });
     }

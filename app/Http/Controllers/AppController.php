@@ -14,16 +14,16 @@ use Illuminate\Support\Facades\Auth;
 class AppController extends Controller
 {
     public function index()
-{
-    $user = Auth::user();
+    {
+        $user = Auth::user();
 
-    return match(true) {
-        $user->hasRole('admin')   => $this->dashboardAdmin(),
-        $user->hasRole('rh')      => $this->dashboardRh(),
-        $user->hasRole('manager') => $this->dashboardManager(),
-        default => redirect()->route('login'),
-    };
-}
+        return match(true) {
+            $user->hasRole('admin')   => $this->dashboardAdmin(),
+            $user->hasRole('rh')      => $this->dashboardRh(),
+            $user->hasRole('manager') => $this->dashboardManager(),
+            default => redirect()->route('login'),
+        };
+    }
 
     private function dashboardAdmin()
     {
@@ -46,6 +46,7 @@ class AppController extends Controller
 
     private function dashboardRh()
     {
+        $user           = Auth::user();
         $totalEmployers = Employer::count();
 
         $contratsAlertes = Employer::whereNotNull('date_fin')
@@ -56,19 +57,20 @@ class AppController extends Controller
         $congesEnAttente = Conge::where('statut', 'En attente')->count();
 
         $monthMapping = [
-            'JANUARY' => 'JANVIER', 'FEBRUARY' => 'FEVRIER',
-            'MARCH' => 'MARS', 'APRIL' => 'AVRIL',
-            'MAY' => 'MAI', 'JUNE' => 'JUIN',
-            'JULY' => 'JUILLET', 'AUGUST' => 'AOUT',
-            'SEPTEMBER' => 'SEPTEMBRE', 'OCTOBER' => 'OCTOBRE',
-            'NOVEMBER' => 'NOVEMBRE', 'DECEMBER' => 'DECEMBRE',
+            'JANUARY'   => 'JANVIER',  'FEBRUARY'  => 'FEVRIER',
+            'MARCH'     => 'MARS',     'APRIL'     => 'AVRIL',
+            'MAY'       => 'MAI',      'JUNE'      => 'JUIN',
+            'JULY'      => 'JUILLET',  'AUGUST'    => 'AOUT',
+            'SEPTEMBER' => 'SEPTEMBRE','OCTOBER'   => 'OCTOBRE',
+            'NOVEMBER'  => 'NOVEMBRE', 'DECEMBER'  => 'DECEMBRE',
         ];
-        $currentMonthFrench = $monthMapping[strtoupper(Carbon::now()->format('F'))] ?? '';
+
+        $currentMonthFrench  = $monthMapping[strtoupper(Carbon::now()->format('F'))] ?? '';
         $paiementsMoisActuel = Payment::where('month', $currentMonthFrench)
             ->where('year', Carbon::now()->format('Y'))
             ->count();
 
-        $paymentNotification = $this->getPaymentNotification();
+        $paymentNotification = $this->getPaymentNotification($user->company_id);
 
         return view('dashboard.rh', compact(
             'totalEmployers', 'contratsAlertes',
@@ -90,12 +92,16 @@ class AppController extends Controller
         ));
     }
 
-    private function getPaymentNotification()
+    private function getPaymentNotification(int $companyId = null)
     {
-        $query = Configuration::where('type', 'PAYMENT_DATEE')->first();
-        if (!$query) return '';
+        // ✅ Nouvelle structure — une ligne par company
+        $config = $companyId
+            ? Configuration::where('company_id', $companyId)->first()
+            : null;
 
-        $date        = $query->value;
+        if (!$config) return '';
+
+        $date        = $config->payment_date;
         $currentDate = Carbon::now()->day;
 
         if ($currentDate < intval($date)) {

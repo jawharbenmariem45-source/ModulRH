@@ -11,9 +11,8 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        // Créer les companies ici directement
-        $company1 = Company::updateOrCreate(['name' => 'Entreprise A']);
-        $company2 = Company::updateOrCreate(['name' => 'Entreprise B']);
+        $company1 = Company::where('name', 'SummitRise')->first();
+        
 
         // Admin — pas de company
         $admin = User::updateOrCreate(
@@ -26,7 +25,7 @@ class UserSeeder extends Seeder
         );
         $admin->syncRoles(['admin']);
 
-        // RH — lié à Entreprise A
+        // RH — lié à SummitRise
         $rh = User::updateOrCreate(
             ['email' => 'rh@gmail.com'],
             [
@@ -37,7 +36,7 @@ class UserSeeder extends Seeder
         );
         $rh->syncRoles(['rh']);
 
-        // Manager — lié à Entreprise A
+        // Manager — lié à SummitRise
         $manager = User::updateOrCreate(
             ['email' => 'manager@gmail.com'],
             [
