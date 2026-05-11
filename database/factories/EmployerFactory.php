@@ -7,6 +7,7 @@ use App\Models\Company;
 use App\Models\Departement;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
+use Carbon\Carbon;
 
 class EmployerFactory extends Factory
 {
@@ -20,9 +21,7 @@ class EmployerFactory extends Factory
             ? $this->faker->dateTimeBetween('now', '+2 years')
             : null;
 
-        // ══════════════════════════════════════════════
-        // DATES SALES
-        // ══════════════════════════════════════════════
+        // ── Dates sales ───────────────────────────────────────
         $dateDebutSale = $this->faker->randomElement([
             $dateDebut->format('Y-m-d'),
             $dateDebut->format('d/m/Y'),
@@ -39,9 +38,7 @@ class EmployerFactory extends Factory
             $dateFin->format('d.m.Y'),
         ]) : null;
 
-        // ══════════════════════════════════════════════
-        // SALAIRE SALE
-        // ══════════════════════════════════════════════
+        // ── Salaire sale ──────────────────────────────────────
         $salaireBase = $this->faker->randomFloat(3, 800, 5000);
         $salaireSale = $this->faker->randomElement([
             $salaireBase,
@@ -54,9 +51,7 @@ class EmployerFactory extends Factory
             rand(10000, 99999),
         ]);
 
-        // ══════════════════════════════════════════════
-        // TÉLÉPHONE SALE
-        // ══════════════════════════════════════════════
+        // ── Téléphone sale ────────────────────────────────────
         $telSale = $this->faker->randomElement([
             $this->faker->numerify('2#######'),
             $this->faker->numerify('+216 9#######'),
@@ -66,9 +61,7 @@ class EmployerFactory extends Factory
             null,
         ]);
 
-        // ══════════════════════════════════════════════
-        // CNSS SALE
-        // ══════════════════════════════════════════════
+        // ── CNSS sale ─────────────────────────────────────────
         $cnssSale = $this->faker->randomElement([
             $this->faker->numerify('##########'),
             $this->faker->numerify('#######'),
@@ -77,9 +70,7 @@ class EmployerFactory extends Factory
             null,
         ]);
 
-        // ══════════════════════════════════════════════
-        // EMAIL SALE
-        // ══════════════════════════════════════════════
+        // ── Email sale ────────────────────────────────────────
         $emailSale = $this->faker->randomElement([
             $this->faker->unique()->safeEmail(),
             $this->faker->unique()->safeEmail(),
@@ -88,9 +79,7 @@ class EmployerFactory extends Factory
             $this->faker->unique()->safeEmail() . ' ',
         ]);
 
-        // ══════════════════════════════════════════════
-        // NOM/PRENOM SALE
-        // ══════════════════════════════════════════════
+        // ── Nom / Prénom sale ─────────────────────────────────
         $nomSale = $this->faker->randomElement([
             $this->faker->lastName(),
             strtoupper($this->faker->lastName()),
@@ -108,7 +97,7 @@ class EmployerFactory extends Factory
 
         return [
             'department_id'            => Departement::inRandomOrder()->first()?->id ?? 1,
-            'company_id'               => Company::where('name', 'SummitRise')->first()?->id ?? 1, // ✅ SummitRise uniquement
+            'company_id'               => Company::where('name', 'SummitRise')->first()?->id ?? 1,
             'nom'                      => $nomSale,
             'prenom'                   => $prenomSale,
             'email'                    => $emailSale,
@@ -128,13 +117,57 @@ class EmployerFactory extends Factory
         ];
     }
 
-    // État 'ancien' : employé avec une ancienneté réaliste
+    // ── CDI récent ────────────────────────────────────────────
+    public function cdi(): static
+    {
+        return $this->state([
+            'type_contrat' => 'CDI',
+            'date_debut'   => Carbon::now()->subMonths(rand(1, 24))->startOfMonth()->toDateString(),
+            'date_fin'     => null,
+        ]);
+    }
+
+    // ── CDI ancien (3 à 10 ans) ───────────────────────────────
     public function ancien(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'date_debut'   => $this->faker->dateTimeBetween('-5 years', '-1 year')->format('Y-m-d'),
-            'date_fin'     => null,
+        return $this->state([
             'type_contrat' => 'CDI',
+            'date_debut'   => Carbon::now()->subYears(rand(3, 10))->startOfMonth()->toDateString(),
+            'date_fin'     => null,
+        ]);
+    }
+
+    // ── CDD ───────────────────────────────────────────────────
+    public function cdd(): static
+    {
+        $dateDebut = Carbon::now()->subMonths(rand(1, 12))->startOfMonth();
+        return $this->state([
+            'type_contrat' => 'CDD',
+            'date_debut'   => $dateDebut->toDateString(),
+            'date_fin'     => $dateDebut->copy()->addMonths(rand(6, 24))->toDateString(),
+        ]);
+    }
+
+    // ── CIVP ──────────────────────────────────────────────────
+    public function civp(): static
+    {
+        $dateDebut = Carbon::now()->subMonths(rand(1, 6))->startOfMonth();
+        return $this->state([
+            'type_contrat' => 'CIVP',
+            'date_debut'   => $dateDebut->toDateString(),
+            'date_fin'     => $dateDebut->copy()->addMonths(rand(6, 12))->toDateString(),
+            'cnss'         => null,
+        ]);
+    }
+
+    // ── Karama ────────────────────────────────────────────────
+    public function karama(): static
+    {
+        $dateDebut = Carbon::now()->subMonths(rand(1, 6))->startOfMonth();
+        return $this->state([
+            'type_contrat' => 'Karama',
+            'date_debut'   => $dateDebut->toDateString(),
+            'date_fin'     => $dateDebut->copy()->addMonths(rand(6, 12))->toDateString(),
         ]);
     }
 }

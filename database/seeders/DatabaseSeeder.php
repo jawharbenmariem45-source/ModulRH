@@ -19,7 +19,7 @@ class DatabaseSeeder extends Seeder
     // 1 = Petite entreprise  (10-49 employés)
     // 2 = Moyenne entreprise (200-249 employés)
     // ══════════════════════════════════════════════
-    private int $palierIndex = 0;
+    private int $palierIndex = 2;
 
     public function run(): void
     {
@@ -137,19 +137,34 @@ class DatabaseSeeder extends Seeder
         $this->command->line("  Données sales : 100%");
         $this->command->line('══════════════════════════════════════════════');
 
-        $this->command->warn("-> Création de {$nombreEmployes} employés...");
+        // ── Distribution réaliste des contrats ────────────────
+        $nbCDI     = (int) round($nombreEmployes * 0.55);
+        $nbCDD     = (int) round($nombreEmployes * 0.25);
+        $nbCIVP    = (int) round($nombreEmployes * 0.12);
+        $nbKarama  = max(0, $nombreEmployes - $nbCDI - $nbCDD - $nbCIVP);
+        $nbAnciens = (int) round($nbCDI * 0.30);
+        $nbRecents = $nbCDI - $nbAnciens;
 
-        $employers = Employer::factory()
-            ->count($nombreEmployes)
-            ->ancien()
-            ->create();
+        $this->command->warn("-> Création de {$nombreEmployes} employés...");
+        $this->command->line("  CDI anciens : {$nbAnciens}");
+        $this->command->line("  CDI récents : {$nbRecents}");
+        $this->command->line("  CDD         : {$nbCDD}");
+        $this->command->line("  CIVP        : {$nbCIVP}");
+        $this->command->line("  Karama      : {$nbKarama}");
+
+        $employers = collect()
+            ->merge(Employer::factory($nbAnciens)->ancien()->create())
+            ->merge(Employer::factory($nbRecents)->cdi()->create())
+            ->merge(Employer::factory($nbCDD)->cdd()->create())
+            ->merge(Employer::factory($nbCIVP)->civp()->create())
+            ->merge(Employer::factory($nbKarama)->karama()->create());
 
         $this->command->info("✓ {$nombreEmployes} employés créés.");
         $this->command->warn("-> Génération des données liées ({$moisHistorique} mois d'historique)...");
 
         foreach ($employers as $employer) {
 
-            // -- Salaires --
+            // ── Salaires ──────────────────────────────────────
             try {
                 for ($m = 0; $m < $moisHistorique; $m++) {
                     $date = Carbon::now()->subMonths($m);
@@ -164,7 +179,7 @@ class DatabaseSeeder extends Seeder
                 $this->command->error('Salaire: ' . $e->getMessage());
             }
 
-            // -- Paiements --
+            // ── Paiements ─────────────────────────────────────
             try {
                 for ($m = 0; $m < $moisHistorique; $m++) {
                     $date  = Carbon::now()->subMonths($m);
@@ -181,7 +196,7 @@ class DatabaseSeeder extends Seeder
                 $this->command->error('Payment: ' . $e->getMessage());
             }
 
-            // -- Congés --
+            // ── Congés ────────────────────────────────────────
             try {
                 Conge::factory()
                     ->count(rand(1, 4))
@@ -190,7 +205,7 @@ class DatabaseSeeder extends Seeder
                 $this->command->error('Conge: ' . $e->getMessage());
             }
 
-            // -- Pointages --
+            // ── Pointages ─────────────────────────────────────
             try {
                 $debut = Carbon::now()->subMonths($moisHistorique);
                 $fin   = Carbon::now();
