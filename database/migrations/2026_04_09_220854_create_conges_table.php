@@ -12,11 +12,12 @@ return new class extends Migration
             $table->id();
             $table->foreignId('employer_id')->constrained('employers')->onDelete('cascade');
             $table->string('type')->nullable();
-            $table->string('date_debut')->nullable(); // ✅ string pour formats sales
-            $table->string('date_fin')->nullable();   // ✅ string pour formats sales
-            $table->string('nombre_jours')->nullable();// ✅ string pour valeurs sales
+            $table->string('date_debut')->nullable();
+            $table->string('date_fin')->nullable();
+            $table->string('nombre_jours')->nullable();
             $table->string('motif')->nullable();
-            $table->string('statut')->nullable();     // ✅ string pour statuts sales
+            $table->string('document')->nullable(); // ← justificatif (PDF/image)
+            $table->string('statut')->nullable();
             $table->text('commentaire')->nullable();
             $table->timestamps();
         });

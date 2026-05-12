@@ -9,17 +9,17 @@ class Conge extends Model
 {
     use HasFactory;
 
-    
     protected $fillable = [
-    'employer_id', 
-    'type', 
-    'date_debut', 
-    'date_fin', 
-    'statut', 
-    'commentaire',
-    'motif',        
-    'nombre_jours', 
-];
+        'employer_id',
+        'type',
+        'date_debut',
+        'date_fin',
+        'statut',
+        'commentaire',
+        'motif',
+        'nombre_jours',
+        'document',     
+    ];
 
     public function employer()
     {

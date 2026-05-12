@@ -118,9 +118,9 @@ class DatabaseSeeder extends Seeder
         // 3. GÉNÉRATION DYNAMIQUE PAR PALIER
         // ══════════════════════════════════════════════
         $paliers = [
-            ['min' => 1,   'max' => 9,   'mois' => 6,  'label' => 'Micro entreprise (1-9 employés)'],
-            ['min' => 10,  'max' => 49,  'mois' => 12, 'label' => 'Petite entreprise (10-49 employés)'],
-            ['min' => 200, 'max' => 249, 'mois' => 60, 'label' => 'Moyenne entreprise (200-249 employés)'],
+            ['min' => 1,   'max' => 9,   'mois' => 13,  'label' => 'Micro entreprise (1-9 employés)'],
+            ['min' => 10,  'max' => 49,  'mois' => 13, 'label' => 'Petite entreprise (10-49 employés)'],
+            ['min' => 200, 'max' => 249, 'mois' => 13, 'label' => 'Moyenne entreprise (200-249 employés)'],
         ];
 
         $palierChoisi   = $paliers[$this->palierIndex];

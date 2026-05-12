@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use App\Models\Configuration;
 use Illuminate\Http\Request;
 use App\Models\Conge;
@@ -22,16 +23,19 @@ class EmployerDashboardController extends Controller
             return 12;
         }
 
-        $dateDebut      = Carbon::parse($employer->date_debut);
-        $anciennete     = $dateDebut->diffInYears(Carbon::now());
-        $moisTravailles = (int) $dateDebut->diffInMonths(Carbon::now());
+        try {
+            $dateDebut      = Carbon::parse($employer->date_debut);
+            $anciennete     = $dateDebut->diffInYears(Carbon::now());
+            $moisTravailles = (int) $dateDebut->diffInMonths(Carbon::now());
+        } catch (\Exception $e) {
+            return 12;
+        }
 
         if ($moisTravailles < 1) {
             $moisTravailles = 1;
         }
 
         switch ($employer->type_contrat) {
-
             case 'CDI':
                 if ($anciennete < 1) {
                     return min($moisTravailles, 12);
@@ -51,11 +55,7 @@ class EmployerDashboardController extends Controller
                 return min($moisTravailles, 12);
 
             case 'CIVP':
-                return min($moisTravailles, 12);
-
             case 'Karama':
-                return min($moisTravailles, 12);
-
             default:
                 return min($moisTravailles, 12);
         }
@@ -69,10 +69,15 @@ class EmployerDashboardController extends Controller
         $joursAccordes = $this->calculerJoursConges($employer);
         $conges        = $employer->conges()->get();
 
-        $congesPris = $conges->where('statut', 'accepte')->sum(function($conge) {
-            return Carbon::parse($conge->date_debut)
-                         ->diffInDays(Carbon::parse($conge->date_fin)) + 1;
-        });
+        $congesPris = $conges->whereIn('statut', ['accepte', 'Approuvé', 'approuvé'])
+                             ->sum(function ($conge) {
+                                 try {
+                                     return Carbon::parse($conge->date_debut)
+                                                  ->diffInDays(Carbon::parse($conge->date_fin)) + 1;
+                                 } catch (\Exception $e) {
+                                     return 0;
+                                 }
+                             });
 
         $solde = $joursAccordes - $congesPris;
 
@@ -97,42 +102,42 @@ class EmployerDashboardController extends Controller
     // DASHBOARD
     // =============================================
     public function dashboard()
-{
-    $employer = auth('employer')->user();
+    {
+        $employer = auth('employer')->user();
 
-    if ($employer->type_contrat === 'CDI') {
-        $contrat = true;
-    } elseif ($employer->type_contrat && $employer->date_fin) {
-        try {
-            $contrat = Carbon::parse($employer->date_fin)->isFuture();
-        } catch (\Exception $e) {
+        if ($employer->type_contrat === 'CDI') {
             $contrat = true;
+        } elseif ($employer->type_contrat && $employer->date_fin) {
+            try {
+                $contrat = Carbon::parse($employer->date_fin)->isFuture();
+            } catch (\Exception $e) {
+                $contrat = true;
+            }
+        } else {
+            $contrat = $employer->type_contrat ? true : false;
         }
-    } else {
-        $contrat = $employer->type_contrat ? true : false;
+
+        $congesEnAttente = $employer->conges()
+            ->whereIn('statut', ['en_attente', 'En attente', 'en attente'])
+            ->count();
+
+        $congesApprouves = $employer->conges()
+            ->whereIn('statut', ['accepte', 'Approuvé', 'approuvé', 'APPROUVE', 'Approuve'])
+            ->count();
+
+        $totalPaiements   = $employer->payments()->count();
+        $dernierConges    = $employer->conges()->latest()->take(5)->get();
+        $dernierPaiements = $employer->payments()->latest()->take(5)->get();
+
+        return view('dashboard.employer', compact(
+            'contrat',
+            'congesEnAttente',
+            'congesApprouves',
+            'totalPaiements',
+            'dernierConges',
+            'dernierPaiements'
+        ));
     }
-
-    $congesEnAttente = $employer->conges()
-        ->whereIn('statut', ['en_attente', 'En attente', 'en attente'])
-        ->count();
-
-    $congesApprouves = $employer->conges()
-        ->whereIn('statut', ['accepte', 'Approuvé', 'approuvé', 'APPROUVE', 'Approuve'])
-        ->count();
-
-    $totalPaiements   = $employer->payments()->count();
-    $dernierConges    = $employer->conges()->latest()->take(5)->get();
-    $dernierPaiements = $employer->payments()->latest()->take(5)->get();
-
-    return view('dashboard.employer', compact(
-        'contrat',
-        'congesEnAttente',
-        'congesApprouves',
-        'totalPaiements',
-        'dernierConges',
-        'dernierPaiements'
-    ));
-}
 
     // =============================================
     // CONTRAT (lecture seule)
@@ -146,10 +151,14 @@ class EmployerDashboardController extends Controller
         if ($employer->type_contrat === 'CDI') {
             $statut = 'Actif';
         } elseif ($employer->date_fin) {
-            $jours = Carbon::today()->diffInDays(Carbon::parse($employer->date_fin), false);
-            if ($jours < 0)       $statut = 'Expiré';
-            elseif ($jours <= 30) $statut = 'Expire bientôt';
-            else                  $statut = 'Actif';
+            try {
+                $jours = Carbon::today()->diffInDays(Carbon::parse($employer->date_fin), false);
+                if ($jours < 0)       $statut = 'Expiré';
+                elseif ($jours <= 30) $statut = 'Expire bientôt';
+                else                  $statut = 'Actif';
+            } catch (\Exception $e) {
+                $statut = 'Actif';
+            }
         }
 
         return view('employers.contracts', compact('employer', 'jours', 'statut'));
@@ -159,27 +168,27 @@ class EmployerDashboardController extends Controller
     // PAIEMENTS
     // =============================================
     public function paiements(Request $request)
-{
-    $employer = auth('employer')->user();
+    {
+        $employer = auth('employer')->user();
 
-    $configs            = Configuration::where('company_id', $employer->company_id)->get();
-    $defaultPaymentDate = $configs->firstWhere('type', 'PAYMENT_DATEE')?->value ?? null;
-    $isPaymentDay       = intval(date('d')) == intval($defaultPaymentDate);
+        $configs            = Configuration::where('company_id', $employer->company_id)->get();
+        $defaultPaymentDate = $configs->firstWhere('type', 'PAYMENT_DATEE')?->value ?? null;
+        $isPaymentDay       = intval(date('d')) == intval($defaultPaymentDate);
 
-    $query = Payment::where('employer_id', $employer->id);
+        $query = Payment::where('employer_id', $employer->id);
 
-    if ($request->filled('month')) {
-        $query->where('month', strtoupper($request->month));
+        if ($request->filled('month')) {
+            $query->where('month', strtoupper($request->month));
+        }
+
+        if ($request->filled('year')) {
+            $query->where('year', $request->year);
+        }
+
+        $payments = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
+
+        return view('employers.paiements', compact('payments', 'isPaymentDay'));
     }
-
-    if ($request->filled('year')) {
-        $query->where('year', $request->year);
-    }
-
-    $payments = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
-
-    return view('employers.paiements', compact('payments', 'isPaymentDay'));
-}
 
     // =============================================
     // DOWNLOAD PAIEMENT
@@ -198,7 +207,7 @@ class EmployerDashboardController extends Controller
         $fin     = Carbon::create($fullPaymentInfo->year, $moisInt, 1)->endOfMonth();
 
         $conges = Conge::where('employer_id', $employer->id)
-            ->where('statut', 'accepte')
+            ->whereIn('statut', ['accepte', 'Approuvé', 'approuvé'])
             ->where(function ($q) use ($debut, $fin) {
                 $q->whereBetween('date_debut', [$debut, $fin])
                   ->orWhereBetween('date_fin', [$debut, $fin]);
@@ -225,7 +234,7 @@ class EmployerDashboardController extends Controller
         $fin     = Carbon::create($fullPaymentInfo->year, $moisInt, 1)->endOfMonth();
 
         $conges = Conge::where('employer_id', $employer->id)
-            ->where('statut', 'accepte')
+            ->whereIn('statut', ['accepte', 'Approuvé', 'approuvé'])
             ->where(function ($q) use ($debut, $fin) {
                 $q->whereBetween('date_debut', [$debut, $fin])
                   ->orWhereBetween('date_fin', [$debut, $fin]);
@@ -236,7 +245,7 @@ class EmployerDashboardController extends Controller
     }
 
     // =============================================
-    // CONGÉS
+    // CONGÉS — liste
     // =============================================
     public function conges()
     {
@@ -258,33 +267,30 @@ class EmployerDashboardController extends Controller
         ));
     }
 
+    // =============================================
+    // CONGÉS — create (plus utilisé - modal)
+    // =============================================
     public function createConge()
     {
-        $employer = auth('employer')->user();
-
-        [
-            'joursAccordes' => $joursAccordes,
-            'congesPris'    => $congesPris,
-            'solde'         => $solde,
-        ] = $this->getSoldeConges($employer);
-
-        return view('employers.conges_create', compact('joursAccordes', 'congesPris', 'solde'));
+        return redirect()->route('employer_space.conges');
     }
 
+    // =============================================
+    // CONGÉS — store avec upload document
+    // =============================================
     public function storeConge(Request $request)
     {
         $request->validate([
-            'date_debut'  => 'required|date|after_or_equal:today',
-            'date_fin'    => 'required|date|after:date_debut',
-            'type'        => 'required',
-            'motif'       => 'nullable|string|max:500',
+            'date_debut' => 'required|date|after_or_equal:today',
+            'date_fin'   => 'required|date|after:date_debut',
+            'type'       => 'required|in:Congé Annuel,Maladie,Maternité,Sans solde',
+            'motif'      => 'nullable|string|max:500',
+            'document'   => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
         ]);
 
         $employer = auth('employer')->user();
 
-        [
-            'solde' => $solde,
-        ] = $this->getSoldeConges($employer);
+        ['solde' => $solde] = $this->getSoldeConges($employer);
 
         $jours = Carbon::parse($request->date_debut)
                        ->diffInDays(Carbon::parse($request->date_fin)) + 1;
@@ -295,6 +301,13 @@ class EmployerDashboardController extends Controller
                 ->with('error', "Vous ne pouvez pas demander $jours jour(s). Il vous reste seulement $solde jour(s) de congé.");
         }
 
+        // Upload document justificatif
+        $documentPath = null;
+        if ($request->hasFile('document')) {
+            $documentPath = $request->file('document')
+                                    ->store('conges/documents', 'public');
+        }
+
         Conge::create([
             'employer_id'  => $employer->id,
             'date_debut'   => $request->date_debut,
@@ -302,6 +315,7 @@ class EmployerDashboardController extends Controller
             'nombre_jours' => $jours,
             'type'         => $request->type,
             'motif'        => $request->motif,
+            'document'     => $documentPath,
             'statut'       => 'en_attente',
         ]);
 
@@ -309,9 +323,13 @@ class EmployerDashboardController extends Controller
             ->with('success', 'Demande soumise avec succès !');
     }
 
+    // =============================================
+    // CONGÉS — edit
+    // =============================================
     public function editConge(Conge $conge)
     {
         $employer = auth('employer')->user();
+
         if ($conge->employer_id !== $employer->id || $conge->statut !== 'en_attente') {
             return redirect()->route('employer_space.conges')
                 ->with('error', 'Modification impossible.');
@@ -326,9 +344,13 @@ class EmployerDashboardController extends Controller
         return view('employers.conge_edit', compact('conge', 'joursAccordes', 'congesPris', 'solde'));
     }
 
+    // =============================================
+    // CONGÉS — update avec upload document
+    // =============================================
     public function updateConge(Request $request, Conge $conge)
     {
         $employer = auth('employer')->user();
+
         if ($conge->employer_id !== $employer->id || $conge->statut !== 'en_attente') {
             return redirect()->route('employer_space.conges');
         }
@@ -338,6 +360,7 @@ class EmployerDashboardController extends Controller
             'date_fin'   => 'required|date|after:date_debut',
             'type'       => 'required|in:Congé Annuel,Maladie,Maternité,Sans solde',
             'motif'      => 'nullable|string|max:500',
+            'document'   => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
         ]);
 
         ['solde' => $solde] = $this->getSoldeConges($employer);
@@ -351,18 +374,32 @@ class EmployerDashboardController extends Controller
                 ->with('error', "Vous ne pouvez pas demander $jours jour(s). Il vous reste seulement $solde jour(s) de congé.");
         }
 
+        // Upload nouveau document
+        $documentPath = $conge->document;
+        if ($request->hasFile('document')) {
+            if ($conge->document) {
+                Storage::disk('public')->delete($conge->document);
+            }
+            $documentPath = $request->file('document')
+                                    ->store('conges/documents', 'public');
+        }
+
         $conge->update([
             'date_debut'   => $request->date_debut,
             'date_fin'     => $request->date_fin,
             'nombre_jours' => $jours,
             'type'         => $request->type,
             'motif'        => $request->motif,
+            'document'     => $documentPath,
         ]);
 
         return redirect()->route('employer_space.conges')
             ->with('success', 'Demande modifiée avec succès !');
     }
 
+    // =============================================
+    // CONGÉS — delete
+    // =============================================
     public function deleteConge(Conge $conge)
     {
         $employer = auth('employer')->user();
@@ -370,6 +407,10 @@ class EmployerDashboardController extends Controller
         if ($conge->employer_id !== $employer->id || $conge->statut !== 'en_attente') {
             return redirect()->route('employer_space.conges')
                 ->with('error', 'Suppression impossible.');
+        }
+
+        if ($conge->document) {
+            Storage::disk('public')->delete($conge->document);
         }
 
         $conge->delete();
