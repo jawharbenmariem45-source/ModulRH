@@ -19,7 +19,7 @@ class DatabaseSeeder extends Seeder
     // 1 = Petite entreprise  (10-49 employés)
     // 2 = Moyenne entreprise (200-249 employés)
     // ══════════════════════════════════════════════
-    private int $palierIndex = 2;
+    private int $palierIndex = 1;
 
     public function run(): void
     {
