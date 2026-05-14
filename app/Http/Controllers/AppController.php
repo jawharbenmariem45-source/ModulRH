@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Configuration;
+use App\Models\Company;
 use App\Models\Departement;
 use App\Models\Employer;
 use App\Models\User;
@@ -32,9 +32,9 @@ class AppController extends Controller
         $totalAdministrateurs = User::count();
         $paymentNotification  = $this->getPaymentNotification();
 
-        $contratsAlertes = Employer::whereNotNull('date_fin')
-            ->whereDate('date_fin', '>=', Carbon::today())
-            ->whereDate('date_fin', '<=', Carbon::today()->addDays(7))
+        $contratsAlertes = Employer::whereNotNull('end_date')
+            ->whereDate('end_date', '>=', Carbon::today())
+            ->whereDate('end_date', '<=', Carbon::today()->addDays(7))
             ->count();
 
         return view('dashboard.admin', compact(
@@ -49,12 +49,12 @@ class AppController extends Controller
         $user           = Auth::user();
         $totalEmployers = Employer::count();
 
-        $contratsAlertes = Employer::whereNotNull('date_fin')
-            ->whereDate('date_fin', '>=', Carbon::today())
-            ->whereDate('date_fin', '<=', Carbon::today()->addDays(30))
+        $contratsAlertes = Employer::whereNotNull('end_date')
+            ->whereDate('end_date', '>=', Carbon::today())
+            ->whereDate('end_date', '<=', Carbon::today()->addDays(30))
             ->count();
 
-        $congesEnAttente = Conge::where('statut', 'En attente')->count();
+        $congesEnAttente = Conge::where('status', 'En attente')->count();
 
         $monthMapping = [
             'JANUARY'   => 'JANVIER',  'FEBRUARY'  => 'FEVRIER',
@@ -81,9 +81,9 @@ class AppController extends Controller
 
     private function dashboardManager()
     {
-        $congesEnAttente = Conge::where('statut', 'En attente')->count();
-        $congesApprouves = Conge::where('statut', 'Approuvé')->count();
-        $congesRefuses   = Conge::where('statut', 'Refusé')->count();
+        $congesEnAttente = Conge::where('status', 'En attente')->count();
+        $congesApprouves = Conge::where('status', 'Approuvé')->count();
+        $congesRefuses   = Conge::where('status', 'Refusé')->count();
         $totalEmployers  = Employer::count();
 
         return view('dashboard.manager', compact(
@@ -94,14 +94,11 @@ class AppController extends Controller
 
     private function getPaymentNotification(int $companyId = null)
     {
-        // ✅ Nouvelle structure — une ligne par company
-        $config = $companyId
-            ? Configuration::where('company_id', $companyId)->first()
-            : null;
+        $company = $companyId ? Company::find($companyId) : null;
 
-        if (!$config) return '';
+        if (!$company) return '';
 
-        $date        = $config->payment_date;
+        $date        = $company->payment_date;
         $currentDate = Carbon::now()->day;
 
         if ($currentDate < intval($date)) {

@@ -5,7 +5,7 @@
     <h1 class="app-page-title">Mon Contrat</h1>
     <hr class="mb-4">
 
-    @if(!$employer->type_contrat)
+    @if(!$employer->contract_type)
     <div class="alert alert-warning">
         Aucun contrat actif pour le moment.
     </div>
@@ -15,11 +15,11 @@
     {{-- Alerte expiration --}}
     @if($jours !== null && $jours <= 30 && $jours >= 0)
     <div class="alert alert-warning">
-        ⚠️ Votre contrat expire dans <strong>{{ $jours }} jour(s)</strong> !
+         Votre contrat expire dans <strong>{{ $jours }} jour(s)</strong> !
     </div>
     @elseif($jours !== null && $jours < 0)
     <div class="alert alert-danger">
-        ❌ Votre contrat est <strong>expiré</strong> !
+         Votre contrat est <strong>expiré</strong> !
     </div>
     @endif
 
@@ -32,7 +32,7 @@
                 <table class="table table-borderless">
                     <tr>
                         <td class="text-muted">Nom complet</td>
-                        <td><strong>{{ $employer->nom }} {{ $employer->prenom }}</strong></td>
+                        <td><strong>{{ $employer->last_name }} {{ $employer->first_name }}</strong></td>
                     </tr>
                     <tr>
                         <td class="text-muted">Email</td>
@@ -40,7 +40,7 @@
                     </tr>
                     <tr>
                         <td class="text-muted">Téléphone</td>
-                        <td>{{ $employer->numero_telephone ?? '-' }}</td>
+                        <td>{{ $employer->phone ?? '-' }}</td>
                     </tr>
                     <tr>
                         <td class="text-muted">Département</td>
@@ -63,18 +63,18 @@
                         <td class="text-muted">Type</td>
                         <td>
                             <span class="badge" style="background:#19a891; color:white">
-                                {{ $employer->type_contrat }}
+                                {{ $employer->contract_type }}
                             </span>
                         </td>
                     </tr>
                     <tr>
                         <td class="text-muted">Date début</td>
-                        <td>{{ $employer->date_debut ? \Carbon\Carbon::parse($employer->date_debut)->format('d/m/Y') : '-' }}</td>
+                        <td>{{ $employer->start_date ? \Carbon\Carbon::parse($employer->start_date)->format('d/m/Y') : '-' }}</td>
                     </tr>
                     <tr>
                         <td class="text-muted">Date fin</td>
                         <td>
-                            {{ $employer->date_fin ? \Carbon\Carbon::parse($employer->date_fin)->format('d/m/Y') : 'CDI — Indéterminée' }}
+                            {{ $employer->end_date ? \Carbon\Carbon::parse($employer->end_date)->format('d/m/Y') : 'CDI — Indéterminée' }}
                         </td>
                     </tr>
                     <tr>

@@ -81,7 +81,7 @@
                     @forelse($payments as $payment)
                     <tr>
                         <td>{{ $payment->reference }}</td>
-                        <td>{{ $payment->employer->nom }} {{ $payment->employer->prenom }}</td>
+                        <td>{{ $payment->employer->last_name }} {{ $payment->employer->first_name }}</td>
                         <td>{{ $payment->amount }} DT</td>
                         <td>{{ date('d-m-Y', strtotime($payment->done_time)) }}</td>
                         <td>{{ $payment->month }}</td>

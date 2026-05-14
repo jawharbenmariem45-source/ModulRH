@@ -6,7 +6,7 @@
 
 <div class="row g-4">
     <div class="col-12 col-md-4">
-        <h3 class="section-title">{{ $employer->nom }} {{ $employer->prenom }}</h3>
+        <h3 class="section-title">{{ $employer->last_name }} {{ $employer->first_name }}</h3>
         <div class="section-intro">Modifier les informations du contrat</div>
     </div>
     <div class="col-12 col-md-8">
@@ -21,7 +21,7 @@
                             <label class="form-label">Type de contrat</label>
                             <select name="type_contrat" class="form-control">
                                 @foreach(['CDI','CDD','CIVP','Karama'] as $type)
-                                <option value="{{ $type }}" {{ $employer->type_contrat == $type ? 'selected' : '' }}>
+                                <option value="{{ $type }}" {{ $employer->contract_type == $type ? 'selected' : '' }}>
                                     {{ $type }}
                                 </option>
                                 @endforeach
@@ -44,12 +44,12 @@
                         <div class="col-md-6">
                             <label class="form-label">Date de début</label>
                             <input type="date" name="date_debut" class="form-control"
-                                value="{{ old('date_debut', $employer->date_debut) }}">
+                                value="{{ old('date_debut', $employer->start_date) }}">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Date de fin <small class="text-muted">(optionnel)</small></label>
                             <input type="date" name="date_fin" class="form-control"
-                                value="{{ old('date_fin', $employer->date_fin) }}">
+                                value="{{ old('date_fin', $employer->end_date) }}">
                         </div>
                     </div>
 

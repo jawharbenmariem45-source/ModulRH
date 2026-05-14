@@ -14,20 +14,20 @@
 
                     <div class="mb-3">
                         <label class="form-label">Date début</label>
-                        <input type="date" id="date_debut" name="date_debut" class="form-control"
-                            value="{{ old('date_debut', $conge->date_debut) }}" required
+                        <input type="date" id="start_date" name="start_date" class="form-control"
+                            value="{{ old('start_date', $conge->start_date) }}" required
                             min="{{ date('Y-m-d') }}">
-                        @error('date_debut')
+                        @error('start_date')
                             <div class="text-danger small">{{ $message }}</div>
                         @enderror
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Date fin</label>
-                        <input type="date" id="date_fin" name="date_fin" class="form-control"
-                            value="{{ old('date_fin', $conge->date_fin) }}" required
-                            min="{{ old('date_debut', $conge->date_debut) }}">
-                        @error('date_fin')
+                        <input type="date" id="end_date" name="end_date" class="form-control"
+                            value="{{ old('end_date', $conge->end_date) }}" required
+                            min="{{ old('start_date', $conge->start_date) }}">
+                        @error('end_date')
                             <div class="text-danger small">{{ $message }}</div>
                         @enderror
                     </div>
@@ -48,8 +48,8 @@
 
                     <div class="mb-3">
                         <label class="form-label">Motif</label>
-                        <textarea name="motif" class="form-control" rows="3">{{ old('motif', $conge->motif) }}</textarea>
-                        @error('motif')
+                        <textarea name="reason" class="form-control" rows="3">{{ old('reason', $conge->reason) }}</textarea>
+                        @error('reason')
                             <div class="text-danger small">{{ $message }}</div>
                         @enderror
                     </div>
@@ -63,8 +63,8 @@
 </div>
 
 <script>
-    const dateDebut = document.getElementById('date_debut');
-    const dateFin = document.getElementById('date_fin');
+    const dateDebut = document.getElementById('start_date');
+    const dateFin = document.getElementById('end_date');
 
     dateDebut.addEventListener('change', function() {
         if (this.value) {

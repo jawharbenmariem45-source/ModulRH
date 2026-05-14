@@ -32,13 +32,11 @@ class DepartementController extends Controller
             $departement->name = $request->name;
             $departement->save();
 
-            return redirect()
-                ->route('departement.index')
+            return redirect()->route('departement.index')
                 ->with('success_message', 'Département enregistré');
 
         } catch (Exception $e) {
-            return redirect()
-                ->route('departement.index')
+            return redirect()->route('departement.index')
                 ->with('error_message', 'Erreur : ' . $e->getMessage());
         }
     }
@@ -49,13 +47,11 @@ class DepartementController extends Controller
             $departement->name = $request->name;
             $departement->save();
 
-            return redirect()
-                ->route('departement.index')
+            return redirect()->route('departement.index')
                 ->with('success_message', 'Département mis à jour');
 
         } catch (Exception $e) {
-            return redirect()
-                ->route('departement.index')
+            return redirect()->route('departement.index')
                 ->with('error_message', 'Erreur : ' . $e->getMessage());
         }
     }
@@ -64,7 +60,6 @@ class DepartementController extends Controller
     {
         try {
             foreach ($departement->employers as $employer) {
-                $employer->salaires()->delete();
                 $employer->payments()->delete();
                 $employer->conges()->delete();
                 $employer->attendances()->delete();
@@ -74,13 +69,11 @@ class DepartementController extends Controller
 
             $departement->delete();
 
-            return redirect()
-                ->route('departement.index')
+            return redirect()->route('departement.index')
                 ->with('success_message', 'Département supprimé');
 
         } catch (Exception $e) {
-            return redirect()
-                ->route('departement.index')
+            return redirect()->route('departement.index')
                 ->with('error_message', 'Erreur : ' . $e->getMessage());
         }
     }

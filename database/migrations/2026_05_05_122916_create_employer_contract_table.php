@@ -17,8 +17,8 @@ return new class extends Migration
                 $table->foreignId('contract_id')
                       ->constrained('contracts')
                       ->onDelete('cascade');
-                $table->string('start_date')->nullable(); // ✅ string pour formats sales
-                $table->string('end_date')->nullable();   // ✅ string pour formats sales
+                $table->string('start_date')->nullable();
+                $table->string('end_date')->nullable();
                 $table->timestamps();
             });
         }

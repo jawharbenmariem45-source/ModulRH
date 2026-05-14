@@ -12,9 +12,8 @@ class AttendanceSeeder extends Seeder
     public function run(): void
     {
         DB::table('attendances')->truncate();
-        DB::table('conges')->where('statut', 'Approuvé')->delete();
+        DB::table('leaves')->where('status', 'Approuvé')->delete();
 
-        // Récupère les employés par email (IDs dynamiques)
         $employers = [
             'cdd'    => Employer::where('email', 'employer@gmail.com')->first(),
             'cdi'    => Employer::where('email', 'ahmed.ben.ali@gmail.com')->first(),
@@ -34,7 +33,9 @@ class AttendanceSeeder extends Seeder
             $this->genererPointage($employer->id, $type, $mois, $annee);
             $this->genererConge($employer->id, $type, $mois, $annee);
 
-            $this->command->info("✓ Pointage + congé généré pour {$employer->prenom} {$employer->nom} ($type)");
+            $this->command->info(
+                "✓ Pointage + congé généré pour {$employer->first_name} {$employer->last_name} ($type)"
+            );
         }
     }
 
@@ -46,13 +47,12 @@ class AttendanceSeeder extends Seeder
         $debut = Carbon::create($annee, $mois, 1)->startOfMonth();
         $fin   = Carbon::create($annee, $mois, 1)->endOfMonth();
 
-        // Jours spéciaux par profil
         $config = match($profil) {
-            'cdd'    => ['absences' => [8],         'conges' => [20, 21],     'retards' => [3, 14],    'hs' => true],
-            'cdi'    => ['absences' => [12],        'conges' => [19, 20, 21], 'retards' => [5],        'hs' => true],
-            'civp'   => ['absences' => [7, 15],     'conges' => [22],         'retards' => [2, 9, 16], 'hs' => false],
-            'karama' => ['absences' => [10],        'conges' => [26, 27],     'retards' => [4],        'hs' => true],
-            default  => ['absences' => [],          'conges' => [],           'retards' => [],         'hs' => false],
+            'cdd'    => ['absences' => [8],     'conges' => [20, 21],     'retards' => [3, 14],    'hs' => true],
+            'cdi'    => ['absences' => [12],    'conges' => [19, 20, 21], 'retards' => [5],        'hs' => true],
+            'civp'   => ['absences' => [7, 15], 'conges' => [22],         'retards' => [2, 9, 16], 'hs' => false],
+            'karama' => ['absences' => [10],    'conges' => [26, 27],     'retards' => [4],        'hs' => true],
+            default  => ['absences' => [],      'conges' => [],           'retards' => [],         'hs' => false],
         };
 
         $rows = [];
@@ -63,20 +63,20 @@ class AttendanceSeeder extends Seeder
             $jour   = $date->day;
             $statut = 'present';
 
-            if (in_array($jour, $config['absences'])) $statut = 'absent';
-            elseif (in_array($jour, $config['conges'])) $statut = 'on_leave';
-            elseif (in_array($jour, $config['retards'])) $statut = 'late';
+            if (in_array($jour, $config['absences']))     $statut = 'absent';
+            elseif (in_array($jour, $config['conges']))   $statut = 'on_leave';
+            elseif (in_array($jour, $config['retards']))  $statut = 'late';
 
             $row = [
-                'employer_id'              => $employerId,
-                'date'                     => $date->toDateString(),
-                'check_in_morning_time'    => null,
-                'check_out_morning_time'   => null,
-                'check_in_afternoon_time'  => null,
-                'check_out_afternoon_time' => null,
-                'status'                   => $statut,
-                'created_at'               => now(),
-                'updated_at'               => now(),
+                'employer_id'         => $employerId,
+                'date'                => $date->toDateString(),
+                'morning_check_in'    => null,   
+                'morning_check_out'   => null,   
+                'afternoon_check_in'  => null,   
+                'afternoon_check_out' => null,   
+                'status'              => $statut,
+                'created_at'          => now(),
+                'updated_at'          => now(),
             ];
 
             if (in_array($statut, ['present', 'late'])) {
@@ -84,10 +84,10 @@ class AttendanceSeeder extends Seeder
                     ? ['17:00', '17:30', '17:30', '18:00']
                     : ['17:00', '17:00', '17:00'];
 
-                $row['check_in_morning_time']    = $date->copy()->setTimeFromTimeString($statut === 'late' ? '08:30' : '08:00');
-                $row['check_out_morning_time']   = $date->copy()->setTimeFromTimeString('12:00');
-                $row['check_in_afternoon_time']  = $date->copy()->setTimeFromTimeString('13:00');
-                $row['check_out_afternoon_time'] = $date->copy()->setTimeFromTimeString($sorties[array_rand($sorties)]);
+                $row['morning_check_in']    = $date->copy()->setTimeFromTimeString($statut === 'late' ? '08:30' : '08:00');
+                $row['morning_check_out']   = $date->copy()->setTimeFromTimeString('12:00');
+                $row['afternoon_check_in']  = $date->copy()->setTimeFromTimeString('13:00');
+                $row['afternoon_check_out'] = $date->copy()->setTimeFromTimeString($sorties[array_rand($sorties)]);
             }
 
             $rows[] = $row;
@@ -103,52 +103,52 @@ class AttendanceSeeder extends Seeder
     {
         $congesData = match($profil) {
             'cdd' => [[
-                'type'         => 'Congé annuel',
-                'date_debut'   => Carbon::create($annee, $mois, 20)->toDateString(),
-                'date_fin'     => Carbon::create($annee, $mois, 21)->toDateString(),
-                'nombre_jours' => 2,
-                'motif'        => 'Congé personnel',
-                'statut'       => 'Approuvé',
+                'type'       => 'Congé annuel',
+                'start_date' => Carbon::create($annee, $mois, 20)->toDateString(),
+                'end_date'   => Carbon::create($annee, $mois, 21)->toDateString(),
+                'days_count' => 2,
+                'reason'     => 'Congé personnel',
+                'status'     => 'Approuvé',
             ]],
             'cdi' => [[
-                'type'         => 'Congé annuel',
-                'date_debut'   => Carbon::create($annee, $mois, 19)->toDateString(),
-                'date_fin'     => Carbon::create($annee, $mois, 21)->toDateString(),
-                'nombre_jours' => 3,
-                'motif'        => 'Vacances',
-                'statut'       => 'Approuvé',
+                'type'       => 'Congé annuel',
+                'start_date' => Carbon::create($annee, $mois, 19)->toDateString(),
+                'end_date'   => Carbon::create($annee, $mois, 21)->toDateString(),
+                'days_count' => 3,
+                'reason'     => 'Vacances',
+                'status'     => 'Approuvé',
             ]],
             'civp' => [[
-                'type'         => 'Congé maladie',
-                'date_debut'   => Carbon::create($annee, $mois, 22)->toDateString(),
-                'date_fin'     => Carbon::create($annee, $mois, 22)->toDateString(),
-                'nombre_jours' => 1,
-                'motif'        => 'Maladie',
-                'statut'       => 'Approuvé',
+                'type'       => 'Congé maladie',
+                'start_date' => Carbon::create($annee, $mois, 22)->toDateString(),
+                'end_date'   => Carbon::create($annee, $mois, 22)->toDateString(),
+                'days_count' => 1,
+                'reason'     => 'Maladie',
+                'status'     => 'Approuvé',
             ]],
             'karama' => [[
-                'type'         => 'Congé annuel',
-                'date_debut'   => Carbon::create($annee, $mois, 26)->toDateString(),
-                'date_fin'     => Carbon::create($annee, $mois, 27)->toDateString(),
-                'nombre_jours' => 2,
-                'motif'        => 'Événement familial',
-                'statut'       => 'Approuvé',
+                'type'       => 'Congé annuel',
+                'start_date' => Carbon::create($annee, $mois, 26)->toDateString(),
+                'end_date'   => Carbon::create($annee, $mois, 27)->toDateString(),
+                'days_count' => 2,
+                'reason'     => 'Événement familial',
+                'status'     => 'Approuvé',
             ]],
             default => [],
         };
 
         foreach ($congesData as $c) {
-            DB::table('conges')->insert([
-                'employer_id'  => $employerId,
-                'type'         => $c['type'],
-                'date_debut'   => $c['date_debut'],
-                'date_fin'     => $c['date_fin'],
-                'nombre_jours' => $c['nombre_jours'],
-                'motif'        => $c['motif'],
-                'statut'       => $c['statut'],
-                'commentaire'  => null,
-                'created_at'   => now(),
-                'updated_at'   => now(),
+            DB::table('leaves')->insert([
+                'employer_id' => $employerId,
+                'type'        => $c['type'],
+                'start_date'  => $c['start_date'],   
+                'end_date'    => $c['end_date'],      
+                'days_count'  => $c['days_count'],    
+                'reason'      => $c['reason'],        
+                'status'      => $c['status'],        
+                'comment'     => null,                
+                'created_at'  => now(),
+                'updated_at'  => now(),
             ]);
         }
     }

@@ -11,7 +11,6 @@
             </div>
             <div class="app-card-body p-4">
 
-                {{-- Statut --}}
                 <div class="mb-3">
                     <span class="fw-bold">Statut : </span>
                     @if($statut === 'Actif')
@@ -23,23 +22,20 @@
                     @endif
                 </div>
 
-                {{-- Type de contrat --}}
                 <div class="mb-3">
                     <span class="fw-bold">Type de contrat : </span>
-                    {{ $employer->type_contrat ?? '—' }}
+                    {{ $employer->contract_type ?? '—' }}
                 </div>
 
-                {{-- Date début --}}
                 <div class="mb-3">
                     <span class="fw-bold">Date de début : </span>
-                    {{ $employer->date_debut ? \Carbon\Carbon::parse($employer->date_debut)->format('d/m/Y') : '—' }}
+                    {{ $employer->start_date ?? '—' }}
                 </div>
 
-                {{-- Date fin --}}
                 <div class="mb-3">
                     <span class="fw-bold">Date de fin : </span>
-                    @if($employer->date_fin)
-                        {{ \Carbon\Carbon::parse($employer->date_fin)->format('d/m/Y') }}
+                    @if($employer->end_date)
+                        {{ $employer->end_date }}
                         @if($jours !== null)
                             @if($jours > 0)
                                 <span class="text-muted small">(dans {{ $jours }} jours)</span>
@@ -54,19 +50,6 @@
                     @endif
                 </div>
 
-                {{-- Salaire journalier --}}
-                <div class="mb-3">
-                    <span class="fw-bold">Montant journalier : </span>
-                    {{ $employer->montant_journalier ? number_format($employer->montant_journalier, 2) . ' TND' : '—' }}
-                </div>
-
-                {{-- Heures par semaine --}}
-                <div class="mb-3">
-                    <span class="fw-bold">Heures / semaine : </span>
-                    {{ $employer->heures_semaine ?? '—' }} h
-                </div>
-
-                {{-- CNSS --}}
                 <div class="mb-3">
                     <span class="fw-bold">CNSS : </span>
                     {{ $employer->cnss ?? '—' }}
@@ -76,7 +59,6 @@
         </div>
     </div>
 
-    {{-- Carte employé --}}
     <div class="col-12 col-lg-4">
         <div class="app-card shadow-sm h-100">
             <div class="app-card-header p-3">
@@ -85,7 +67,7 @@
             <div class="app-card-body p-4">
                 <div class="mb-3">
                     <span class="fw-bold">Nom complet : </span>
-                    {{ $employer->prenom }} {{ $employer->nom }}
+                    {{ $employer->first_name }} {{ $employer->last_name }}
                 </div>
                 <div class="mb-3">
                     <span class="fw-bold">Email : </span>
@@ -93,11 +75,11 @@
                 </div>
                 <div class="mb-3">
                     <span class="fw-bold">Téléphone : </span>
-                    {{ $employer->numero_telephone ?? '—' }}
+                    {{ $employer->phone ?? '—' }}
                 </div>
                 <div class="mb-3">
                     <span class="fw-bold">Département : </span>
-                    {{ $employer->departement->nom ?? '—' }}
+                    {{ $employer->departement->name ?? '—' }}
                 </div>
                 <div class="mb-3">
                     <span class="fw-bold">RIB : </span>

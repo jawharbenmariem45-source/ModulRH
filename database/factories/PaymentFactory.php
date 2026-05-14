@@ -13,123 +13,91 @@ class PaymentFactory extends Factory
 
     public function definition(): array
     {
-        $employer    = Employer::inRandomOrder()->first();
-        $salaireBase = is_numeric($employer->salaire)
-            ? (float) $employer->salaire
+        $employer   = Employer::inRandomOrder()->first();
+        $baseSalary = is_numeric($employer->salary)
+            ? (float) $employer->salary
             : $this->faker->randomFloat(3, 800, 5000);
 
-        $heuresSup        = $this->faker->randomFloat(3, 0, 50);
-        $montantHeuresSup = round($heuresSup * ($salaireBase / 208) * 1.25, 3);
-        $primes           = $this->faker->randomFloat(3, 0, 300);
-        $indemnites       = $this->faker->randomFloat(3, 0, 200);
-        $salaireBrut      = round($salaireBase + $montantHeuresSup + $primes + $indemnites, 3);
+        $overtimeHours  = $this->faker->randomFloat(3, 0, 50);
+        $overtimeAmount = round($overtimeHours * ($baseSalary / 208) * 1.25, 3);
+        $bonuses        = $this->faker->randomFloat(3, 0, 300);
+        $allowances     = $this->faker->randomFloat(3, 0, 200);
+        $grossSalary    = round($baseSalary + $overtimeAmount + $bonuses + $allowances, 3);
+        $cnss           = round($grossSalary * 0.0918, 3);
+        $css            = round($grossSalary * 0.01, 3);
+        $irpp           = round(($grossSalary - $cnss) * 0.15, 3);
+        $amount         = round($grossSalary - $cnss - $css - $irpp, 3);
+        $launchDate     = $this->faker->dateTimeBetween('-2 years', 'now');
+        $doneTime       = Carbon::parse($launchDate)->addMinutes(rand(1, 60));
 
-        $cnss   = round($salaireBrut * 0.0918, 3);
-        $css    = round($salaireBrut * 0.01, 3);
-        $irpp   = round(($salaireBrut - $cnss) * 0.15, 3);
-        $amount = round($salaireBrut - $cnss - $css - $irpp, 3);
-
-        $launchDate = $this->faker->dateTimeBetween('-2 years', 'now');
-        $doneTime   = Carbon::parse($launchDate)->addMinutes(rand(1, 60));
-
-        $mois = [
+        $months = [
             'JANVIER', 'FEVRIER', 'MARS', 'AVRIL', 'MAI', 'JUIN',
             'JUILLET', 'AOUT', 'SEPTEMBRE', 'OCTOBRE', 'NOVEMBRE', 'DECEMBRE'
         ];
 
-        // ══════════════════════════════════════════════
-        // SALAIRE BASE SALE
-        // ══════════════════════════════════════════════
-        $salaireBaseSale = $this->faker->randomElement([
-            $salaireBase,                                    // ✅ correct
-            '$' . $salaireBase,                              // ❌ dollar
-            $salaireBase . 'DT',                             // ❌ unité collée
-            str_replace('.', ',', $salaireBase),             // ❌ virgule
-            '€' . $salaireBase,                              // ❌ euro
-            0,                                               // ❌ zéro
-            -rand(100, 500),                                 // ❌ négatif
-            rand(10000, 99999),                              // ❌ aberrant
+        $baseSalarySale = $this->faker->randomElement([
+            $baseSalary, '$' . $baseSalary, $baseSalary . 'DT',
+            str_replace('.', ',', $baseSalary), '€' . $baseSalary,
+            0, -rand(100, 500), rand(10000, 99999),
         ]);
 
-        // ══════════════════════════════════════════════
-        // MONTANTS SALES
-        // ══════════════════════════════════════════════
-        $salaireBrutSale = $this->faker->randomElement([
-            $salaireBrut,                                    // ✅ correct
-            '$' . $salaireBrut,                              // ❌ dollar
-            str_replace('.', ',', $salaireBrut),             // ❌ virgule
-            0,                                               // ❌ zéro
-            -$salaireBrut,                                   // ❌ négatif
+        $grossSalarySale = $this->faker->randomElement([
+            $grossSalary, '$' . $grossSalary,
+            str_replace('.', ',', $grossSalary), 0, -$grossSalary,
         ]);
 
         $amountSale = $this->faker->randomElement([
-            $amount,                                         // ✅ correct
-            '$' . $amount,                                   // ❌ dollar
-            str_replace('.', ',', $amount),                  // ❌ virgule
-            0,                                               // ❌ zéro
-            -$amount,                                        // ❌ négatif
-            rand(10000, 99999),                              // ❌ aberrant
+            $amount, '$' . $amount, str_replace('.', ',', $amount),
+            0, -$amount, rand(10000, 99999),
         ]);
 
-        // ══════════════════════════════════════════════
-        // DATE SALE
-        // ══════════════════════════════════════════════
         $launchDateSale = $this->faker->randomElement([
-            $launchDate->format('Y-m-d H:i:s'),             // ✅ correct
-            $launchDate->format('d/m/Y H:i:s'),             // ❌ européen
-            $launchDate->format('d-m-Y H:i:s'),             // ❌ inversé
-            $launchDate->format('m/d/Y H:i:s'),             // ❌ américain
+            $launchDate->format('Y-m-d H:i:s'),
+            $launchDate->format('d/m/Y H:i:s'),
+            $launchDate->format('d-m-Y H:i:s'),
+            $launchDate->format('m/d/Y H:i:s'),
         ]);
 
-        // ══════════════════════════════════════════════
-        // REFERENCE SALE — parfois dupliquée ou mal formatée
-        // ══════════════════════════════════════════════
         $referenceSale = $this->faker->randomElement([
-            'PAY-' . strtoupper($this->faker->bothify('??####')),  // ✅ correct
-            'pay-' . $this->faker->bothify('??####'),              // ❌ minuscule
-            $this->faker->bothify('??####'),                       // ❌ sans préfixe
-            'PAY_' . strtoupper($this->faker->bothify('??####')),  // ❌ underscore
-            null,                                                   // ❌ null
+            'PAY-' . strtoupper($this->faker->bothify('??####')),
+            'pay-' . $this->faker->bothify('??####'),
+            $this->faker->bothify('??####'),
+            'PAY_' . strtoupper($this->faker->bothify('??####')),
+            null,
         ]);
 
-        // ══════════════════════════════════════════════
-        // MOIS SALE — mal écrit ou mauvais format
-        // ══════════════════════════════════════════════
-        $moisSale = $this->faker->randomElement([
-            $this->faker->randomElement($mois),              // ✅ correct
-            strtolower($this->faker->randomElement($mois)),  // ❌ minuscule
-            $this->faker->numberBetween(1, 12),              // ❌ chiffre
-            'N/A',                                           // ❌ inconnu
+        $monthSale = $this->faker->randomElement([
+            $this->faker->randomElement($months),
+            strtolower($this->faker->randomElement($months)),
+            $this->faker->numberBetween(1, 12),
+            'N/A',
         ]);
 
-        // ══════════════════════════════════════════════
-        // ANNEE SALE
-        // ══════════════════════════════════════════════
-        $anneSale = $this->faker->randomElement([
-            (string) $this->faker->numberBetween(2022, 2026), // ✅ correct
-            $this->faker->numberBetween(2022, 2026),          // ❌ entier au lieu de string
-            '20' . $this->faker->numerify('##'),              // ❌ année future aberrante
-            null,                                              // ❌ null
+        $yearSale = $this->faker->randomElement([
+            (string) $this->faker->numberBetween(2022, 2026),
+            $this->faker->numberBetween(2022, 2026),
+            '20' . $this->faker->numerify('##'),
+            null,
         ]);
 
         return [
-            'reference'          => $referenceSale,
-            'employer_id'        => $employer->id,
-            'type_contrat'       => $employer->type_contrat,
-            'salaire_base'       => $salaireBaseSale,
-            'heures_sup'         => $heuresSup,
-            'montant_heures_sup' => $montantHeuresSup,
-            'primes'             => $primes,
-            'indemnites'         => $indemnites,
-            'salaire_brut'       => $salaireBrutSale,
-            'cnss'               => $cnss,
-            'irpp'               => $irpp,
-            'css'                => $css,
-            'amount'             => $amountSale,
-            'launch_date'        => $launchDateSale,
-            'done_time'          => $doneTime,
-            'month'              => $moisSale,
-            'year'               => $anneSale,
+            'reference'       => $referenceSale,
+            'employer_id'     => $employer->id,
+            'contract_type'   => $employer->contract_type,
+            'base_salary'     => $baseSalarySale,
+            'overtime_hours'  => $overtimeHours,
+            'overtime_amount' => $overtimeAmount,
+            'bonuses'         => $bonuses,
+            'allowances'      => $allowances,
+            'gross_salary'    => $grossSalarySale,
+            'cnss'            => $cnss,
+            'irpp'            => $irpp,
+            'css'             => $css,
+            'amount'          => $amountSale,
+            'launch_date'     => $launchDateSale,
+            'done_time'       => $doneTime,
+            'month'           => $monthSale,
+            'year'            => $yearSale,
         ];
     }
 }

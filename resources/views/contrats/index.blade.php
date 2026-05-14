@@ -4,8 +4,6 @@
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1 class="app-page-title mb-0">Contrats</h1>
-        {{-- ✅ Bouton Ajouter --}}
-        
     </div>
     <hr class="mb-4">
 
@@ -29,9 +27,9 @@
         <ul class="mb-0 mt-1">
             @foreach($alertes as $alerte)
             <li>
-                <strong>{{ $alerte->nom }} {{ $alerte->prenom }}</strong>
-                — {{ $alerte->type_contrat }}
-                — expire le <strong>{{ \Carbon\Carbon::parse($alerte->date_fin)->format('d/m/Y') }}</strong>
+                <strong>{{ $alerte->last_name }} {{ $alerte->first_name }}</strong>
+                — {{ $alerte->contract_type }}
+                — expire le <strong>{{ $alerte->end_date }}</strong>
             </li>
             @endforeach
         </ul>
@@ -67,16 +65,14 @@
                 </select>
             </div>
             <div class="col-md-2">
-                <input type="date" name="date_debut" class="form-control"
-                    value="{{ request('date_debut') }}">
+                <input type="date" name="date_debut" class="form-control" value="{{ request('date_debut') }}">
             </div>
             <div class="col-md-2">
-                <input type="date" name="date_fin" class="form-control"
-                    value="{{ request('date_fin') }}">
+                <input type="date" name="date_fin" class="form-control" value="{{ request('date_fin') }}">
             </div>
             <div class="col-md-1 d-flex gap-1">
                 <button type="submit" class="btn btn-primary">
-                    <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-search" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-search" fill="currentColor">
                         <path fill-rule="evenodd" d="M10.442 10.442a1 1 0 0 1 1.415 0l3.85 3.85a1 1 0 0 1-1.414 1.415l-3.85-3.85a1 1 0 0 1 0-1.415z"/>
                         <path fill-rule="evenodd" d="M6.5 12a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11zM13 6.5a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0z"/>
                     </svg>
@@ -106,9 +102,16 @@
             <tbody>
                 @forelse($contrats as $contrat)
                 @php
-                    $today = \Carbon\Carbon::today();
-                    $dateFin = $contrat->date_fin ? \Carbon\Carbon::parse($contrat->date_fin) : null;
-                    $jours = $dateFin ? $today->diffInDays($dateFin, false) : null;
+                    $today   = \Carbon\Carbon::today();
+                    $dateFin = null;
+                    $jours   = null;
+
+                    if ($contrat->end_date) {
+                        try {
+                            $dateFin = \Carbon\Carbon::parse($contrat->end_date);
+                            $jours   = $today->diffInDays($dateFin, false);
+                        } catch (\Exception $e) {}
+                    }
 
                     if (!$dateFin) {
                         $badge = '<span class="badge" style="background:#19a891">Actif</span>';
@@ -122,34 +125,29 @@
                 @endphp
                 <tr class="{{ $jours !== null && $jours <= 7 && $jours >= 0 ? 'table-warning' : ($jours !== null && $jours < 0 ? 'table-danger' : '') }}">
                     <td>{{ $loop->iteration }}</td>
-                    <td>{{ $contrat->nom }} {{ $contrat->prenom }}</td>
+                    <td>{{ $contrat->last_name }} {{ $contrat->first_name }}</td>
                     <td>{{ $contrat->departement->name ?? '-' }}</td>
                     <td>{!! $badge !!}</td>
-                    <td>{{ $contrat->date_debut ? \Carbon\Carbon::parse($contrat->date_debut)->format('d/m/Y') : '-' }}</td>
-                    <td>{{ $dateFin ? $dateFin->format('d/m/Y') : '—' }}</td>
+                    <td>{{ $contrat->start_date ?? '-' }}</td>
+                    <td>{{ $contrat->end_date ?? '—' }}</td>
                     <td>
-                        @if($contrat->rib)
-                            @php
-                                $ext = pathinfo($contrat->rib, PATHINFO_EXTENSION);
-                                $isImage = in_array(strtolower($ext), ['jpg','jpeg','png','gif','webp']);
-                            @endphp
-                            @if($isImage)
-                                <a href="{{ asset('storage/' . $contrat->rib) }}" target="_blank">
-                                    <img src="{{ asset('storage/' . $contrat->rib) }}"
+                        @if($contrat->rib_image)
+                            @php $ext = pathinfo($contrat->rib_image, PATHINFO_EXTENSION); @endphp
+                            @if(in_array(strtolower($ext), ['jpg','jpeg','png','gif','webp']))
+                                <a href="{{ asset('storage/' . $contrat->rib_image) }}" target="_blank">
+                                    <img src="{{ asset('storage/' . $contrat->rib_image) }}"
                                          alt="RIB" style="width:60px; height:40px; object-fit:cover; border-radius:4px; border:1px solid #ddd;">
                                 </a>
                             @else
-                                <a href="{{ asset('storage/' . $contrat->rib) }}" target="_blank"
-                                   class="btn btn-sm btn-outline-secondary">
-                                    📄 Voir PDF
-                                </a>
+                                <a href="{{ asset('storage/' . $contrat->rib_image) }}" target="_blank"
+                                   class="btn btn-sm btn-outline-secondary">📄 Voir PDF</a>
                             @endif
                         @else
                             <span class="text-muted">-</span>
                         @endif
                     </td>
                     <td>{{ $contrat->cnss ?? '-' }}</td>
-                    <td>{{ $contrat->type_contrat ?? '-' }}</td>
+                    <td>{{ $contrat->contract_type ?? '-' }}</td>
                     <td>
                         <div class="d-flex gap-1">
                             <a href="{{ route('contrat.edit', $contrat->id) }}"
@@ -178,13 +176,13 @@
     </div>
 </div>
 
-{{-- ✅ Modal Ajout Contrat --}}
-<div class="modal fade" id="modalAjoutContrat" tabindex="-1" aria-labelledby="modalAjoutContratLabel" aria-hidden="true">
+{{-- Modal Ajout Contrat --}}
+<div class="modal fade" id="modalAjoutContrat" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="modalAjoutContratLabel">Ajouter un contrat</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title">Ajouter un contrat</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form action="{{ route('contrat.store') }}" method="POST">
                 @csrf
@@ -196,7 +194,7 @@
                                 <option value="">-- Choisir un employé --</option>
                                 @foreach($employers as $employer)
                                     <option value="{{ $employer->id }}">
-                                        {{ $employer->nom }} {{ $employer->prenom }}
+                                        {{ $employer->last_name }} {{ $employer->first_name }}
                                     </option>
                                 @endforeach
                             </select>
@@ -219,20 +217,7 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Date de fin</label>
-                            <input type="date" name="date_fin" class="form-control" id="modal_date_fin">
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Montant journalier (DT)</label>
-                            <input type="number" name="montant_journalier" class="form-control" step="0.01" min="0">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Heures par semaine</label>
-                            <select name="heures_semaine" class="form-select">
-                                <option value="40">40h</option>
-                                <option value="48">48h</option>
-                            </select>
+                            <input type="date" name="date_fin" class="form-control">
                         </div>
                     </div>
                 </div>

@@ -12,82 +12,79 @@ class CongeFactory extends Factory
 
     public function definition(): array
     {
-        $dateDebut = $this->faker->dateTimeBetween('-1 year', 'now');
-        $dateFin   = $this->faker->dateTimeBetween($dateDebut, '+30 days');
+        $startDate = $this->faker->dateTimeBetween('-1 year', 'now');
+        $endDate   = $this->faker->dateTimeBetween($startDate, '+30 days');
 
-        // ══════════════════════════════════════════════
-        // DATES SALES — format aléatoirement incorrect
-        // ══════════════════════════════════════════════
-        $dateDebutSale = $this->faker->randomElement([
-            $dateDebut->format('Y-m-d'),   // ✅ correct
-            $dateDebut->format('d/m/Y'),   // ❌ format européen
-            $dateDebut->format('d-m-Y'),   // ❌ inversé
-            $dateDebut->format('m/d/Y'),   // ❌ américain
-            $dateDebut->format('d.m.Y'),   // ❌ points
+        $startDateSale = $this->faker->randomElement([
+            $startDate->format('Y-m-d'),
+            $startDate->format('d/m/Y'),
+            $startDate->format('d-m-Y'),
+            $startDate->format('m/d/Y'),
+            $startDate->format('d.m.Y'),
         ]);
 
-        $dateFinSale = $this->faker->randomElement([
-            $dateFin->format('Y-m-d'),     // ✅ correct
-            $dateFin->format('d/m/Y'),     // ❌ format européen
-            $dateFin->format('d-m-Y'),     // ❌ inversé
-            $dateFin->format('m/d/Y'),     // ❌ américain
-            $dateFin->format('d.m.Y'),     // ❌ points
+        $endDateSale = $this->faker->randomElement([
+            $endDate->format('Y-m-d'),
+            $endDate->format('d/m/Y'),
+            $endDate->format('d-m-Y'),
+            $endDate->format('m/d/Y'),
+            $endDate->format('d.m.Y'),
         ]);
 
-        // ══════════════════════════════════════════════
-        // DATE FIN AVANT DATE DEBUT (incohérent)
-        // ══════════════════════════════════════════════
         if ($this->faker->boolean(20)) {
-            $dateDebutSale = $dateFin->format('Y-m-d');
-            $dateFinSale   = $dateDebut->format('Y-m-d');
+            $startDateSale = $endDate->format('Y-m-d');
+            $endDateSale   = $startDate->format('Y-m-d');
         }
 
-        // ══════════════════════════════════════════════
-        // NOMBRE DE JOURS SALE — incorrect ou négatif
-        // ══════════════════════════════════════════════
-        $nombreJoursReel = (int) $dateDebut->diff($dateFin)->days;
-        $nombreJoursSale = $this->faker->randomElement([
-            $nombreJoursReel,                          // ✅ correct
-            $nombreJoursReel + rand(1, 10),            // ❌ trop grand
-            0,                                         // ❌ zéro
-            -rand(1, 5),                               // ❌ négatif
-            rand(100, 999),                            // ❌ aberrant
+        $daysReal      = (int) $startDate->diff($endDate)->days;
+        $daysCountSale = $this->faker->randomElement([
+            $daysReal,
+            $daysReal + rand(1, 10),
+            0,
+            -rand(1, 5),
+            rand(100, 999),
         ]);
 
-        // ══════════════════════════════════════════════
-        // TYPE SALE — valeurs inconnues ou mal écrites
-        // ══════════════════════════════════════════════
         $typeSale = $this->faker->randomElement([
-            'Congé annuel',
-            'Congé maladie',
-            'Congé maternité',
-            'Congé sans solde',
-            'Congé exceptionnel',
-            'conge annuel',      // ❌ minuscule
-            'CONGE MALADIE',     // ❌ majuscule
-            'Congé  annuel',     // ❌ double espace
-            'Maternité',         // ❌ incomplet
-            'N/A',               // ❌ inconnu
-            null,                // ❌ null
+            'Congé annuel', 'Congé maladie', 'Congé maternité',
+            'Congé sans solde', 'Congé exceptionnel',
+            'conge annuel', 'CONGE MALADIE', 'Congé  annuel',
+            'Maternité', 'N/A', null,
+        ]);
+
+        $document = $this->faker->randomElement([
+            null, null, null,
+            'leaves/documents/fake_' . uniqid() . '.pdf',
         ]);
 
         return [
-            'employer_id'  => Employer::inRandomOrder()->first()?->id ?? 1,
-            'type'         => $typeSale,
-            'date_debut'   => $dateDebutSale,
-            'date_fin'     => $dateFinSale,
-            'nombre_jours' => $nombreJoursSale,
-            'motif'        => $this->faker->optional(0.7)->sentence(6),
-            'statut'       => $this->faker->randomElement([
-                'En attente',
-                'Approuvé',
-                'Refusé',
-                'approuvé',   // ❌ minuscule
-                'APPROUVE',   // ❌ majuscule
-                'en attente', // ❌ minuscule
-                null,         // ❌ null
+            'employer_id' => Employer::inRandomOrder()->first()?->id ?? 1,
+            'type'        => $typeSale,
+            'start_date'  => $startDateSale,
+            'end_date'    => $endDateSale,
+            'days_count'  => $daysCountSale,
+            'reason'      => $this->faker->optional(0.7)->sentence(6),
+            'document'    => $document,
+            'status'      => $this->faker->randomElement([
+                'En attente', 'Approuvé', 'Refusé',
+                'approuvé', 'APPROUVE', 'en attente', null,
             ]),
-            'commentaire'  => $this->faker->optional(0.4)->sentence(10),
+            'comment'     => $this->faker->optional(0.4)->sentence(10),
         ];
+    }
+
+    public function approuve(): static
+    {
+        return $this->state(['status' => 'Approuvé']);
+    }
+
+    public function enAttente(): static
+    {
+        return $this->state(['status' => 'En attente']);
+    }
+
+    public function refuse(): static
+    {
+        return $this->state(['status' => 'Refusé']);
     }
 }

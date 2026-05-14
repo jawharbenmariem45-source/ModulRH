@@ -84,12 +84,12 @@
                         <tbody>
                             @foreach($dernierConges as $conge)
                             <tr>
-                                <td>{{ \Carbon\Carbon::parse($conge->date_debut)->format('d/m/Y') }}</td>
-                                <td>{{ \Carbon\Carbon::parse($conge->date_fin)->format('d/m/Y') }}</td>
+                                <td>{{ $conge->start_date }}</td>
+                                <td>{{ $conge->end_date }}</td>
                                 <td>
-                                    @if($conge->statut === 'Approuvé')
+                                    @if($conge->status === 'Approuvé')
                                         <span class="badge bg-success">Approuvé</span>
-                                    @elseif($conge->statut === 'Refusé')
+                                    @elseif($conge->status === 'Refusé')
                                         <span class="badge bg-danger">Refusé</span>
                                     @else
                                         <span class="badge bg-warning text-dark">En attente</span>

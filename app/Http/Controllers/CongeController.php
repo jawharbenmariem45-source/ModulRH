@@ -4,44 +4,50 @@ namespace App\Http\Controllers;
 
 use App\Models\Conge;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Notification;
+use App\Notifications\SendEmailToAdminAfterRegistrationNotification;
 
 class CongeController extends Controller
 {
-    // Affiche la liste
     public function index()
-{
-    $conges = Conge::all();
-    
-    // On définit les variables manquantes
-    $regimeHoraire = 40; 
-    $tauxHeureSupp = 1.25; // Exemple : +25%
+    {
+        $user = auth()->user();
 
-    return view('conges.index', compact('conges', 'regimeHoraire', 'tauxHeureSupp'));
-}
+        if ($user->hasRole('manager')) {
+            $conges = Conge::with(['employer.departement'])
+                ->where('status', 'En attente')
+                ->latest()
+                ->paginate(10);
+        } else {
+            $conges = Conge::with(['employer.departement'])
+                ->latest()
+                ->paginate(10);
+        }
 
-    // Affiche le formulaire (C'est cette fonction qui manquait !)
+        return view('conges.index', compact('conges'));
+    }
+
     public function create()
     {
         return view('conges.create');
     }
 
-    // Enregistre la demande
     public function store(Request $request)
     {
         $request->validate([
-            'type' => 'required',
-            'date_debut' => 'required|date',
-            'date_fin' => 'required|date|after_or_equal:date_debut',
+            'type'       => 'required',
+            'start_date' => 'required|date',
+            'end_date'   => 'required|date|after_or_equal:start_date',
+            'reason'     => 'nullable|string|max:500',
         ]);
 
         Conge::create([
-            'employer_id' => \Illuminate\Support\Facades\Auth::id(),
-            'type' => $request->type,
-            'date_debut' => $request->date_debut,
-            'date_fin' => $request->date_fin,
-            'motif' => $request->motif,
-            'statut' => 'en_attente',
+            'employer_id' => auth()->id(),
+            'type'        => $request->type,
+            'start_date'  => $request->start_date,
+            'end_date'    => $request->end_date,
+            'reason'      => $request->reason,
+            'status'      => 'En attente',
         ]);
 
         return redirect()->route('conge.index')->with('success', 'Demande envoyée !');
@@ -49,15 +55,57 @@ class CongeController extends Controller
 
     public function accepter($id)
     {
-        $conge = Conge::findOrFail($id);
-        $conge->update(['statut' => 'accepte']);
-        return back()->with('success', 'Congé accepté.');
+        $conge    = Conge::with('employer')->findOrFail($id);
+        $employer = $conge->employer;
+
+        if (!$employer) {
+            return back()->with('error', 'Employé introuvable.');
+        }
+
+        $joursConge = $conge->days_count ?? 0;
+
+        $congesPris = $employer->conges()
+            ->where('status', 'Approuvé')
+            ->where('id', '!=', $conge->id)
+            ->sum('days_count');
+
+        $joursAccordes = 12;
+        $solde         = $joursAccordes - $congesPris;
+
+        if (!in_array($conge->type, ['Maladie', 'Maternité']) && $joursConge > $solde) {
+            return back()->with('error',
+                "Solde insuffisant : l'employé a {$solde} jour(s) disponible(s) mais demande {$joursConge} jour(s)."
+            );
+        }
+
+        $conge->update(['status' => 'Approuvé']);
+
+        try {
+            Notification::route('mail', $employer->email)
+                ->notify(new SendEmailToAdminAfterRegistrationNotification(
+                    'Votre congé du ' . $conge->start_date . ' au ' . $conge->end_date . ' a été approuvé.',
+                    $employer->email
+                ));
+        } catch (\Exception $e) {}
+
+        return back()->with('success', 'Congé approuvé.');
     }
 
     public function rejeter($id)
     {
-        $conge = Conge::findOrFail($id);
-        $conge->update(['statut' => 'rejete']);
+        $conge    = Conge::with('employer')->findOrFail($id);
+        $employer = $conge->employer;
+
+        $conge->update(['status' => 'Refusé']);
+
+        try {
+            Notification::route('mail', $employer->email)
+                ->notify(new SendEmailToAdminAfterRegistrationNotification(
+                    'Votre congé du ' . $conge->start_date . ' au ' . $conge->end_date . ' a été refusé.',
+                    $employer->email
+                ));
+        } catch (\Exception $e) {}
+
         return back()->with('error', 'Congé refusé.');
     }
 }

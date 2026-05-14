@@ -2,24 +2,24 @@
 <html>
 <head><meta charset="UTF-8"></head>
 <body style="font-family: Arial, sans-serif; padding: 20px;">
-    <h2 style="color: #e74c3c;">⚠️ Votre contrat expire bientôt</h2>
-    <p>Bonjour {{ $employer->nom }} {{ $employer->prenom }},</p>
+    <h2 style="color: #e74c3c;"> Votre contrat expire bientôt</h2>
+    <p>Bonjour {{ $employer->last_name }} {{ $employer->first_name }},</p>
     <p>Nous vous informons que votre contrat de travail expire bientôt :</p>
     <table style="border-collapse: collapse; width: 100%;">
         <tr>
             <td style="padding: 8px; border: 1px solid #ddd;"><strong>Type de contrat</strong></td>
-            <td style="padding: 8px; border: 1px solid #ddd;">{{ $employer->type_contrat }}</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{ $employer->contract_type }}</td>
         </tr>
         <tr>
             <td style="padding: 8px; border: 1px solid #ddd;"><strong>Date de fin</strong></td>
             <td style="padding: 8px; border: 1px solid #ddd; color: #e74c3c;">
-                {{ \Carbon\Carbon::parse($employer->date_fin)->format('d/m/Y') }}
+                {{ \Carbon\Carbon::parse($employer->end_date)->format('d/m/Y') }}
             </td>
         </tr>
         <tr>
             <td style="padding: 8px; border: 1px solid #ddd;"><strong>Jours restants</strong></td>
             <td style="padding: 8px; border: 1px solid #ddd; color: #e74c3c;">
-                {{ \Carbon\Carbon::today()->diffInDays(\Carbon\Carbon::parse($employer->date_fin)) }} jours
+                {{ \Carbon\Carbon::today()->diffInDays(\Carbon\Carbon::parse($employer->end_date)) }} jours
             </td>
         </tr>
     </table>

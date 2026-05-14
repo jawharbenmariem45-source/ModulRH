@@ -16,7 +16,6 @@
     <div class="alert alert-danger">{{ session('error_message') }}</div>
 @endif
 
-{{-- Filtres --}}
 <form method="GET" action="{{ route('pointage.admin') }}" class="row g-2 mb-4 align-items-center">
     <div class="col-auto">
         <label class="form-label fw-bold mb-1">Date</label>
@@ -38,7 +37,6 @@
     @endif
 </form>
 
-{{-- Résumé statistiques --}}
 @if($attendances->count() > 0)
 <div class="row g-3 mb-4">
     <div class="col-md-3">
@@ -76,7 +74,6 @@
 </div>
 @endif
 
-{{-- Tableau --}}
 <div class="app-card app-card-orders-table shadow-sm mb-5">
     <div class="app-card-body">
         <div class="table-responsive">
@@ -99,19 +96,16 @@
                     <tr>
                         <td>{{ $loop->iteration }}</td>
                         <td>
-                            <strong>{{ $attendance->employer->nom }} {{ $attendance->employer->prenom }}</strong>
+                            <strong>{{ $attendance->employer->last_name ?? '-' }} {{ $attendance->employer->first_name ?? '' }}</strong>
                         </td>
                         <td>{{ $attendance->employer->departement->name ?? '-' }}</td>
 
                         {{-- Check-in Matin --}}
                         <td>
-                            @if($attendance->check_in_morning_time)
+                            @if($attendance->morning_check_in)
                                 @php
-                                    try {
-                                        $time = Carbon::parse($attendance->check_in_morning_time)->format('H:i');
-                                    } catch (\Exception $e) {
-                                        $time = $attendance->check_in_morning_time;
-                                    }
+                                    try { $time = Carbon::parse($attendance->morning_check_in)->format('H:i'); }
+                                    catch (\Exception $e) { $time = $attendance->morning_check_in; }
                                 @endphp
                                 <span class="badge bg-success">{{ $time }}</span>
                             @else
@@ -121,13 +115,10 @@
 
                         {{-- Check-out Matin --}}
                         <td>
-                            @if($attendance->check_out_morning_time)
+                            @if($attendance->morning_check_out)
                                 @php
-                                    try {
-                                        $time = Carbon::parse($attendance->check_out_morning_time)->format('H:i');
-                                    } catch (\Exception $e) {
-                                        $time = $attendance->check_out_morning_time;
-                                    }
+                                    try { $time = Carbon::parse($attendance->morning_check_out)->format('H:i'); }
+                                    catch (\Exception $e) { $time = $attendance->morning_check_out; }
                                 @endphp
                                 <span class="badge bg-warning text-dark">{{ $time }}</span>
                             @else
@@ -137,13 +128,10 @@
 
                         {{-- Check-in Après-midi --}}
                         <td>
-                            @if($attendance->check_in_afternoon_time)
+                            @if($attendance->afternoon_check_in)
                                 @php
-                                    try {
-                                        $time = Carbon::parse($attendance->check_in_afternoon_time)->format('H:i');
-                                    } catch (\Exception $e) {
-                                        $time = $attendance->check_in_afternoon_time;
-                                    }
+                                    try { $time = Carbon::parse($attendance->afternoon_check_in)->format('H:i'); }
+                                    catch (\Exception $e) { $time = $attendance->afternoon_check_in; }
                                 @endphp
                                 <span class="badge bg-success">{{ $time }}</span>
                             @else
@@ -153,13 +141,10 @@
 
                         {{-- Check-out Après-midi --}}
                         <td>
-                            @if($attendance->check_out_afternoon_time)
+                            @if($attendance->afternoon_check_out)
                                 @php
-                                    try {
-                                        $time = Carbon::parse($attendance->check_out_afternoon_time)->format('H:i');
-                                    } catch (\Exception $e) {
-                                        $time = $attendance->check_out_afternoon_time;
-                                    }
+                                    try { $time = Carbon::parse($attendance->afternoon_check_out)->format('H:i'); }
+                                    catch (\Exception $e) { $time = $attendance->afternoon_check_out; }
                                 @endphp
                                 <span class="badge bg-warning text-dark">{{ $time }}</span>
                             @else
@@ -171,12 +156,10 @@
                         <td>
                             @php
                                 try {
-                                    $checkIn  = $attendance->check_in_morning_time
-                                        ? Carbon::parse($attendance->check_in_morning_time)
-                                        : null;
-                                    $checkOut = $attendance->check_out_afternoon_time
-                                        ? Carbon::parse($attendance->check_out_afternoon_time)
-                                        : null;
+                                    $checkIn  = $attendance->morning_check_in
+                                        ? Carbon::parse($attendance->morning_check_in) : null;
+                                    $checkOut = $attendance->afternoon_check_out
+                                        ? Carbon::parse($attendance->afternoon_check_out) : null;
                                     $heures = ($checkIn && $checkOut)
                                         ? round($checkIn->diffInMinutes($checkOut) / 60, 2)
                                         : null;

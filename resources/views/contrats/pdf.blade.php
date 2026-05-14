@@ -24,7 +24,7 @@
     <div class="section">
         <h3>Informations de l'employé</h3>
         <table>
-            <tr><td>Nom complet</td><td>{{ $employer->nom }} {{ $employer->prenom }}</td></tr>
+            <tr><td>Nom complet</td><td>{{ $employer->last_name }} {{ $employer->first_name }}</td></tr>
             <tr><td>Email</td><td>{{ $employer->email }}</td></tr>
             <tr><td>Contact</td><td>{{ $employer->contact ?? '-' }}</td></tr>
             <tr><td>Département</td><td>{{ $employer->departement->name ?? '-' }}</td></tr>
@@ -34,9 +34,9 @@
     <div class="section">
         <h3>Informations du contrat</h3>
         <table>
-            <tr><td>Type de contrat</td><td><span class="badge">{{ $employer->type_contrat }}</span></td></tr>
-            <tr><td>Date de début</td><td>{{ $employer->date_debut ? \Carbon\Carbon::parse($employer->date_debut)->format('d/m/Y') : '-' }}</td></tr>
-            <tr><td>Date de fin</td><td>{{ $employer->date_fin ? \Carbon\Carbon::parse($employer->date_fin)->format('d/m/Y') : 'Indéterminée (CDI)' }}</td></tr>
+            <tr><td>Type de contrat</td><td><span class="badge">{{ $employer->contract_type }}</span></td></tr>
+            <tr><td>Date de début</td><td>{{ $employer->start_date ? \Carbon\Carbon::parse($employer->start_date)->format('d/m/Y') : '-' }}</td></tr>
+            <tr><td>Date de fin</td><td>{{ $employer->end_date ? \Carbon\Carbon::parse($employer->end_date)->format('d/m/Y') : 'Indéterminée (CDI)' }}</td></tr>
             <tr><td>Numéro CNSS</td><td>{{ $employer->cnss ?? '-' }}</td></tr>
             <tr><td>RIB bancaire</td><td>{{ $employer->rib ?? '-' }}</td></tr>
             <tr><td>Salaire mensuel</td><td>{{ $employer->montant_journalier ?? '-' }} DT</td></tr>

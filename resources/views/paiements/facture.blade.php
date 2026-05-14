@@ -71,10 +71,10 @@ function parseDate($date, $format = 'd/m/Y'): string {
     }
 }
 
-$salaireBase      = cleanAmount($fullPaymentInfo->salaire_base);
-$salaireProratise = cleanAmount($fullPaymentInfo->salaire_proratise ?? $fullPaymentInfo->salaire_brut);
-$salaireBrut      = cleanAmount($fullPaymentInfo->salaire_brut);
-$montantHS        = cleanAmount($fullPaymentInfo->montant_heures_sup);
+$salaireBase      = cleanAmount($fullPaymentInfo->base_salary);
+$salaireProratise = cleanAmount($fullPaymentInfo->salaire_proratise ?? $fullPaymentInfo->gross_salary);
+$salaireBrut      = cleanAmount($fullPaymentInfo->gross_salary);
+$montantHS        = cleanAmount($fullPaymentInfo->overtime_amount);
 $primes           = cleanAmount($fullPaymentInfo->primes);
 $indemnites       = cleanAmount($fullPaymentInfo->indemnites);
 $cnss             = cleanAmount($fullPaymentInfo->cnss);
@@ -82,12 +82,12 @@ $irpp             = cleanAmount($fullPaymentInfo->irpp);
 $css              = cleanAmount($fullPaymentInfo->css);
 $retenueSansSolde = cleanAmount($fullPaymentInfo->retenue_sans_solde ?? 0);
 $amount           = cleanAmount($fullPaymentInfo->amount);
-$heuresSup        = cleanAmount($fullPaymentInfo->heures_sup ?? 0);
+$heuresSup        = cleanAmount($fullPaymentInfo->overtime_hours ?? 0);
 $totalRetenues    = $cnss + $irpp + $css + $retenueSansSolde;
 
-$dateDebut = parseDate($fullPaymentInfo->employer->date_debut);
-$dateFin   = $fullPaymentInfo->employer->date_fin
-    ? parseDate($fullPaymentInfo->employer->date_fin)
+$dateDebut = parseDate($fullPaymentInfo->employer->start_date);
+$dateFin   = $fullPaymentInfo->employer->end_date
+    ? parseDate($fullPaymentInfo->employer->end_date)
     : 'CDI — Indéterminée';
 @endphp
 
@@ -117,8 +117,8 @@ $dateFin   = $fullPaymentInfo->employer->date_fin
             <tr>
                 <td class="label">Nom & Prénom</td>
                 <td class="value">
-                    {{ strtoupper($fullPaymentInfo->employer->nom) }}
-                    {{ $fullPaymentInfo->employer->prenom }}
+                    {{ strtoupper($fullPaymentInfo->employer->last_name) }}
+                    {{ $fullPaymentInfo->employer->first_name }}
                 </td>
             </tr>
             <tr>
@@ -127,7 +127,7 @@ $dateFin   = $fullPaymentInfo->employer->date_fin
             </tr>
             <tr>
                 <td class="label">Téléphone</td>
-                <td class="value">{{ $fullPaymentInfo->employer->numero_telephone ?? '-' }}</td>
+                <td class="value">{{ $fullPaymentInfo->employer->phone ?? '-' }}</td>
             </tr>
             <tr>
                 <td class="label">N° CNSS</td>
@@ -146,7 +146,7 @@ $dateFin   = $fullPaymentInfo->employer->date_fin
             <tr>
                 <td class="label">Type de contrat</td>
                 <td class="value">
-                    @php $tc = $fullPaymentInfo->type_contrat; @endphp
+                    @php $tc = $fullPaymentInfo->contract_type; @endphp
                     <span class="badge badge-{{ strtolower($tc) }}">{{ $tc }}</span>
                 </td>
             </tr>
@@ -164,7 +164,7 @@ $dateFin   = $fullPaymentInfo->employer->date_fin
             </tr>
             <tr>
                 <td class="label">Chef de famille</td>
-                <td class="value">{{ $fullPaymentInfo->employer->chef_famille ? 'Oui' : 'Non' }}</td>
+                <td class="value">{{ $fullPaymentInfo->employer->family_head ? 'Oui' : 'Non' }}</td>
             </tr>
         </table>
     </div>
@@ -188,7 +188,7 @@ $dateFin   = $fullPaymentInfo->employer->date_fin
             <td class="montant">26</td>
             <td class="montant">{{ $fullPaymentInfo->jours_travailles ?? 0 }}</td>
             <td class="montant positive">
-                {{ $fullPaymentInfo->jours_conge ?? ($conges ? $conges->sum('nombre_jours') : 0) }}
+                {{ $fullPaymentInfo->jours_conge ?? ($conges ? $conges->sum('days_count') : 0) }}
             </td>
             <td class="montant negative">{{ $fullPaymentInfo->jours_sans_solde ?? 0 }}</td>
             <td class="montant">{{ $fullPaymentInfo->jours_payes ?? 0 }}</td>
@@ -318,11 +318,11 @@ $dateFin   = $fullPaymentInfo->employer->date_fin
         @foreach($conges as $c)
         <tr>
             <td>{{ $c->type ?? 'Congé annuel' }}</td>
-            <td>{{ parseDate($c->date_debut) }}</td>
-            <td>{{ parseDate($c->date_fin) }}</td>
-            <td class="montant">{{ $c->nombre_jours ?? '-' }}</td>
-            <td>{{ $c->motif ?? '-' }}</td>
-            <td><span style="color:#2d6a4f; font-weight:bold;">{{ $c->statut }}</span></td>
+            <td>{{ parseDate($c->start_date) }}</td>
+            <td>{{ parseDate($c->end_date) }}</td>
+            <td class="montant">{{ $c->days_count ?? '-' }}</td>
+            <td>{{ $c->reason ?? '-' }}</td>
+            <td><span style="color:#2d6a4f; font-weight:bold;">{{ $c->status }}</span></td>
         </tr>
         @endforeach
     </tbody>
@@ -334,15 +334,15 @@ $dateFin   = $fullPaymentInfo->employer->date_fin
 <table class="info-table" style="margin-bottom:14px;">
     <tr>
         <td class="label">Situation familiale</td>
-        <td class="value">{{ $fullPaymentInfo->employer->chef_famille ? 'Chef de famille' : 'Célibataire' }}</td>
+        <td class="value">{{ $fullPaymentInfo->employer->family_head ? 'Chef de famille' : 'Célibataire' }}</td>
         <td class="label">Enfants à charge</td>
-        <td class="value">{{ $fullPaymentInfo->employer->nombre_enfants ?? 0 }}</td>
+        <td class="value">{{ $fullPaymentInfo->employer->last_namebre_enfants ?? 0 }}</td>
     </tr>
     <tr>
         <td class="label">Enfants infirmes</td>
-        <td class="value">{{ $fullPaymentInfo->employer->nombre_enfants_infirmes ?? 0 }}</td>
+        <td class="value">{{ $fullPaymentInfo->employer->last_namebre_enfants_infirmes ?? 0 }}</td>
         <td class="label">Enfants étudiants</td>
-        <td class="value">{{ $fullPaymentInfo->employer->nombre_enfants_etudiants ?? 0 }}</td>
+        <td class="value">{{ $fullPaymentInfo->employer->last_namebre_enfants_etudiants ?? 0 }}</td>
     </tr>
     <tr>
         <td class="label">Taux CNSS</td>
@@ -350,12 +350,12 @@ $dateFin   = $fullPaymentInfo->employer->date_fin
         <td class="label">CSS</td>
         <td class="value">0.5%</td>
     </tr>
-    @if($fullPaymentInfo->type_contrat === 'CIVP')
+    @if($fullPaymentInfo->contract_type === 'CIVP')
     <tr>
         <td class="label" colspan="2">Régime CIVP</td>
         <td class="value" colspan="2" style="color:#744210;">Exonéré CNSS · IRPP · CSS</td>
     </tr>
-    @elseif($fullPaymentInfo->type_contrat === 'Karama')
+    @elseif($fullPaymentInfo->contract_type === 'Karama')
     <tr>
         <td class="label" colspan="2">Régime Karama</td>
         <td class="value" colspan="2" style="color:#553c9a;">CNSS réduite 50% · Exonéré IRPP · CSS</td>

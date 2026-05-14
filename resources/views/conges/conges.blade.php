@@ -71,14 +71,14 @@
                         @forelse($conges as $conge)
                         <tr>
                             <td>{{ $loop->iteration }}</td>
-                            <td>{{ $conge->date_debut }}</td>
-                            <td>{{ $conge->date_fin }}</td>
+                            <td>{{ $conge->start_date }}</td>
+                            <td>{{ $conge->end_date }}</td>
                             <td>
                                 <span class="badge bg-info text-dark">
-                                    {{ $conge->nombre_jours ?? 0 }} j
+                                    {{ $conge->days_count ?? 0 }} j
                                 </span>
                             </td>
-                            <td>{{ $conge->motif ?? '-' }}</td>
+                            <td>{{ $conge->reason ?? '-' }}</td>
                             <td>
                                 @if($conge->document)
                                     <a href="{{ asset('storage/' . $conge->document) }}"
@@ -91,7 +91,7 @@
                                 @endif
                             </td>
                             <td>
-                                @php $statut = strtolower(trim($conge->statut ?? '')); @endphp
+                                @php $statut = strtolower(trim($conge->status ?? '')); @endphp
                                 @if(in_array($statut, ['en_attente', 'en attente']))
                                     <span class="badge bg-warning text-dark">En attente</span>
                                 @elseif(in_array($statut, ['approuvé', 'approuve', 'accepté', 'accepte']))
@@ -99,11 +99,11 @@
                                 @elseif(in_array($statut, ['refusé', 'refuse', 'rejeté', 'rejete']))
                                     <span class="badge bg-danger">Refusé</span>
                                 @else
-                                    <span class="badge bg-secondary">{{ $conge->statut ?? 'N/A' }}</span>
+                                    <span class="badge bg-secondary">{{ $conge->status ?? 'N/A' }}</span>
                                 @endif
                             </td>
                             <td>
-                                @if(in_array(strtolower(trim($conge->statut ?? '')), ['en_attente', 'en attente']))
+                                @if(in_array(strtolower(trim($conge->status ?? '')), ['en_attente', 'en attente']))
                                     <a href="{{ route('employer_space.conges.edit', $conge->id) }}"
                                        class="btn btn-sm btn-warning me-1">Modifier</a>
                                     <form action="{{ route('employer_space.conges.delete', $conge->id) }}"
@@ -186,13 +186,13 @@
                                 Date de début <span class="text-danger">*</span>
                             </label>
                             <input type="date"
-                                   name="date_debut"
-                                   id="date_debut"
-                                   class="form-control @error('date_debut') is-invalid @enderror"
-                                   value="{{ old('date_debut') }}"
+                                   name="start_date"
+                                   id="start_date"
+                                   class="form-control @error('start_date') is-invalid @enderror"
+                                   value="{{ old('start_date') }}"
                                    min="{{ date('Y-m-d') }}"
                                    required>
-                            @error('date_debut')
+                            @error('start_date')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
@@ -203,13 +203,13 @@
                                 Date de fin <span class="text-danger">*</span>
                             </label>
                             <input type="date"
-                                   name="date_fin"
-                                   id="date_fin"
-                                   class="form-control @error('date_fin') is-invalid @enderror"
-                                   value="{{ old('date_fin') }}"
+                                   name="end_date"
+                                   id="end_date"
+                                   class="form-control @error('end_date') is-invalid @enderror"
+                                   value="{{ old('end_date') }}"
                                    min="{{ date('Y-m-d') }}"
                                    required>
-                            @error('date_fin')
+                            @error('end_date')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
@@ -229,11 +229,11 @@
                                 Motif
                                 <span class="text-muted fw-normal">(optionnel)</span>
                             </label>
-                            <textarea name="motif"
-                                      class="form-control @error('motif') is-invalid @enderror"
+                            <textarea name="reason"
+                                      class="form-control @error('reason') is-invalid @enderror"
                                       rows="3"
-                                      placeholder="Décrivez brièvement le motif de votre demande...">{{ old('motif') }}</textarea>
-                            @error('motif')
+                                      placeholder="Décrivez brièvement le motif de votre demande...">{{ old('reason') }}</textarea>
+                            @error('reason')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
@@ -286,8 +286,8 @@
 {{-- Calcul automatique du nombre de jours --}}
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const dateDebut = document.getElementById('date_debut');
-        const dateFin   = document.getElementById('date_fin');
+        const dateDebut = document.getElementById('start_date');
+        const dateFin   = document.getElementById('end_date');
         const box       = document.getElementById('joursCalcBox');
         const val       = document.getElementById('joursCalcVal');
 

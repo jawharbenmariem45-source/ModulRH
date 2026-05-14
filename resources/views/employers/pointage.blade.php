@@ -99,17 +99,17 @@ $today = Carbon::today()->toDateString();
         @endphp
         <a href="{{ route('employer_space.pointage.index', ['date' => $dateString]) }}"
            class="day-card {{ $dateString == $selectedDate ? 'selected' : '' }}">
-            <div class="fw-bold fs-6">{{ $date->translatedFormat('D d') }}</div>
+            <div class="fw-bold fs-6">{{ $date->locale('fr')->translatedFormat('D d') }}</div>
         </a>
     @endfor
 </div>
 
 @php
-    $isToday     = $selectedDate == $today;
-    $ciDone      = $attendance && $attendance->check_in_morning_time;
-    $coDone      = $attendance && $attendance->check_out_morning_time;
-    $ciPMDone    = $attendance && $attendance->check_in_afternoon_time;
-    $coPMDone    = $attendance && $attendance->check_out_afternoon_time;
+    $isToday  = $selectedDate == $today;
+    $ciDone   = $attendance && $attendance->morning_check_in;
+    $coDone   = $attendance && $attendance->morning_check_out;
+    $ciPMDone = $attendance && $attendance->afternoon_check_in;
+    $coPMDone = $attendance && $attendance->afternoon_check_out;
 @endphp
 
 <div class="bottom-section">
@@ -124,10 +124,10 @@ $today = Carbon::today()->toDateString();
                     @csrf
                     <button class="btn-pointage btn {{ $ciDone ? 'btn-success' : 'btn-outline-success' }}"
                             {{ $ciDone || !$isToday ? 'disabled' : '' }}>
-                        {{ $ciDone ? '✅ Check-in enregistré' : '⏹ Check-in Matin' }}
+                        {{ $ciDone ? '✅ Entrée enregistrée' : '⏹ Entrée Matin' }}
                     </button>
                     @if($ciDone)
-                        <div class="time-label">🕒 {{ Carbon::parse($attendance->check_in_morning_time)->format('H:i:s') }}</div>
+                        <div class="time-label">🕒 {{ Carbon::parse($attendance->morning_check_in)->format('H:i:s') }}</div>
                     @endif
                 </form>
 
@@ -135,10 +135,10 @@ $today = Carbon::today()->toDateString();
                     @csrf
                     <button class="btn-pointage btn {{ $coDone ? 'btn-success' : 'btn-outline-danger' }}"
                             {{ $coDone || !$isToday ? 'disabled' : '' }}>
-                        {{ $coDone ? '✅ Check-out enregistré' : '⏹ Check-out Matin' }}
+                        {{ $coDone ? '✅ Sortie enregistrée' : '⏹ Sortie Matin' }}
                     </button>
                     @if($coDone)
-                        <div class="time-label">🕒 {{ Carbon::parse($attendance->check_out_morning_time)->format('H:i:s') }}</div>
+                        <div class="time-label">🕒 {{ Carbon::parse($attendance->morning_check_out)->format('H:i:s') }}</div>
                     @endif
                 </form>
 
@@ -156,10 +156,10 @@ $today = Carbon::today()->toDateString();
                     @csrf
                     <button class="btn-pointage btn {{ $ciPMDone ? 'btn-success' : 'btn-outline-success' }}"
                             {{ $ciPMDone || !$isToday ? 'disabled' : '' }}>
-                        {{ $ciPMDone ? '✅ Check-in enregistré' : '⏹ Check-in Après-midi' }}
+                        {{ $ciPMDone ? '✅ Entrée enregistrée' : '⏹ Entrée Après-midi' }}
                     </button>
                     @if($ciPMDone)
-                        <div class="time-label">🕒 {{ Carbon::parse($attendance->check_in_afternoon_time)->format('H:i:s') }}</div>
+                        <div class="time-label">🕒 {{ Carbon::parse($attendance->afternoon_check_in)->format('H:i:s') }}</div>
                     @endif
                 </form>
 
@@ -167,10 +167,10 @@ $today = Carbon::today()->toDateString();
                     @csrf
                     <button class="btn-pointage btn {{ $coPMDone ? 'btn-success' : 'btn-outline-danger' }}"
                             {{ $coPMDone || !$isToday ? 'disabled' : '' }}>
-                        {{ $coPMDone ? '✅ Check-out enregistré' : '⏹ Check-out Après-midi' }}
+                        {{ $coPMDone ? '✅ Sortie enregistrée' : '⏹ Sortie Après-midi' }}
                     </button>
                     @if($coPMDone)
-                        <div class="time-label">🕒 {{ Carbon::parse($attendance->check_out_afternoon_time)->format('H:i:s') }}</div>
+                        <div class="time-label">🕒 {{ Carbon::parse($attendance->afternoon_check_out)->format('H:i:s') }}</div>
                     @endif
                 </form>
 
@@ -188,10 +188,10 @@ $today = Carbon::today()->toDateString();
             <thead>
                 <tr>
                     <th>Date</th>
-                    <th>Check-in Matin</th>
-                    <th>Check-out Matin</th>
-                    <th>Check-in AM</th>
-                    <th>Check-out AM</th>
+                    <th>Entrée Matin</th>
+                    <th>Sortie Matin</th>
+                    <th>Entrée Après-midi</th>
+                    <th>Sortie Après-midi</th>
                     <th>Heures</th>
                     <th>Statut</th>
                 </tr>
@@ -200,11 +200,21 @@ $today = Carbon::today()->toDateString();
                 @forelse($historique as $h)
                 <tr>
                     <td>{{ Carbon::parse($h->date)->format('d/m/Y') }}</td>
-                    <td>{{ $h->check_in_morning_time ? Carbon::parse($h->check_in_morning_time)->format('H:i') : '-' }}</td>
-                    <td>{{ $h->check_out_morning_time ? Carbon::parse($h->check_out_morning_time)->format('H:i') : '-' }}</td>
-                    <td>{{ $h->check_in_afternoon_time ? Carbon::parse($h->check_in_afternoon_time)->format('H:i') : '-' }}</td>
-                    <td>{{ $h->check_out_afternoon_time ? Carbon::parse($h->check_out_afternoon_time)->format('H:i') : '-' }}</td>
-                    <td>{{ $h->heures_totales }} h</td>
+                    <td>{{ $h->morning_check_in ? Carbon::parse($h->morning_check_in)->format('H:i') : '-' }}</td>
+                    <td>{{ $h->morning_check_out ? Carbon::parse($h->morning_check_out)->format('H:i') : '-' }}</td>
+                    <td>{{ $h->afternoon_check_in ? Carbon::parse($h->afternoon_check_in)->format('H:i') : '-' }}</td>
+                    <td>{{ $h->afternoon_check_out ? Carbon::parse($h->afternoon_check_out)->format('H:i') : '-' }}</td>
+                    <td>
+                        @php
+                            $heures = null;
+                            try {
+                                $debut = $h->morning_check_in ? Carbon::parse($h->morning_check_in) : null;
+                                $fin   = $h->afternoon_check_out ? Carbon::parse($h->afternoon_check_out) : null;
+                                $heures = ($debut && $fin) ? round($debut->diffInMinutes($fin) / 60, 2) : null;
+                            } catch (\Exception $e) {}
+                        @endphp
+                        {{ $heures !== null ? $heures . ' h' : '- h' }}
+                    </td>
                     <td>
                         @if($h->status === 'present')
                             <span class="badge bg-success">Présent</span>
@@ -212,8 +222,10 @@ $today = Carbon::today()->toDateString();
                             <span class="badge bg-danger">Absent</span>
                         @elseif($h->status === 'late')
                             <span class="badge bg-warning text-dark">En retard</span>
+                        @elseif($h->status === 'on_leave')
+                            <span class="badge bg-info">En congé</span>
                         @else
-                            <span class="badge bg-info">{{ $h->status }}</span>
+                            <span class="badge bg-secondary">{{ $h->status }}</span>
                         @endif
                     </td>
                 </tr>

@@ -6,7 +6,7 @@ use App\Models\Employer;
 use App\Models\Payment;
 use App\Models\Conge;
 use App\Models\Attendance;
-use App\Models\Configuration;
+use App\Models\Company;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
@@ -20,37 +20,38 @@ class PaymentController extends Controller
     const CNSS_PLAFOND    = 6000;
     const CNSS_MALADIE    = 0.01;
     const CSS_TAUX        = 0.005;
-    const JOURS_OUVRES    = 26;
     const CONGES_PAR_MOIS = 1;
 
-    // =========================================================
-    // RÉGIME HORAIRE
-    // =========================================================
-    private function getHeuresJournee(int $companyId): float
+    // 40h = 5j/semaine = 22j/mois
+    // 48h = 6j/semaine = 26j/mois
+    private function getJoursOuvres(int $companyId): int
     {
-        $regime = Configuration::where('company_id', $companyId)
-                                ->value('regime_horaire') ?? '40h';
-        return $regime === '48h' ? 9.6 : 8.0;
+        $company = Company::find($companyId);
+        $regime  = $company?->work_schedule ?? '40h';
+        return $regime === '48h' ? 26 : 22;
+    }
+
+    // Les deux régimes font 8h/jour
+    // 40h ÷ 5j = 8h/j
+    // 48h ÷ 6j = 8h/j
+    private function getHeuresJournee(): float
+    {
+        return 8.0;
     }
 
     private function getHeuresMensuelles(int $companyId): float
     {
-        return self::JOURS_OUVRES * $this->getHeuresJournee($companyId);
+        return $this->getJoursOuvres($companyId) * $this->getHeuresJournee();
     }
 
     private function getRegimeLabel(int $companyId): string
     {
-        return Configuration::where('company_id', $companyId)
-                            ->value('regime_horaire') ?? '40h';
+        $company = Company::find($companyId);
+        return $company?->work_schedule ?? '40h';
     }
 
-    // =========================================================
-    // POINTAGE
-    // =========================================================
     private function getPointage(Employer $employer, int $mois, int $annee): array
     {
-        $heuresJournee = $this->getHeuresJournee($employer->company_id);
-
         $attendances = Attendance::where('employer_id', $employer->id)
             ->whereMonth('date', $mois)
             ->whereYear('date', $annee)
@@ -71,17 +72,17 @@ class PaymentController extends Controller
 
             $minutesJour = 0;
 
-            if ($att->check_in_morning_time && $att->check_out_morning_time) {
+            if ($att->morning_check_in && $att->morning_check_out) {
                 try {
-                    $minutesJour += Carbon::parse($att->check_in_morning_time)
-                        ->diffInMinutes(Carbon::parse($att->check_out_morning_time));
+                    $minutesJour += Carbon::parse($att->morning_check_in)
+                        ->diffInMinutes(Carbon::parse($att->morning_check_out));
                 } catch (\Exception $e) {}
             }
 
-            if ($att->check_in_afternoon_time && $att->check_out_afternoon_time) {
+            if ($att->afternoon_check_in && $att->afternoon_check_out) {
                 try {
-                    $minutesJour += Carbon::parse($att->check_in_afternoon_time)
-                        ->diffInMinutes(Carbon::parse($att->check_out_afternoon_time));
+                    $minutesJour += Carbon::parse($att->afternoon_check_in)
+                        ->diffInMinutes(Carbon::parse($att->afternoon_check_out));
                 } catch (\Exception $e) {}
             }
 
@@ -92,7 +93,7 @@ class PaymentController extends Controller
         }
 
         $heuresTravaillees = $minutesTravail / 60;
-        $heuresNormales    = $joursTravailles * $heuresJournee;
+        $heuresNormales    = $joursTravailles * $this->getHeuresJournee();
         $heuresSup         = max(round($heuresTravaillees - $heuresNormales, 2), 0);
 
         return [
@@ -103,38 +104,35 @@ class PaymentController extends Controller
         ];
     }
 
-    // =========================================================
-    // CONGÉS
-    // =========================================================
     private function getConges(Employer $employer, int $mois, int $annee): array
     {
         $debut = Carbon::create($annee, $mois, 1)->startOfMonth();
         $fin   = Carbon::create($annee, $mois, 1)->endOfMonth();
 
         $congesApprouves = Conge::where('employer_id', $employer->id)
-            ->where('statut', 'accepte')
+            ->whereIn('status', ['Approuvé', 'approuvé', 'accepte'])
             ->where(function ($q) use ($debut, $fin) {
-                $q->whereBetween('date_debut', [$debut, $fin])
-                  ->orWhereBetween('date_fin', [$debut, $fin])
+                $q->whereBetween('start_date', [$debut, $fin])
+                  ->orWhereBetween('end_date', [$debut, $fin])
                   ->orWhere(function ($q2) use ($debut, $fin) {
-                      $q2->where('date_debut', '<=', $debut)
-                         ->where('date_fin', '>=', $fin);
+                      $q2->where('start_date', '<=', $debut)
+                         ->where('end_date', '>=', $fin);
                   });
             })->get();
 
         $joursConge = 0;
         foreach ($congesApprouves as $c) {
             try {
-                $d = Carbon::parse($c->date_debut)->max($debut);
-                $f = Carbon::parse($c->date_fin)->min($fin);
+                $d = Carbon::parse($c->start_date)->max($debut);
+                $f = Carbon::parse($c->end_date)->min($fin);
                 if ($f->gte($d)) {
-                    $joursConge += $c->nombre_jours ?? ($d->diffInWeekdays($f) + 1);
+                    $joursConge += $c->days_count ?? ($d->diffInWeekdays($f) + 1);
                 }
             } catch (\Exception $e) {}
         }
 
         try {
-            $dateEmbauche   = Carbon::parse($employer->date_debut ?? $employer->created_at);
+            $dateEmbauche   = Carbon::parse($employer->start_date ?? $employer->created_at);
             $moisAnciennete = $dateEmbauche->diffInMonths(Carbon::create($annee, $mois, 1));
         } catch (\Exception $e) {
             $moisAnciennete = 0;
@@ -143,9 +141,9 @@ class PaymentController extends Controller
         $soldeAcquis = $moisAnciennete * self::CONGES_PAR_MOIS;
 
         $totalPris = Conge::where('employer_id', $employer->id)
-            ->where('statut', 'accepte')
-            ->where('date_fin', '<', $debut)
-            ->sum('nombre_jours');
+            ->whereIn('status', ['Approuvé', 'approuvé', 'accepte'])
+            ->where('end_date', '<', $debut)
+            ->sum('days_count');
 
         $soldeRestant = max($soldeAcquis - $totalPris - $joursConge, 0);
 
@@ -158,9 +156,6 @@ class PaymentController extends Controller
         ];
     }
 
-    // =========================================================
-    // CNSS
-    // =========================================================
     private function calculerCNSS(float $brut): float
     {
         $partPlafonnee = min($brut, self::CNSS_PLAFOND) * self::CNSS_TAUX_PLAFO;
@@ -168,9 +163,6 @@ class PaymentController extends Controller
         return round($partPlafonnee + $partMaladie, 3);
     }
 
-    // =========================================================
-    // IRPP
-    // =========================================================
     private function calculerIRPPAnnuel(float $base): float
     {
         if ($base <= 0)      return 0;
@@ -184,9 +176,6 @@ class PaymentController extends Controller
         return 20750 + ($base - 70000) * 0.40;
     }
 
-    // =========================================================
-    // HEURES SUPPLÉMENTAIRES
-    // =========================================================
     private function calculerHeuresSup(float $salaireBase, float $heuresSup, int $companyId): float
     {
         if ($heuresSup <= 0) return 0;
@@ -195,10 +184,12 @@ class PaymentController extends Controller
         $tauxHoraire      = $salaireBase / $heuresMensuelles;
         $regime           = $this->getRegimeLabel($companyId);
 
+        // Régime 48h — toutes les heures sup à 75%
         if ($regime === '48h') {
             return round($heuresSup * $tauxHoraire * 1.75, 3);
         }
 
+        // Régime 40h — 8 premières heures à 25%, reste à 50%
         if ($heuresSup <= 8) {
             return round($heuresSup * $tauxHoraire * 1.25, 3);
         }
@@ -206,9 +197,6 @@ class PaymentController extends Controller
         return round((8 * $tauxHoraire * 1.25) + (($heuresSup - 8) * $tauxHoraire * 1.50), 3);
     }
 
-    // =========================================================
-    // CALCUL PRINCIPAL
-    // =========================================================
     private function calculerSalaireParContrat(
         Employer $employer,
         int $mois,
@@ -216,9 +204,10 @@ class PaymentController extends Controller
         float $primes     = 0,
         float $indemnites = 0
     ): array {
-        $salaireBase = floatval($employer->salaire) ?? 0;
-        $companyId   = $employer->company_id;
-        $regime      = $this->getRegimeLabel($companyId);
+        $salaireBase  = floatval($employer->salary) ?? 0;
+        $companyId    = $employer->company_id;
+        $regime       = $this->getRegimeLabel($companyId);
+        $joursOuvres  = $this->getJoursOuvres($companyId);
 
         $pointage        = $this->getPointage($employer, $mois, $annee);
         $joursTravailles = $pointage['jours_travailles'];
@@ -229,10 +218,10 @@ class PaymentController extends Controller
         $joursConge = $conges['jours_conge'];
         $joursPayes = $joursTravailles + $joursConge;
 
-        $salaireProratise = round($salaireBase * ($joursPayes / self::JOURS_OUVRES), 3);
+        $salaireProratise = round($salaireBase * ($joursPayes / $joursOuvres), 3);
         $montantHS        = $this->calculerHeuresSup($salaireBase, $heuresSup, $companyId);
 
-        $tauxJournalier   = $salaireBase / self::JOURS_OUVRES;
+        $tauxJournalier   = $salaireBase / $joursOuvres;
         $retenueSansSolde = round($joursSansSolde * $tauxJournalier, 3);
 
         $salaireBrut = $salaireProratise + $montantHS + $primes + $indemnites;
@@ -241,16 +230,16 @@ class PaymentController extends Controller
         $imposableMensuel = $salaireBrut - $cnss;
 
         $fraisProAnnuel       = min($imposableMensuel * 12 * 0.10, 2000);
-        $deductionChefFamille = $employer->chef_famille ? 300 : 0;
+        $deductionChefFamille = $employer->family_head ? 300 : 0;
 
         $baremeEnfants    = [90, 75, 60, 45];
         $deductionEnfants = 0;
-        $nbEnfants        = min($employer->nombre_enfants ?? 0, 4);
+        $nbEnfants        = min($employer->children_count ?? 0, 4);
         for ($i = 0; $i < $nbEnfants; $i++) {
             $deductionEnfants += $baremeEnfants[$i];
         }
 
-        $deductionInfirmes = ($employer->nombre_enfants_infirmes ?? 0) * 2000;
+        $deductionInfirmes = ($employer->disabled_children_count ?? 0) * 2000;
         $totalDeductions   = $fraisProAnnuel + $deductionChefFamille + $deductionEnfants + $deductionInfirmes;
 
         $baseIRPPAnnuelle = max(($imposableMensuel * 12) - $totalDeductions, 0);
@@ -259,7 +248,7 @@ class PaymentController extends Controller
 
         $salaireNet = $salaireBrut - $cnss - $irppMensuel - $css - $retenueSansSolde;
 
-        switch ($employer->type_contrat) {
+        switch ($employer->contract_type) {
             case 'CIVP':
                 $cnss        = 0;
                 $irppMensuel = 0;
@@ -276,31 +265,29 @@ class PaymentController extends Controller
         }
 
         return [
-            'type_contrat'        => $employer->type_contrat,
-            'regime_horaire'      => $regime,
-            'jours_travailles'    => $joursTravailles,
-            'jours_conge'         => $joursConge,
-            'jours_sans_solde'    => $joursSansSolde,
-            'jours_payes'         => $joursPayes,
-            'salaire_base'        => round($salaireBase, 3),
-            'salaire_proratise'   => round($salaireProratise, 3),
-            'heures_sup'          => $heuresSup,
-            'montant_heures_sup'  => round($montantHS, 3),
-            'primes'              => round($primes, 3),
-            'indemnites'          => round($indemnites, 3),
-            'retenue_sans_solde'  => round($retenueSansSolde, 3),
-            'salaire_brut'        => round($salaireBrut, 3),
-            'cnss'                => round($cnss, 3),
-            'irpp'                => round($irppMensuel, 3),
-            'css'                 => round($css, 3),
-            'salaire_net'         => round($salaireNet, 3),
-            'conges'              => $conges,
+            'contract_type'      => $employer->contract_type,
+            'work_schedule'      => $regime,
+            'jours_ouvres'       => $joursOuvres,
+            'jours_travailles'   => $joursTravailles,
+            'jours_conge'        => $joursConge,
+            'jours_sans_solde'   => $joursSansSolde,
+            'jours_payes'        => $joursPayes,
+            'base_salary'        => round($salaireBase, 3),
+            'salaire_proratise'  => round($salaireProratise, 3),
+            'overtime_hours'     => $heuresSup,
+            'overtime_amount'    => round($montantHS, 3),
+            'bonuses'            => round($primes, 3),
+            'allowances'         => round($indemnites, 3),
+            'retenue_sans_solde' => round($retenueSansSolde, 3),
+            'gross_salary'       => round($salaireBrut, 3),
+            'cnss'               => round($cnss, 3),
+            'irpp'               => round($irppMensuel, 3),
+            'css'                => round($css, 3),
+            'salaire_net'        => round($salaireNet, 3),
+            'conges'             => $conges,
         ];
     }
 
-    // =========================================================
-    // INDEX
-    // =========================================================
     public function index(Request $request)
     {
         $user         = auth()->user();
@@ -309,9 +296,9 @@ class PaymentController extends Controller
         $query = Payment::with('employer');
 
         if ($user->hasRole('rh')) {
-            $config = Configuration::where('company_id', $user->company_id)->first();
-            $isPaymentDay = $config
-                ? intval(date('d')) == intval($config->payment_date)
+            $company      = Company::find($user->company_id);
+            $isPaymentDay = $company
+                ? intval(date('d')) == intval($company->payment_date)
                 : false;
         }
 
@@ -320,7 +307,7 @@ class PaymentController extends Controller
         if ($request->filled('employer')) {
             $s = $request->employer;
             $query->whereHas('employer', fn($q) =>
-                $q->where('nom', 'like', "%$s%")->orWhere('prenom', 'like', "%$s%")
+                $q->where('last_name', 'like', "%$s%")->orWhere('first_name', 'like', "%$s%")
             );
         }
 
@@ -329,9 +316,6 @@ class PaymentController extends Controller
         return view('paiements.index', compact('payments', 'isPaymentDay'));
     }
 
-    // =========================================================
-    // INIT PAYMENT
-    // =========================================================
     public function initPayment()
     {
         $user = auth()->user();
@@ -356,7 +340,7 @@ class PaymentController extends Controller
         $anneeInt           = (int) $currentYear;
 
         $employers = Employer::where('company_id', $user->company_id)
-            ->whereNotNull('salaire')
+            ->whereNotNull('salary')
             ->whereDoesntHave('payments', fn($q) =>
                 $q->where('month', $currentMonthFrench)->where('year', $currentYear)
             )->get();
@@ -374,24 +358,23 @@ class PaymentController extends Controller
                 $calcul = $this->calculerSalaireParContrat($employer, $moisInt, $anneeInt);
 
                 Payment::create([
-                    'reference'          => strtoupper(Str::random(10)),
-                    'employer_id'        => $employer->id,
-                    'month'              => $currentMonthFrench,
-                    'year'               => $currentYear,
-                    'type_contrat'       => $calcul['type_contrat'],
-                    'salaire_base'       => $calcul['salaire_base'],
-                    'heures_sup'         => $calcul['heures_sup'],
-                    'montant_heures_sup' => $calcul['montant_heures_sup'],
-                    'primes'             => $calcul['primes'],
-                    'indemnites'         => $calcul['indemnites'],
-                    'salaire_brut'       => $calcul['salaire_brut'],
-                    'cnss'               => $calcul['cnss'],
-                    'irpp'               => $calcul['irpp'],
-                    'css'                => $calcul['css'],
-                    'amount'             => $calcul['salaire_net'],
-                    'launch_date'        => now(),
-                    'done_time'          => now(),
-                    'status'             => 'SUCCESS',
+                    'reference'       => strtoupper(Str::random(10)),
+                    'employer_id'     => $employer->id,
+                    'month'           => $currentMonthFrench,
+                    'year'            => $currentYear,
+                    'contract_type'   => $calcul['contract_type'],
+                    'base_salary'     => $calcul['base_salary'],
+                    'overtime_hours'  => $calcul['overtime_hours'],
+                    'overtime_amount' => $calcul['overtime_amount'],
+                    'bonuses'         => $calcul['bonuses'],
+                    'allowances'      => $calcul['allowances'],
+                    'gross_salary'    => $calcul['gross_salary'],
+                    'cnss'            => $calcul['cnss'],
+                    'irpp'            => $calcul['irpp'],
+                    'css'             => $calcul['css'],
+                    'amount'          => $calcul['salaire_net'],
+                    'launch_date'     => now(),
+                    'done_time'       => now(),
                 ]);
 
                 $count++;
@@ -406,9 +389,6 @@ class PaymentController extends Controller
         );
     }
 
-    // =========================================================
-    // HELPER — mois en entier
-    // =========================================================
     private function moisEnInt(string $mois): int
     {
         $map = [
@@ -420,56 +400,48 @@ class PaymentController extends Controller
         return $map[strtoupper($mois)] ?? 1;
     }
 
-    // =========================================================
-    // DOWNLOAD INVOICE
-    // =========================================================
     public function download_invoice(Payment $payment)
     {
         try {
             $fullPaymentInfo = Payment::with('employer')->findOrFail($payment->id);
-
-            $moisInt = $this->moisEnInt($payment->month);
-            $debut   = Carbon::create($payment->year, $moisInt, 1)->startOfMonth();
-            $fin     = Carbon::create($payment->year, $moisInt, 1)->endOfMonth();
+            $moisInt         = $this->moisEnInt($payment->month);
+            $debut           = Carbon::create($payment->year, $moisInt, 1)->startOfMonth();
+            $fin             = Carbon::create($payment->year, $moisInt, 1)->endOfMonth();
 
             $conges = Conge::where('employer_id', $payment->employer_id)
-                ->where('statut', 'accepte')
+                ->whereIn('status', ['Approuvé', 'approuvé', 'accepte'])
                 ->where(function ($q) use ($debut, $fin) {
-                    $q->whereBetween('date_debut', [$debut, $fin])
-                      ->orWhereBetween('date_fin', [$debut, $fin]);
+                    $q->whereBetween('start_date', [$debut, $fin])
+                      ->orWhereBetween('end_date', [$debut, $fin]);
                 })->get();
 
             $pdf = Pdf::loadView('paiements.facture', compact('fullPaymentInfo', 'conges'));
             return $pdf->download(
-                'fiche-paie-' . $fullPaymentInfo->employer->nom . '-' . $payment->month . '-' . $payment->year . '.pdf'
+                'fiche-paie-' . $fullPaymentInfo->employer->last_name . '-' . $payment->month . '-' . $payment->year . '.pdf'
             );
         } catch (Exception $e) {
             return redirect()->back()->with('error_message', 'Erreur : ' . $e->getMessage());
         }
     }
 
-    // =========================================================
-    // PREVIEW INVOICE
-    // =========================================================
     public function preview_invoice(Payment $payment)
     {
         try {
             $fullPaymentInfo = Payment::with('employer')->findOrFail($payment->id);
-
-            $moisInt = $this->moisEnInt($payment->month);
-            $debut   = Carbon::create($payment->year, $moisInt, 1)->startOfMonth();
-            $fin     = Carbon::create($payment->year, $moisInt, 1)->endOfMonth();
+            $moisInt         = $this->moisEnInt($payment->month);
+            $debut           = Carbon::create($payment->year, $moisInt, 1)->startOfMonth();
+            $fin             = Carbon::create($payment->year, $moisInt, 1)->endOfMonth();
 
             $conges = Conge::where('employer_id', $payment->employer_id)
-                ->where('statut', 'accepte')
+                ->whereIn('status', ['Approuvé', 'approuvé', 'accepte'])
                 ->where(function ($q) use ($debut, $fin) {
-                    $q->whereBetween('date_debut', [$debut, $fin])
-                      ->orWhereBetween('date_fin', [$debut, $fin]);
+                    $q->whereBetween('start_date', [$debut, $fin])
+                      ->orWhereBetween('end_date', [$debut, $fin]);
                 })->get();
 
             $pdf = Pdf::loadView('paiements.facture', compact('fullPaymentInfo', 'conges'));
             return $pdf->stream(
-                'fiche-paie-' . $fullPaymentInfo->employer->nom . '-' . $payment->month . '-' . $payment->year . '.pdf'
+                'fiche-paie-' . $fullPaymentInfo->employer->last_name . '-' . $payment->month . '-' . $payment->year . '.pdf'
             );
         } catch (Exception $e) {
             return redirect()->back()->with('error_message', 'Erreur : ' . $e->getMessage());

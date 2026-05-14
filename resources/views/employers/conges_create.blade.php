@@ -53,13 +53,13 @@
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label fw-bold">Date de début</label>
-                    <input type="date" name="date_debut" class="form-control"
+                    <input type="date" name="start_date" class="form-control"
                            value="{{ old('date_debut') }}"
                            min="{{ date('Y-m-d') }}" required>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label fw-bold">Date de fin</label>
-                    <input type="date" name="date_fin" class="form-control"
+                    <input type="date" name="end_date" class="form-control"
                            value="{{ old('date_fin') }}"
                            min="{{ date('Y-m-d') }}" required>
                 </div>
@@ -88,7 +88,7 @@
 
             <div class="mb-3">
                 <label class="form-label fw-bold">Motif</label>
-                <textarea name="motif" class="form-control" rows="3"
+                <textarea name="reason" class="form-control" rows="3"
                           placeholder="Décrivez le motif de votre congé">{{ old('motif') }}</textarea>
             </div>
 
@@ -102,8 +102,8 @@
 
 <script>
     const solde      = {{ $solde }};
-    const dateDebut  = document.querySelector('[name="date_debut"]');
-    const dateFin    = document.querySelector('[name="date_fin"]');
+    const dateDebut  = document.querySelector('[name="start_date"]');
+    const dateFin    = document.querySelector('[name="end_date"]');
     const joursInfo  = document.getElementById('jours-info');
     const joursCount = document.getElementById('jours-count');
     const joursWarn  = document.getElementById('jours-warning');

@@ -2,35 +2,29 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Configuration;
+use App\Models\Company;
 use Illuminate\Http\Request;
 
 class ConfigurationController extends Controller
 {
     public function index()
     {
-        $companyId = auth()->user()->company_id;
-        $config    = Configuration::where('company_id', $companyId)->first();
-
-        return view('config.index', compact('config'));
+        $company = Company::find(auth()->user()->company_id);
+        return view('config.index', compact('company'));
     }
 
     public function save(Request $request)
     {
         $request->validate([
-            'PAYMENT_DATEE'  => 'nullable|integer|min:1|max:31',
-            'REGIME_HORAIRE' => 'nullable|in:40h,48h',
+            'payment_date'  => 'nullable|integer|min:1|max:31',
+            'work_schedule' => 'nullable|in:40h,48h',
         ]);
 
-        $companyId = auth()->user()->company_id;
-
-        Configuration::updateOrCreate(
-            ['company_id' => $companyId],
-            [
-                'payment_date'   => $request->input('PAYMENT_DATEE'),
-                'regime_horaire' => $request->input('REGIME_HORAIRE'),
-            ]
-        );
+        Company::where('id', auth()->user()->company_id)
+            ->update([
+                'payment_date'  => $request->input('payment_date'),
+                'work_schedule' => $request->input('work_schedule'),
+            ]);
 
         return redirect()->back()->with('success_message', 'Configuration enregistrée !');
     }

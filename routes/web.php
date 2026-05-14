@@ -16,9 +16,7 @@ use App\Http\Controllers\PointageController;
 use App\Http\Controllers\EmployerDashboardController;
 use Illuminate\Support\Facades\Route;
 
-// ============================================
-// AUTHENTIFICATION PUBLIQUE
-// ============================================
+// ── Authentification publique ─────────────────────────────
 Route::get('/', [AuthController::class, 'login'])->name('login');
 Route::post('/', [AuthController::class, 'handleLogin'])->name('handleLogin');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
@@ -26,17 +24,13 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::get('/validate-account/{email}', [AdminController::class, 'defineAccess']);
 Route::post('/validate-account/{email}', [AdminController::class, 'submitDefineAccess'])->name('submitDefineAccess');
 
-// ============================================
-// COMMUN
-// ============================================
+// ── Dashboard ─────────────────────────────────────────────
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [AppController::class, 'index'])->name('dashboard');
 });
 
-// ============================================
-// ADMIN SEULEMENT
-// ============================================
-Route::middleware(['auth', 'can:voir roles'])->group(function () {
+// ── Administrateurs ───────────────────────────────────────
+Route::middleware(['auth', 'can:view roles'])->group(function () {
     Route::prefix('administrateurs')->name('administrateurs.')->group(function () {
         Route::get('/', [AdminController::class, 'index'])->name('index');
         Route::get('/create', [AdminController::class, 'create'])->name('create');
@@ -47,21 +41,13 @@ Route::middleware(['auth', 'can:voir roles'])->group(function () {
     });
 });
 
-// ============================================
-// CONFIGURATIONS
-// ============================================
-Route::middleware('auth')->prefix('configurations')->group(function () {
+// ── Configurations ────────────────────────────────────────
+Route::middleware(['auth', 'can:view settings'])->prefix('configurations')->group(function () {
     Route::get('/', [ConfigurationController::class, 'index'])->name('configurations');
-    Route::get('/create', [ConfigurationController::class, 'create'])->name('configurations.create');
-    Route::post('/store', [ConfigurationController::class, 'store'])->name('configurations.store');
-    Route::get('/delete/{configuration}', [ConfigurationController::class, 'delete'])->name('configurations.delete');
-    Route::post('/regime', [ConfigurationController::class, 'updateRegime'])->name('configurations.regime');
     Route::post('/save', [ConfigurationController::class, 'save'])->name('configurations.save');
 });
 
-// ============================================
-// PERMISSIONS & ROLES
-// ============================================
+// ── Permissions & Rôles ───────────────────────────────────
 Route::middleware('auth')->group(function () {
     Route::prefix('permissions')->name('permissions.')->group(function () {
         Route::get('/', [PermissionController::class, 'index'])->name('index');
@@ -84,10 +70,8 @@ Route::middleware('auth')->group(function () {
     });
 });
 
-// ============================================
-// EMPLOYERS
-// ============================================
-Route::middleware('auth')->prefix('employer')->name('employer.')->group(function () {
+// ── Employers ─────────────────────────────────────────────
+Route::middleware(['auth', 'can:view employers'])->prefix('employer')->name('employer.')->group(function () {
     Route::get('/', [EmployerController::class, 'index'])->name('index');
     Route::get('/create', [EmployerController::class, 'create'])->name('create');
     Route::get('/edit/{employer}', [EmployerController::class, 'edit'])->name('edit');
@@ -96,10 +80,8 @@ Route::middleware('auth')->prefix('employer')->name('employer.')->group(function
     Route::get('/delete/{employer}', [EmployerController::class, 'delete'])->name('delete');
 });
 
-// ============================================
-// CONTRATS EMPLOYERS
-// ============================================
-Route::middleware('auth')->prefix('contrats')->name('contrat.')->group(function () {
+// ── Contrats employers ────────────────────────────────────
+Route::middleware(['auth', 'can:view contracts'])->prefix('contrats')->name('contrat.')->group(function () {
     Route::get('/', [ContratController::class, 'index'])->name('index');
     Route::post('/store', [ContratController::class, 'store'])->name('store');
     Route::get('/edit/{employer}', [ContratController::class, 'edit'])->name('edit');
@@ -108,9 +90,7 @@ Route::middleware('auth')->prefix('contrats')->name('contrat.')->group(function 
     Route::get('/pdf/{employer}', [ContratController::class, 'downloadPdf'])->name('pdf');
 });
 
-// ============================================
-// TYPES CONTRATS (admin)
-// ============================================
+// ── Types contrats ────────────────────────────────────────
 Route::middleware('auth')->prefix('admin/contracts')->name('contracts.')->group(function () {
     Route::get('/', [ContractTypeController::class, 'index'])->name('index');
     Route::post('/store', [ContractTypeController::class, 'store'])->name('store');
@@ -119,27 +99,21 @@ Route::middleware('auth')->prefix('admin/contracts')->name('contracts.')->group(
     Route::patch('/{contract}/toggle', [ContractTypeController::class, 'toggle'])->name('toggle');
 });
 
-// ============================================
-// PAIEMENTS
-// ============================================
-Route::middleware('auth')->group(function () {
+// ── Paiements ─────────────────────────────────────────────
+Route::middleware(['auth', 'can:view payments'])->group(function () {
     Route::get('/payments', [PaymentController::class, 'index'])->name('payments');
     Route::post('/payment/init', [PaymentController::class, 'initPayment'])->name('payment.init');
     Route::get('/payment/download-invoice/{payment}', [PaymentController::class, 'download_invoice'])->name('payment.download');
     Route::get('/payment/preview-invoice/{payment}', [PaymentController::class, 'preview_invoice'])->name('payment.preview');
 });
 
-// ============================================
-// POINTAGE RH/ADMIN
-// ============================================
+// ── Pointage RH ───────────────────────────────────────────
 Route::middleware('auth')->group(function () {
     Route::get('/pointage', [PointageController::class, 'adminIndex'])->name('pointage.admin');
 });
 
-// ============================================
-// DEPARTEMENTS
-// ============================================
-Route::middleware(['auth', 'can:voir departements'])->prefix('departements')->name('departement.')->group(function () {
+// ── Départements ──────────────────────────────────────────
+Route::middleware(['auth', 'can:view departments'])->prefix('departements')->name('departement.')->group(function () {
     Route::get('/', [DepartementController::class, 'index'])->name('index');
     Route::get('/create', [DepartementController::class, 'create'])->name('create');
     Route::post('/create', [DepartementController::class, 'store'])->name('store');
@@ -148,10 +122,8 @@ Route::middleware(['auth', 'can:voir departements'])->prefix('departements')->na
     Route::get('/{departement}', [DepartementController::class, 'destroy'])->name('destroy');
 });
 
-// ============================================
-// CONGÉS
-// ============================================
-Route::middleware('auth')->prefix('conges')->name('conge.')->group(function () {
+// ── Congés ────────────────────────────────────────────────
+Route::middleware(['auth', 'can:view leaves'])->prefix('conges')->name('conge.')->group(function () {
     Route::get('/', [CongeController::class, 'index'])->name('index');
     Route::get('/create', [CongeController::class, 'create'])->name('create');
     Route::post('/store', [CongeController::class, 'store'])->name('store');
@@ -159,9 +131,7 @@ Route::middleware('auth')->prefix('conges')->name('conge.')->group(function () {
     Route::patch('/{id}/rejeter', [CongeController::class, 'rejeter'])->name('rejeter');
 });
 
-// ============================================
-// ESPACE EMPLOYÉ
-// ============================================
+// ── Espace employé ────────────────────────────────────────
 Route::prefix('espace-employe')->name('employer_space.')->group(function () {
 
     Route::get('/login', [EmployerAuthController::class, 'showLogin'])->name('login');
@@ -193,5 +163,3 @@ Route::prefix('espace-employe')->name('employer_space.')->group(function () {
         Route::post('/pointage/check-out-apres-midi', [PointageController::class, 'checkOutApresMidi'])->name('pointage.check_out_apres_midi');
     });
 });
-
-require __DIR__.'/auth.php';
