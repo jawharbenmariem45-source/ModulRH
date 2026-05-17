@@ -4,15 +4,15 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AppController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ConfigurationController;
-use App\Http\Controllers\DepartementController;
+use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\EmployerController;
 use App\Http\Controllers\PaymentController;
-use App\Http\Controllers\ContratController;
+use App\Http\Controllers\ContractController;
 use App\Http\Controllers\ContractTypeController;
-use App\Http\Controllers\CongeController;
+use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\EmployerAuthController;
-use App\Http\Controllers\PointageController;
+use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\EmployerDashboardController;
 use Illuminate\Support\Facades\Route;
 
@@ -82,12 +82,12 @@ Route::middleware(['auth', 'can:view employers'])->prefix('employer')->name('emp
 
 // ── Contrats employers ────────────────────────────────────
 Route::middleware(['auth', 'can:view contracts'])->prefix('contrats')->name('contrat.')->group(function () {
-    Route::get('/', [ContratController::class, 'index'])->name('index');
-    Route::post('/store', [ContratController::class, 'store'])->name('store');
-    Route::get('/edit/{employer}', [ContratController::class, 'edit'])->name('edit');
-    Route::put('/update/{employer}', [ContratController::class, 'update'])->name('update');
-    Route::get('/delete/{employer}', [ContratController::class, 'delete'])->name('delete');
-    Route::get('/pdf/{employer}', [ContratController::class, 'downloadPdf'])->name('pdf');
+    Route::get('/', [ContractController::class, 'index'])->name('index');
+    Route::post('/store', [ContractController::class, 'store'])->name('store');
+    Route::get('/edit/{employer}', [ContractController::class, 'edit'])->name('edit');
+    Route::put('/update/{employer}', [ContractController::class, 'update'])->name('update');
+    Route::get('/delete/{employer}', [ContractController::class, 'delete'])->name('delete');
+    Route::get('/pdf/{employer}', [ContractController::class, 'downloadPdf'])->name('pdf');
 });
 
 // ── Types contrats ────────────────────────────────────────
@@ -109,26 +109,26 @@ Route::middleware(['auth', 'can:view payments'])->group(function () {
 
 // ── Pointage RH ───────────────────────────────────────────
 Route::middleware('auth')->group(function () {
-    Route::get('/pointage', [PointageController::class, 'adminIndex'])->name('pointage.admin');
+    Route::get('/pointage', [AttendanceController::class, 'adminIndex'])->name('pointage.admin');
 });
 
 // ── Départements ──────────────────────────────────────────
 Route::middleware(['auth', 'can:view departments'])->prefix('departements')->name('departement.')->group(function () {
-    Route::get('/', [DepartementController::class, 'index'])->name('index');
-    Route::get('/create', [DepartementController::class, 'create'])->name('create');
-    Route::post('/create', [DepartementController::class, 'store'])->name('store');
-    Route::get('/edit/{departement}', [DepartementController::class, 'edit'])->name('edit');
-    Route::put('/update/{departement}', [DepartementController::class, 'update'])->name('update');
-    Route::get('/{departement}', [DepartementController::class, 'destroy'])->name('destroy');
+    Route::get('/', [DepartmentController::class, 'index'])->name('index');
+    Route::get('/create', [DepartmentController::class, 'create'])->name('create');
+    Route::post('/create', [DepartmentController::class, 'store'])->name('store');
+    Route::get('/edit/{departement}', [DepartmentController::class, 'edit'])->name('edit');
+    Route::put('/update/{departement}', [DepartmentController::class, 'update'])->name('update');
+    Route::get('/{departement}', [DepartmentController::class, 'destroy'])->name('destroy');
 });
 
 // ── Congés ────────────────────────────────────────────────
 Route::middleware(['auth', 'can:view leaves'])->prefix('conges')->name('conge.')->group(function () {
-    Route::get('/', [CongeController::class, 'index'])->name('index');
-    Route::get('/create', [CongeController::class, 'create'])->name('create');
-    Route::post('/store', [CongeController::class, 'store'])->name('store');
-    Route::patch('/{id}/accepter', [CongeController::class, 'accepter'])->name('accepter');
-    Route::patch('/{id}/rejeter', [CongeController::class, 'rejeter'])->name('rejeter');
+    Route::get('/', [LeaveController::class, 'index'])->name('index');
+    Route::get('/create', [LeaveController::class, 'create'])->name('create');
+    Route::post('/store', [LeaveController::class, 'store'])->name('store');
+    Route::patch('/{id}/accepter', [LeaveController::class, 'approve'])->name('accepter');
+    Route::patch('/{id}/rejeter', [LeaveController::class, 'reject'])->name('rejeter');
 });
 
 // ── Espace employé ────────────────────────────────────────
@@ -156,10 +156,10 @@ Route::prefix('espace-employe')->name('employer_space.')->group(function () {
 
         Route::get('/contrat', [EmployerDashboardController::class, 'contrat'])->name('contrat');
 
-        Route::get('/pointage', [PointageController::class, 'index'])->name('pointage.index');
-        Route::post('/pointage/check-in-matin', [PointageController::class, 'checkInMatin'])->name('pointage.check_in_matin');
-        Route::post('/pointage/check-out-matin', [PointageController::class, 'checkOutMatin'])->name('pointage.check_out_matin');
-        Route::post('/pointage/check-in-apres-midi', [PointageController::class, 'checkInApresMidi'])->name('pointage.check_in_apres_midi');
-        Route::post('/pointage/check-out-apres-midi', [PointageController::class, 'checkOutApresMidi'])->name('pointage.check_out_apres_midi');
+        Route::get('/pointage', [AttendanceController::class, 'index'])->name('pointage.index');
+        Route::post('/pointage/check-in-matin', [AttendanceController::class, 'checkInMatin'])->name('pointage.check_in_matin');
+        Route::post('/pointage/check-out-matin', [AttendanceController::class, 'checkOutMatin'])->name('pointage.check_out_matin');
+        Route::post('/pointage/check-in-apres-midi', [AttendanceController::class, 'checkInApresMidi'])->name('pointage.check_in_apres_midi');
+        Route::post('/pointage/check-out-apres-midi', [AttendanceController::class, 'checkOutApresMidi'])->name('pointage.check_out_apres_midi');
     });
 });
