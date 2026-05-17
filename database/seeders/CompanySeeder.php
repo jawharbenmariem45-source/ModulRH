@@ -10,7 +10,7 @@ class CompanySeeder extends Seeder
     public function run(): void
     {
         Company::updateOrCreate(
-            ['name' => 'SummitRise'],
+            ['name' => 'AlphaCorp'],
             [
                 'type'          => 'micro',
                 'payment_date'  => 28,
@@ -28,7 +28,7 @@ class CompanySeeder extends Seeder
         );
 
         Company::updateOrCreate(
-            ['name' => 'AlphaCorp'],
+            ['name' => 'SummitRise'],
             [
                 'type'          => 'moyenne',
                 'payment_date'  => 25,
