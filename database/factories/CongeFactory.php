@@ -69,7 +69,6 @@ class CongeFactory extends Factory
                 'En attente', 'Approuvé', 'Refusé',
                 'approuvé', 'APPROUVE', 'en attente', null,
             ]),
-            'comment'     => $this->faker->optional(0.4)->sentence(10),
         ];
     }
 

@@ -13,7 +13,7 @@ class Conge extends Model
 
     protected $fillable = [
         'employer_id', 'type', 'start_date', 'end_date',
-        'days_count', 'reason', 'document', 'status', 'comment',
+        'days_count', 'reason', 'document', 'status',
     ];
 
     public function employer()
