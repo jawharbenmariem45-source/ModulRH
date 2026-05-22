@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Company;
 use App\Models\User;
@@ -14,10 +13,13 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class EmployerDashboardController extends Controller
 {
-    // ── Jours fériés officiels Tunisie ────────────────────────────────────────
-    // Mis à jour annuellement (fêtes religieuses variables)
-    private static array $JOURS_FERIES = [
-        // Fixes
+    // ── Jours fériés officiels Tunisie 2026 ───────────────────────────────────
+
+    /**
+     * Jours fériés fixes (MM-DD) — valables chaque année
+     * Source : Code du Travail tunisien + décrets officiels
+     */
+    private static array $FERIES_FIXES = [
         '01-01', // Nouvel An
         '03-20', // Fête de l'Indépendance
         '04-09', // Jour des Martyrs
@@ -26,33 +28,67 @@ class EmployerDashboardController extends Controller
         '07-25', // Fête de la République
         '08-13', // Fête de la Femme
         '10-15', // Fête de l'Évacuation
-    ];
-
-    // Jours fériés variables 2026 (religieux)
-    private static array $JOURS_FERIES_VARIABLES = [
-        '2026-03-20', // Aïd el-Fitr
-        '2026-03-21', // Aïd el-Fitr
-        '2026-06-27', // Aïd el-Adha
-        '2026-06-28', // Aïd el-Adha
-        '2026-06-25', // Ras el-Am Hijri
-        '2026-09-04', // Mouled
+        '12-17', // Fête de la Révolution
     ];
 
     /**
-     * Vérifie si une date est un jour férié tunisien
+     * Jours fériés variables 2026 — fêtes religieuses islamiques
+     * ⚠ Dates prévisionnelles — peuvent être ajustées d'1-2 jours selon l'observation lunaire
+     *
+     * Aïd al-Fitr      : 20-21 mars 2026
+     * Aïd al-Adha      : 26-27 mai 2026
+     * Ras El Am        : 15 juin 2026
+     * Mouled           : 24 août 2026
+     */
+    private static array $FERIES_VARIABLES_2026 = [
+        '2026-03-20', // Aïd al-Fitr - Jour 1 (coïncide avec Fête de l'Indépendance)
+        '2026-03-21', // Aïd al-Fitr - Jour 2
+        '2026-05-26', // Aïd al-Adha - Jour 1
+        '2026-05-27', // Aïd al-Adha - Jour 2
+        '2026-06-15', // Ras El Am Hégirien (Nouvel An islamique)
+        '2026-08-24', // Mouled (Anniversaire du Prophète Mohamed)
+    ];
+
+    /**
+     * Vérifie si une date donnée est un jour férié tunisien
      */
     private function estJourFerie(Carbon $date): bool
     {
-        $mmjj = $date->format('m-d');
-        foreach (self::$JOURS_FERIES as $ferie) {
-            if ($mmjj === $ferie) return true;
+        // Vérification fériés fixes (MM-DD)
+        if (in_array($date->format('m-d'), self::$FERIES_FIXES)) {
+            return true;
         }
-        return in_array($date->format('Y-m-d'), self::$JOURS_FERIES_VARIABLES);
+        // Vérification fériés variables
+        return in_array($date->format('Y-m-d'), self::$FERIES_VARIABLES_2026);
     }
 
     /**
-     * Compte les jours ouvrés à déduire entre deux dates
-     * (lundi-vendredi, hors jours fériés tunisiens)
+     * Retourne la liste de tous les jours fériés 2026 avec leurs noms
+     */
+    public static function getJoursFeries2026(): array
+    {
+        return [
+            // Fixes
+            '2026-01-01' => 'Nouvel An',
+            '2026-03-20' => 'Fête de l\'Indépendance + Aïd al-Fitr Jour 1',
+            '2026-03-21' => 'Aïd al-Fitr - Jour 2',
+            '2026-04-09' => 'Jour des Martyrs',
+            '2026-05-01' => 'Fête du Travail',
+            '2026-05-26' => 'Aïd al-Adha - Jour 1',
+            '2026-05-27' => 'Aïd al-Adha - Jour 2',
+            '2026-06-01' => 'Fête de la Jeunesse',
+            '2026-06-15' => 'Ras El Am Hégirien (Nouvel An islamique)',
+            '2026-07-25' => 'Fête de la République',
+            '2026-08-13' => 'Fête de la Femme',
+            '2026-08-24' => 'Mouled (Anniversaire du Prophète Mohamed)',
+            '2026-10-15' => 'Fête de l\'Évacuation',
+            '2026-12-17' => 'Fête de la Révolution',
+        ];
+    }
+
+    /**
+     * Compte les jours ouvrés entre deux dates
+     * Exclut : samedis, dimanches, jours fériés tunisiens
      */
     private function compterJoursOuvres(string $startDate, string $endDate): int
     {
@@ -74,75 +110,65 @@ class EmployerDashboardController extends Controller
         }
     }
 
+    // ── Calcul solde congés ───────────────────────────────────────────────────
+
     /**
-     * Calcul du solde de congés selon le Code du Travail tunisien 2026
+     * Calcule le solde de congés selon le Code du Travail tunisien
      *
-     * Règles :
-     * - CIVP : 0 jour légal (stage, pas de congé payé)
-     * - CDI/CDD/Karama : 1.833 jour ouvré par mois travaillé
-     * - Bonus ancienneté (Art. 117 Code du Travail) :
-     *   +1j après 5 ans, +2j après 10 ans, +3j après 15 ans, +4j après 20 ans
-     * - Déduction : jours ouvrés uniquement (lundi-vendredi, hors fériés)
+     * Règles appliquées :
+     * - CIVP : 0 jour légal (stage)
+     * - CDI / CDD / Karama : 1.833 j/mois (convention collective) = 22j/an
+     * - Bonus ancienneté (Art. 115 Code du Travail) :
+     *     +1j par tranche de 5 ans, max +4j (18j ouvrables légaux max)
+     * - Maladie & Maternité : ne déduisent pas le solde annuel
+     * - Jours déduits = jours ouvrés (lun-ven, hors fériés tunisiens)
      */
     private function calculerSoldeConges(User $user): array
     {
         // CIVP : pas de congé légal
         if ($user->contract_type === 'CIVP') {
             return [
-                'droits_annuels'  => 0,
-                'jours_acquis'    => 0,
-                'jours_pris'      => 0,
-                'solde'           => 0,
-                'taux_mensuel'    => 0,
-                'anciennete_ans'  => 0,
-                'bonus_anciennete'=> 0,
-                'note'            => 'CIVP : pas de congé légal (stage)',
+                'droits_annuels'   => 0,
+                'jours_acquis'     => 0,
+                'jours_pris'       => 0,
+                'solde'            => 0,
+                'taux_mensuel'     => 0,
+                'anciennete_ans'   => 0,
+                'bonus_anciennete' => 0,
+                'note'             => 'CIVP : pas de congé légal (stage)',
             ];
         }
 
-        if (!$user->start_date) {
-            return [
-                'droits_annuels'  => 22,
-                'jours_acquis'    => 22,
-                'jours_pris'      => 0,
-                'solde'           => 22,
-                'taux_mensuel'    => 1.833,
-                'anciennete_ans'  => 0,
-                'bonus_anciennete'=> 0,
-                'note'            => '',
-            ];
+        // Ancienneté
+        $ancienneteAns  = 0;
+        $moisTravailles = 0;
+
+        if ($user->start_date) {
+            try {
+                $dateEmbauche   = Carbon::parse($user->start_date);
+                $ancienneteAns  = (int) $dateEmbauche->diffInYears(Carbon::now());
+                $moisTravailles = (int) $dateEmbauche->diffInMonths(Carbon::now());
+            } catch (\Exception $e) {}
         }
 
-        try {
-            $dateEmbauche  = Carbon::parse($user->start_date);
-            $maintenant    = Carbon::now();
-            $ancienneteAns = (int) $dateEmbauche->diffInYears($maintenant);
-            $moisTravailles = (int) $dateEmbauche->diffInMonths($maintenant);
-        } catch (\Exception $e) {
-            $ancienneteAns  = 0;
-            $moisTravailles = 0;
-        }
-
-        // Taux de base : 1.833 jour/mois = 22 jours/an
-        $tauxMensuel = 1.833;
-
-        // Bonus ancienneté (Art. 117 Code du Travail tunisien)
+        // Bonus ancienneté Art. 115 Code du Travail
+        // +1j par 5 ans, plafonné à +4j (soit 22+4 = 26j max convention collective)
         $bonusAnciennete = 0;
         if ($ancienneteAns >= 20)     $bonusAnciennete = 4;
         elseif ($ancienneteAns >= 15) $bonusAnciennete = 3;
         elseif ($ancienneteAns >= 10) $bonusAnciennete = 2;
         elseif ($ancienneteAns >= 5)  $bonusAnciennete = 1;
 
-        $droitsAnnuels = 22 + $bonusAnciennete;
-        $tauxMensuelAjuste = $droitsAnnuels / 12;
+        $droitsAnnuels     = 22 + $bonusAnciennete;
+        $tauxMensuel       = round($droitsAnnuels / 12, 3);
 
-        // Jours acquis sur la période travaillée (plafonné aux droits annuels)
+        // Jours acquis (plafonné aux droits annuels)
         $joursAcquis = min(
-            round($moisTravailles * $tauxMensuelAjuste, 1),
+            round($moisTravailles * $tauxMensuel, 1),
             $droitsAnnuels
         );
 
-        // Jours pris (congés approuvés, comptés en jours ouvrés)
+        // Jours pris — uniquement congés annuels et sans solde (pas maladie/maternité)
         $congesApprouves = Conge::where('user_id', $user->id)
             ->where('status', 'Approuvé')
             ->whereNotIn('type', ['Maladie', 'Maternité'])
@@ -150,33 +176,40 @@ class EmployerDashboardController extends Controller
 
         $joursPris = 0;
         foreach ($congesApprouves as $conge) {
-            $joursPris += $this->compterJoursOuvres($conge->start_date, $conge->end_date);
+            $joursPris += $this->compterJoursOuvres(
+                $conge->start_date,
+                $conge->end_date
+            );
         }
 
         $solde = max(round($joursAcquis - $joursPris, 1), 0);
+
+        $note = '';
+        if ($bonusAnciennete > 0) {
+            $note = "Bonus ancienneté : +{$bonusAnciennete}j ({$ancienneteAns} ans de service — Art. 115 Code du Travail)";
+        }
 
         return [
             'droits_annuels'   => $droitsAnnuels,
             'jours_acquis'     => $joursAcquis,
             'jours_pris'       => $joursPris,
             'solde'            => $solde,
-            'taux_mensuel'     => round($tauxMensuelAjuste, 3),
+            'taux_mensuel'     => $tauxMensuel,
             'anciennete_ans'   => $ancienneteAns,
             'bonus_anciennete' => $bonusAnciennete,
-            'note'             => $bonusAnciennete > 0
-                ? "Bonus ancienneté : +{$bonusAnciennete}j (Art. 117 Code du Travail)"
-                : '',
+            'note'             => $note,
         ];
     }
 
     /**
-     * Vérifie si une demande de congé est valide selon le solde disponible
+     * Valide une demande de congé selon le solde disponible
      */
     private function validerDemandeConge(User $user, string $startDate, string $endDate, string $type): array
     {
-        // Maladie et Maternité ne déduisent pas le solde annuel
+        // Maladie et Maternité : pas de vérification du solde
         if (in_array($type, ['Maladie', 'Maternité'])) {
-            return ['valide' => true, 'jours' => 0, 'message' => ''];
+            $jours = $this->compterJoursOuvres($startDate, $endDate);
+            return ['valide' => true, 'jours' => $jours, 'message' => ''];
         }
 
         $joursOuvres = $this->compterJoursOuvres($startDate, $endDate);
@@ -193,7 +226,7 @@ class EmployerDashboardController extends Controller
         return ['valide' => true, 'jours' => $joursOuvres, 'message' => ''];
     }
 
-    // ── Dashboard ─────────────────────────────────────────────────────────────
+    // ── Pages ─────────────────────────────────────────────────────────────────
 
     public function dashboard()
     {
@@ -244,7 +277,7 @@ class EmployerDashboardController extends Controller
 
     public function paiements(Request $request)
     {
-        $user = auth()->user();
+        $user         = auth()->user();
         $company      = Company::find($user->company_id);
         $isPaymentDay = $company ? intval(date('d')) == intval($company->payment_date) : false;
 
@@ -262,23 +295,15 @@ class EmployerDashboardController extends Controller
         $fullPaymentInfo = Payment::with('employer')->findOrFail($paymentId);
         if ($fullPaymentInfo->user_id !== $user->id) abort(403);
 
-        $moisMap = [
-            'JANVIER'=>1,'FEVRIER'=>2,'MARS'=>3,'AVRIL'=>4,'MAI'=>5,'JUIN'=>6,
-            'JUILLET'=>7,'AOUT'=>8,'SEPTEMBRE'=>9,'OCTOBRE'=>10,'NOVEMBRE'=>11,'DECEMBRE'=>12,
-        ];
-        $moisInt = $moisMap[strtoupper($fullPaymentInfo->month)] ?? 1;
-        $debut   = Carbon::create($fullPaymentInfo->year, $moisInt, 1)->startOfMonth();
-        $fin     = Carbon::create($fullPaymentInfo->year, $moisInt, 1)->endOfMonth();
+        [$debut, $fin] = $this->getPeriodeMois($fullPaymentInfo);
 
         $conges = Conge::where('user_id', $user->id)
             ->whereIn('status', ['Approuvé', 'approuvé', 'accepte'])
-            ->where(function ($q) use ($debut, $fin) {
-                $q->whereBetween('start_date', [$debut, $fin])
-                  ->orWhereBetween('end_date', [$debut, $fin]);
-            })->get();
+            ->where(fn($q) => $q->whereBetween('start_date', [$debut, $fin])
+                ->orWhereBetween('end_date', [$debut, $fin]))->get();
 
         $pdf = Pdf::loadView('paiements.facture', compact('fullPaymentInfo', 'conges'));
-        return $pdf->download('facture_' . $user->last_name . '.pdf');
+        return $pdf->download('facture_' . $user->last_name . '_' . $fullPaymentInfo->month . '_' . $fullPaymentInfo->year . '.pdf');
     }
 
     public function previewPaiement($paymentId)
@@ -287,23 +312,28 @@ class EmployerDashboardController extends Controller
         $fullPaymentInfo = Payment::with('employer')->findOrFail($paymentId);
         if ($fullPaymentInfo->user_id !== $user->id) abort(403);
 
+        [$debut, $fin] = $this->getPeriodeMois($fullPaymentInfo);
+
+        $conges = Conge::where('user_id', $user->id)
+            ->whereIn('status', ['Approuvé', 'approuvé', 'accepte'])
+            ->where(fn($q) => $q->whereBetween('start_date', [$debut, $fin])
+                ->orWhereBetween('end_date', [$debut, $fin]))->get();
+
+        $pdf = Pdf::loadView('paiements.facture', compact('fullPaymentInfo', 'conges'));
+        return $pdf->stream('facture_' . $user->last_name . '_' . $fullPaymentInfo->month . '_' . $fullPaymentInfo->year . '.pdf');
+    }
+
+    private function getPeriodeMois($payment): array
+    {
         $moisMap = [
             'JANVIER'=>1,'FEVRIER'=>2,'MARS'=>3,'AVRIL'=>4,'MAI'=>5,'JUIN'=>6,
             'JUILLET'=>7,'AOUT'=>8,'SEPTEMBRE'=>9,'OCTOBRE'=>10,'NOVEMBRE'=>11,'DECEMBRE'=>12,
         ];
-        $moisInt = $moisMap[strtoupper($fullPaymentInfo->month)] ?? 1;
-        $debut   = Carbon::create($fullPaymentInfo->year, $moisInt, 1)->startOfMonth();
-        $fin     = Carbon::create($fullPaymentInfo->year, $moisInt, 1)->endOfMonth();
-
-        $conges = Conge::where('user_id', $user->id)
-            ->whereIn('status', ['Approuvé', 'approuvé', 'accepte'])
-            ->where(function ($q) use ($debut, $fin) {
-                $q->whereBetween('start_date', [$debut, $fin])
-                  ->orWhereBetween('end_date', [$debut, $fin]);
-            })->get();
-
-        $pdf = Pdf::loadView('paiements.facture', compact('fullPaymentInfo', 'conges'));
-        return $pdf->stream('facture_' . $user->last_name . '.pdf');
+        $moisInt = $moisMap[strtoupper($payment->month)] ?? 1;
+        return [
+            Carbon::create($payment->year, $moisInt, 1)->startOfMonth(),
+            Carbon::create($payment->year, $moisInt, 1)->endOfMonth(),
+        ];
     }
 
     public function conges()
@@ -331,13 +361,9 @@ class EmployerDashboardController extends Controller
             'document'   => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
         ]);
 
-        $user = auth()->user();
-
-        // Calculer les jours ouvrés réels
-        $joursOuvres = $this->compterJoursOuvres($request->start_date, $request->end_date);
-
-        // Valider le solde (sauf maladie/maternité)
+        $user       = auth()->user();
         $validation = $this->validerDemandeConge($user, $request->start_date, $request->end_date, $request->type);
+
         if (!$validation['valide']) {
             return back()->withInput()->with('error', $validation['message']);
         }
@@ -347,15 +373,11 @@ class EmployerDashboardController extends Controller
             $documentPath = $request->file('document')->store('leaves/documents', 'public');
         }
 
-        // Jours calendaires pour affichage
-        $joursCalendaires = Carbon::parse($request->start_date)
-            ->diffInDays(Carbon::parse($request->end_date)) + 1;
-
         Conge::create([
             'user_id'    => $user->id,
             'start_date' => $request->start_date,
             'end_date'   => $request->end_date,
-            'days_count' => $joursOuvres, // on stocke les jours ouvrés déduits
+            'days_count' => $validation['jours'],
             'type'       => $request->type,
             'reason'     => $request->reason,
             'document'   => $documentPath,
@@ -363,7 +385,7 @@ class EmployerDashboardController extends Controller
         ]);
 
         return redirect()->route('employer_space.conges')
-            ->with('success', "Demande soumise : {$joursOuvres} jour(s) ouvré(s) demandé(s).");
+            ->with('success', "Demande soumise : {$validation['jours']} jour(s) ouvré(s) demandé(s).");
     }
 
     public function editConge(Conge $conge)
@@ -394,8 +416,7 @@ class EmployerDashboardController extends Controller
             'document'   => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
         ]);
 
-        $joursOuvres = $this->compterJoursOuvres($request->start_date, $request->end_date);
-        $validation  = $this->validerDemandeConge($user, $request->start_date, $request->end_date, $request->type);
+        $validation = $this->validerDemandeConge($user, $request->start_date, $request->end_date, $request->type);
 
         if (!$validation['valide']) {
             return back()->withInput()->with('error', $validation['message']);
@@ -410,7 +431,7 @@ class EmployerDashboardController extends Controller
         $conge->update([
             'start_date' => $request->start_date,
             'end_date'   => $request->end_date,
-            'days_count' => $joursOuvres,
+            'days_count' => $validation['jours'],
             'type'       => $request->type,
             'reason'     => $request->reason,
             'document'   => $documentPath,
