@@ -8,16 +8,16 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('leaves', function (Blueprint $table) {  
+        Schema::create('leaves', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('employer_id')->constrained('employers')->onDelete('cascade');
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->string('type')->nullable();
-            $table->string('start_date')->nullable();     
-            $table->string('end_date')->nullable();       
-            $table->string('days_count')->nullable();     
-            $table->string('reason')->nullable();         
+            $table->string('start_date')->nullable();
+            $table->string('end_date')->nullable();
+            $table->string('days_count')->nullable();
+            $table->string('reason')->nullable();
             $table->string('document')->nullable();
-            $table->string('status')->nullable();         
+            $table->string('status')->nullable();
             $table->timestamps();
         });
     }

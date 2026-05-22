@@ -5,20 +5,20 @@ namespace App\Http\Controllers;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Models\Attendance;
-use App\Models\Employer;
+use App\Models\User;
 
 class PointageController extends Controller
 {
     public function index(Request $request)
     {
-        $employer     = auth('employer')->user();
+        $user         = auth()->user();
         $selectedDate = $request->get('date', Carbon::today()->toDateString());
 
-        $attendance = Attendance::where('employer_id', $employer->id)
+        $attendance = Attendance::where('user_id', $user->id)
             ->where('date', $selectedDate)
             ->first();
 
-        $historique = Attendance::where('employer_id', $employer->id)
+        $historique = Attendance::where('user_id', $user->id)
             ->whereMonth('date', Carbon::now()->month)
             ->orderBy('date', 'desc')
             ->get();
@@ -31,9 +31,9 @@ class PointageController extends Controller
         $selectedDate         = $request->get('date', Carbon::today()->toDateString());
         $selectedEmployerName = $request->get('employer_name');
 
-        $query = Attendance::with('employer')
+        $query = Attendance::with('user')
             ->where('date', $selectedDate)
-            ->whereHas('employer', function ($q) use ($selectedEmployerName) {
+            ->whereHas('user', function ($q) use ($selectedEmployerName) {
                 if ($selectedEmployerName) {
                     $q->where(function ($q2) use ($selectedEmployerName) {
                         $q2->where('last_name', 'like', "%$selectedEmployerName%")
@@ -42,8 +42,8 @@ class PointageController extends Controller
                 }
             });
 
-        $attendances = $query->orderBy('employer_id')->get();
-        $employers   = Employer::orderBy('last_name')->get();
+        $attendances = $query->orderBy('user_id')->get();
+        $employers   = User::role('employer')->orderBy('last_name')->get();
 
         return view('pointage.admin', compact(
             'attendances',
@@ -55,11 +55,11 @@ class PointageController extends Controller
 
     private function getTodayAttendance()
     {
-        $employer = auth('employer')->user();
-        $today    = Carbon::today()->toDateString();
+        $user  = auth()->user();
+        $today = Carbon::today()->toDateString();
 
         return Attendance::firstOrCreate(
-            ['employer_id' => $employer->id, 'date' => $today],
+            ['user_id' => $user->id, 'date' => $today],
             ['status' => 'present']
         );
     }

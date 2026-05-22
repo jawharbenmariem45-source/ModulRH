@@ -11,12 +11,8 @@ return new class extends Migration
         if (!Schema::hasTable('employer_contract')) {
             Schema::create('employer_contract', function (Blueprint $table) {
                 $table->id();
-                $table->foreignId('employer_id')
-                      ->constrained('employers')
-                      ->onDelete('cascade');
-                $table->foreignId('contract_id')
-                      ->constrained('contracts')
-                      ->onDelete('cascade');
+                $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+                $table->foreignId('contract_id')->constrained('contracts')->onDelete('cascade');
                 $table->string('start_date')->nullable();
                 $table->string('end_date')->nullable();
                 $table->timestamps();

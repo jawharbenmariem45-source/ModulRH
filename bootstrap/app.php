@@ -3,11 +3,9 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use App\Http\Middleware\EmployerAuth;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use App\Http\Middleware\RedirectRole;
-
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -18,7 +16,6 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->redirectGuestsTo('/login');
         $middleware->alias([
-            'employer.auth' => EmployerAuth::class,
             'role'          => RoleMiddleware::class,
             'permission'    => PermissionMiddleware::class,
             'redirect.role' => RedirectRole::class,

@@ -49,6 +49,8 @@
                                 <span class="badge" style="background:#19a891; color:white">RH</span>
                             @elseif($role === 'manager')
                                 <span class="badge" style="background:#e67e22; color:white">Manager</span>
+                            @elseif($role === 'employer')
+                                <span class="badge" style="background:#2980b9; color:white">Employer</span>
                             @else
                                 <span class="badge bg-secondary">Aucun rôle</span>
                             @endif
@@ -107,9 +109,10 @@
                                         <div class="mb-3">
                                             <label class="form-label">Rôle</label>
                                             <select name="role" class="form-select" required>
-                                                <option value="admin" {{ $admin->hasRole('admin') ? 'selected' : '' }}>Admin</option>
-                                                <option value="rh" {{ $admin->hasRole('rh') ? 'selected' : '' }}>RH</option>
-                                                <option value="manager" {{ $admin->hasRole('manager') ? 'selected' : '' }}>Manager</option>
+                                                <option value="admin"    {{ $admin->hasRole('admin')    ? 'selected' : '' }}>Admin</option>
+                                                <option value="rh"       {{ $admin->hasRole('rh')       ? 'selected' : '' }}>RH</option>
+                                                <option value="manager"  {{ $admin->hasRole('manager')  ? 'selected' : '' }}>Manager</option>
+                                                <option value="employer" {{ $admin->hasRole('employer') ? 'selected' : '' }}>Employer</option>
                                             </select>
                                         </div>
                                     </div>

@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\ResetCodePassword;
 use App\Models\User;
-use App\Models\Departement;
 use App\Notifications\SendEmailToAdminAfterRegistrationNotification;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -17,7 +16,11 @@ class AdminController extends Controller
 {
     public function index()
     {
-        $admins = User::paginate(10);
+        // Afficher seulement admin, rh, manager — pas les employers
+        $admins = User::whereHas('roles', function ($q) {
+            $q->whereIn('name', ['admin', 'rh', 'manager', 'employer']);
+        })->orWhereDoesntHave('roles')->paginate(10);
+
         return view('admins/index', compact('admins'));
     }
 
@@ -58,7 +61,7 @@ class AdminController extends Controller
         $request->validate([
             'name'  => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $administrateur->id,
-            'role'  => 'required|in:admin,rh,manager',
+            'role'  => 'required|in:admin,rh,manager,employer',
         ]);
 
         try {
@@ -99,11 +102,6 @@ class AdminController extends Controller
             return view('auth.validate-account', compact('email'));
         }
 
-        $employer = \App\Models\Employer::where('email', $email)->first();
-        if ($employer) {
-            return view('auth.validate-account-employer', compact('email'));
-        }
-
         return redirect()->route('login');
     }
 
@@ -112,13 +110,14 @@ class AdminController extends Controller
         try {
             $user = User::where('email', $request->email)->first();
             if ($user) {
-                $user->password = Hash::make($request->password);
+                $user->password          = Hash::make($request->password);
                 $user->email_verified_at = Carbon::now();
                 $user->save();
 
                 ResetCodePassword::where('email', $user->email)->delete();
 
-                return redirect()->route('login')->with('success_message', 'Vos accès ont été correctement définis');
+                return redirect()->route('login')
+                    ->with('success_message', 'Vos accès ont été correctement définis');
             }
         } catch (Exception $e) {
             return back()->with('error_message', 'Erreur : ' . $e->getMessage());

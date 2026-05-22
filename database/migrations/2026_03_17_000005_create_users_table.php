@@ -6,25 +6,33 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->string('last_name')->nullable();
+            $table->string('first_name')->nullable();
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password')->nullable();
-            $table->foreignId('department_id')
-                  ->nullable()
-                  ->constrained('departements')
-                  ->onDelete('set null');
-            $table->foreignId('company_id')
-                  ->nullable()
-                  ->constrained('companies')
-                  ->onDelete('set null');
+            $table->string('phone', 20)->nullable();
+            $table->foreignId('department_id')->nullable()->constrained('departements')->onDelete('set null');
+            $table->foreignId('company_id')->nullable()->constrained('companies')->onDelete('set null');
+            $table->foreignId('post_id')->nullable()->constrained('posts')->onDelete('set null');
+            $table->foreignId('schedule_id')->nullable()->constrained('schedules')->onDelete('set null');
+            $table->string('salary')->nullable();
+            $table->integer('discipline_score')->default(100);
+            $table->boolean('family_head')->default(false);
+            $table->integer('children_count')->default(0);
+            $table->integer('disabled_children_count')->default(0);
+            $table->integer('student_children_count')->default(0);
+            $table->string('contract_type')->nullable();
+            $table->string('rib')->nullable();
+            $table->string('rib_image')->nullable();
+            $table->string('cnss')->nullable();
+            $table->string('start_date')->nullable();
+            $table->string('end_date')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });
@@ -45,9 +53,6 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('users');

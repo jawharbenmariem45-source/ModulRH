@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Employer;
+use App\Models\User;
 use App\Models\Departement;
+use App\Models\Contract;
+use App\Models\Post;
+use App\Models\Schedule;
 use App\Models\ResetCodePassword;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
@@ -19,7 +21,7 @@ class EmployerController extends Controller
     public function index(Request $request)
     {
         $departements = Departement::all();
-        $query        = Employer::with('departement');
+        $query        = User::role('employer')->with('departement');
 
         if ($request->filled('searchorders')) {
             $search = $request->searchorders;
@@ -35,15 +37,17 @@ class EmployerController extends Controller
         }
 
         $employers = $query->paginate(10)->withQueryString();
-        $contracts = \App\Models\Contract::where('active', true)->get();
+        $contracts = Contract::where('active', true)->get();
+        $posts     = Post::all();
+        $schedules = Schedule::all();
 
-        return view('employers.index', compact('employers', 'departements', 'contracts'));
+        return view('employers.index', compact('employers', 'departements', 'contracts', 'posts', 'schedules'));
     }
 
     public function create()
     {
         $departements = Departement::all();
-        $contracts    = \App\Models\Contract::where('active', true)->get();
+        $contracts    = Contract::where('active', true)->get();
         return view('employers.create', compact('departements', 'contracts'));
     }
 
@@ -53,7 +57,7 @@ class EmployerController extends Controller
             'department_id'           => 'required|exists:departements,id',
             'last_name'               => 'required|string|max:255',
             'first_name'              => 'required|string|max:255',
-            'email'                   => 'required|email|unique:employers,email',
+            'email'                   => 'required|email|unique:users,email',
             'phone'                   => 'required|digits:8',
             'contract_type'           => 'required',
             'start_date'              => 'required|date',
@@ -69,16 +73,19 @@ class EmployerController extends Controller
         ]);
 
         try {
-            $companyId = \App\Models\User::find(auth()->id())->company_id;
-
+            $companyId    = auth()->user()->company_id;
             $ribImagePath = null;
+
             if ($request->hasFile('rib_image')) {
                 $ribImagePath = $request->file('rib_image')->store('ribs', 'public');
             }
 
-            $employer = Employer::create([
-                'department_id'           => $request->department_id,
+            $user = User::create([
+                'name'                    => $request->first_name . ' ' . $request->last_name,
                 'company_id'              => $companyId,
+                'department_id'           => $request->department_id,
+                'post_id'                 => $request->post_id,
+                'schedule_id'             => $request->schedule_id,
                 'last_name'               => $request->last_name,
                 'first_name'              => $request->first_name,
                 'email'                   => $request->email,
@@ -97,11 +104,13 @@ class EmployerController extends Controller
                 'student_children_count'  => $request->student_children_count ?? 0,
             ]);
 
-            $code = rand(1000, 9000);
-            ResetCodePassword::updateOrCreate(['email' => $employer->email], ['code' => $code]);
+            $user->syncRoles(['employer']);
 
-            Notification::route('mail', $employer->email)
-                ->notify(new SendEmailToAdminAfterRegistrationNotification($code, $employer->email));
+            $code = rand(1000, 9000);
+            ResetCodePassword::updateOrCreate(['email' => $user->email], ['code' => $code]);
+
+            Notification::route('mail', $user->email)
+                ->notify(new SendEmailToAdminAfterRegistrationNotification($code, $user->email));
 
             return redirect()->route('employer.index')
                 ->with('success_message', 'Employé ajouté avec succès !');
@@ -111,20 +120,21 @@ class EmployerController extends Controller
         }
     }
 
-    public function edit(Employer $employer)
+    public function edit(User $user)
     {
         $departements = Departement::all();
-        $contracts    = \App\Models\Contract::where('active', true)->get();
+        $contracts    = Contract::where('active', true)->get();
+        $employer     = $user;
         return view('employers.edit', compact('employer', 'departements', 'contracts'));
     }
 
-    public function update(Request $request, Employer $employer)
+    public function update(Request $request, User $user)
     {
         $request->validate([
             'department_id'           => 'required|exists:departements,id',
             'last_name'               => 'required|string|max:255',
             'first_name'              => 'required|string|max:255',
-            'email'                   => 'required|email|unique:employers,email,' . $employer->id,
+            'email'                   => 'required|email|unique:users,email,' . $user->id,
             'phone'                   => 'required|digits:8',
             'contract_type'           => 'required',
             'start_date'              => 'required|date',
@@ -141,7 +151,10 @@ class EmployerController extends Controller
 
         try {
             $data = [
+                'name'                    => $request->first_name . ' ' . $request->last_name,
                 'department_id'           => $request->department_id,
+                'post_id'                 => $request->post_id,
+                'schedule_id'             => $request->schedule_id,
                 'last_name'               => $request->last_name,
                 'first_name'              => $request->first_name,
                 'email'                   => $request->email,
@@ -159,13 +172,11 @@ class EmployerController extends Controller
             ];
 
             if ($request->hasFile('rib_image')) {
-                if ($employer->rib_image) {
-                    Storage::disk('public')->delete($employer->rib_image);
-                }
+                if ($user->rib_image) Storage::disk('public')->delete($user->rib_image);
                 $data['rib_image'] = $request->file('rib_image')->store('ribs', 'public');
             }
 
-            $employer->update($data);
+            $user->update($data);
 
             return redirect()->route('employer.index')
                 ->with('success_message', 'Mise à jour réussie !');
@@ -175,53 +186,37 @@ class EmployerController extends Controller
         }
     }
 
-    public function delete(Employer $employer)
+    public function delete(User $user)
     {
-        if ($employer->rib_image) {
-            Storage::disk('public')->delete($employer->rib_image);
-        }
+        if ($user->rib_image) Storage::disk('public')->delete($user->rib_image);
 
-        $employer->salaires()->delete();
-        $employer->payments()->delete();
-        $employer->conges()->delete();
-        $employer->attendances()->delete();
-        $employer->contracts()->detach();
-        $employer->delete();
+        $user->payments()->delete();
+        $user->conges()->delete();
+        $user->attendances()->delete();
+        $user->contracts()->detach();
+        $user->delete();
 
         return redirect()->route('employer.index')
             ->with('success_message', 'Employé supprimé.');
     }
 
-    public function showContracts()
-    {
-        $employer = Auth::guard('employer')->user();
-        $jours    = null;
-
-        if ($employer->end_date) {
-            try {
-                $jours = Carbon::today()->diffInDays(Carbon::parse($employer->end_date), false);
-            } catch (\Exception $e) {}
-        }
-
-        return view('contrats.contratemploye', compact('employer', 'jours'));
-    }
-
     public function checkContracts()
     {
-        $employers = Employer::whereNotNull('end_date')
+        $users = User::role('employer')
+            ->whereNotNull('end_date')
             ->whereDate('end_date', '>=', Carbon::today())
             ->whereDate('end_date', '<=', Carbon::today()->addDays(30))
             ->get();
 
-        foreach ($employers as $employer) {
+        foreach ($users as $user) {
             try {
-                $jours = Carbon::today()->diffInDays(Carbon::parse($employer->end_date), false);
-                Notification::route('mail', $employer->email)
-                    ->notify(new SendEmailToAdminAfterRegistrationNotification($jours, $employer->email));
+                $jours = Carbon::today()->diffInDays(Carbon::parse($user->end_date), false);
+                Notification::route('mail', $user->email)
+                    ->notify(new SendEmailToAdminAfterRegistrationNotification($jours, $user->email));
             } catch (\Exception $e) {}
         }
 
         return redirect()->back()
-            ->with('success_message', $employers->count() . ' alerte(s) envoyée(s) !');
+            ->with('success_message', $users->count() . ' alerte(s) envoyée(s) !');
     }
 }

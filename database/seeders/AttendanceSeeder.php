@@ -146,7 +146,6 @@ class AttendanceSeeder extends Seeder
                 'days_count'  => $c['days_count'],    
                 'reason'      => $c['reason'],        
                 'status'      => $c['status'],        
-                'comment'     => null,                
                 'created_at'  => now(),
                 'updated_at'  => now(),
             ]);

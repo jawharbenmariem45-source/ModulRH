@@ -10,22 +10,20 @@ class DepartementSeeder extends Seeder
     public function run(): void
     {
         $departements = [
-            ['name' => 'Production & Opérations'],
-            ['name' => 'Ressources Humaines'],
-            ['name' => 'Informatique & IT'],
-            ['name' => 'Finance & Comptabilité'],
-            ['name' => 'Direction Générale'],
-            ['name' => 'Commercial & Ventes'],
-            ['name' => 'Marketing & Communication'],
-            ['name' => 'Logistique & Supply Chain'],
-            ['name' => 'Qualité, Hygiène, Sécurité & Environnement (QHSE)'],
-            ['name' => 'Recherche & Développement (R&D)'],
-            ['name' => 'Achats & Approvisionnements'],
-            ['name' => 'Juridique & Contentieux'],
+            'Direction',
+            'Ressources Humaines',
+            'Finance',
+            'Commercial',
+            'Informatique',
+            'Production',
+            'Logistique',
+            'Qualité',
         ];
 
-        foreach ($departements as $departement) {
-            Departement::firstOrCreate($departement);
+        foreach ($departements as $name) {
+            Departement::firstOrCreate(['name' => $name]);
         }
+
+        $this->command->info('✓ ' . count($departements) . ' départements créés.');
     }
 }

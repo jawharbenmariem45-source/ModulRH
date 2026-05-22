@@ -11,9 +11,10 @@ use App\Http\Controllers\ContratController;
 use App\Http\Controllers\ContractTypeController;
 use App\Http\Controllers\CongeController;
 use App\Http\Controllers\PermissionController;
-use App\Http\Controllers\EmployerAuthController;
 use App\Http\Controllers\PointageController;
 use App\Http\Controllers\EmployerDashboardController;
+use App\Http\Controllers\PostController;
+use App\Http\Controllers\ScheduleController;
 use Illuminate\Support\Facades\Route;
 
 // ── Authentification publique ─────────────────────────────
@@ -24,7 +25,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::get('/validate-account/{email}', [AdminController::class, 'defineAccess']);
 Route::post('/validate-account/{email}', [AdminController::class, 'submitDefineAccess'])->name('submitDefineAccess');
 
-// ── Dashboard ─────────────────────────────────────────────
+// ── Dashboard — tous les rôles sur /dashboard ─────────────
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [AppController::class, 'index'])->name('dashboard');
 });
@@ -74,20 +75,20 @@ Route::middleware('auth')->group(function () {
 Route::middleware(['auth', 'can:view employers'])->prefix('employer')->name('employer.')->group(function () {
     Route::get('/', [EmployerController::class, 'index'])->name('index');
     Route::get('/create', [EmployerController::class, 'create'])->name('create');
-    Route::get('/edit/{employer}', [EmployerController::class, 'edit'])->name('edit');
+    Route::get('/edit/{user}', [EmployerController::class, 'edit'])->name('edit');
     Route::post('/store', [EmployerController::class, 'store'])->name('store');
-    Route::put('/update/{employer}', [EmployerController::class, 'update'])->name('update');
-    Route::get('/delete/{employer}', [EmployerController::class, 'delete'])->name('delete');
+    Route::put('/update/{user}', [EmployerController::class, 'update'])->name('update');
+    Route::get('/delete/{user}', [EmployerController::class, 'delete'])->name('delete');
 });
 
-// ── Contrats employers ────────────────────────────────────
+// ── Contrats ──────────────────────────────────────────────
 Route::middleware(['auth', 'can:view contracts'])->prefix('contrats')->name('contrat.')->group(function () {
     Route::get('/', [ContratController::class, 'index'])->name('index');
     Route::post('/store', [ContratController::class, 'store'])->name('store');
-    Route::get('/edit/{employer}', [ContratController::class, 'edit'])->name('edit');
-    Route::put('/update/{employer}', [ContratController::class, 'update'])->name('update');
-    Route::get('/delete/{employer}', [ContratController::class, 'delete'])->name('delete');
-    Route::get('/pdf/{employer}', [ContratController::class, 'downloadPdf'])->name('pdf');
+    Route::get('/edit/{user}', [ContratController::class, 'edit'])->name('edit');
+    Route::put('/update/{user}', [ContratController::class, 'update'])->name('update');
+    Route::get('/delete/{user}', [ContratController::class, 'delete'])->name('delete');
+    Route::get('/pdf/{user}', [ContratController::class, 'downloadPdf'])->name('pdf');
 });
 
 // ── Types contrats ────────────────────────────────────────
@@ -131,35 +132,48 @@ Route::middleware(['auth', 'can:view leaves'])->prefix('conges')->name('conge.')
     Route::patch('/{id}/rejeter', [CongeController::class, 'rejeter'])->name('rejeter');
 });
 
-// ── Espace employé ────────────────────────────────────────
-Route::prefix('espace-employe')->name('employer_space.')->group(function () {
+// ── Posts ─────────────────────────────────────────────────
+Route::middleware('auth')->prefix('posts')->name('posts.')->group(function () {
+    Route::get('/', [PostController::class, 'index'])->name('index');
+    Route::post('/', [PostController::class, 'store'])->name('store');
+    Route::put('/{post}', [PostController::class, 'update'])->name('update');
+    Route::delete('/{post}', [PostController::class, 'destroy'])->name('destroy');
+});
 
-    Route::get('/login', [EmployerAuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [EmployerAuthController::class, 'login'])->name('handleLogin');
-    Route::get('/validate-account/{email}', [EmployerAuthController::class, 'showDefinePassword'])->name('definePassword');
-    Route::post('/validate-account/{email}', [EmployerAuthController::class, 'submitDefinePassword'])->name('submitDefinePassword');
+// ── Schedules ─────────────────────────────────────────────
+Route::middleware('auth')->prefix('schedules')->name('schedules.')->group(function () {
+    Route::get('/', [ScheduleController::class, 'index'])->name('index');
+    Route::post('/', [ScheduleController::class, 'store'])->name('store');
+    Route::put('/{schedule}', [ScheduleController::class, 'update'])->name('update');
+    Route::delete('/{schedule}', [ScheduleController::class, 'destroy'])->name('destroy');
+});
 
-    Route::middleware('auth:employer')->group(function () {
-        Route::post('/logout', [EmployerAuthController::class, 'logout'])->name('logout');
-        Route::get('/dashboard', [EmployerDashboardController::class, 'dashboard'])->name('dashboard');
+// ── Espace employé — pointage / congés / paiements / contrat ─
+Route::middleware('auth')->prefix('espace-employe')->name('employer_space.')->group(function () {
 
-        Route::get('/paiements', [EmployerDashboardController::class, 'paiements'])->name('paiements');
-        Route::get('/paiements/pdf/{payment}', [EmployerDashboardController::class, 'downloadPaiement'])->name('paiements.pdf');
-        Route::get('/paiements/preview/{payment}', [EmployerDashboardController::class, 'previewPaiement'])->name('paiements.preview');
+    // dashboard redirige vers /dashboard maintenant
+    Route::get('/dashboard', fn() => redirect()->route('dashboard'))->name('dashboard');
 
-        Route::get('/conges', [EmployerDashboardController::class, 'conges'])->name('conges');
-        Route::get('/conges/create', [EmployerDashboardController::class, 'createConge'])->name('conges.create');
-        Route::post('/conges/store', [EmployerDashboardController::class, 'storeConge'])->name('conges.store');
-        Route::get('/conges/edit/{conge}', [EmployerDashboardController::class, 'editConge'])->name('conges.edit');
-        Route::put('/conges/update/{conge}', [EmployerDashboardController::class, 'updateConge'])->name('conges.update');
-        Route::delete('/conges/delete/{conge}', [EmployerDashboardController::class, 'deleteConge'])->name('conges.delete');
+    // Paiements employé
+    Route::get('/paiements', [EmployerDashboardController::class, 'paiements'])->name('paiements');
+    Route::get('/paiements/pdf/{payment}', [EmployerDashboardController::class, 'downloadPaiement'])->name('paiements.pdf');
+    Route::get('/paiements/preview/{payment}', [EmployerDashboardController::class, 'previewPaiement'])->name('paiements.preview');
 
-        Route::get('/contrat', [EmployerDashboardController::class, 'contrat'])->name('contrat');
+    // Congés employé
+    Route::get('/conges', [EmployerDashboardController::class, 'conges'])->name('conges');
+    Route::get('/conges/create', [EmployerDashboardController::class, 'createConge'])->name('conges.create');
+    Route::post('/conges/store', [EmployerDashboardController::class, 'storeConge'])->name('conges.store');
+    Route::get('/conges/edit/{conge}', [EmployerDashboardController::class, 'editConge'])->name('conges.edit');
+    Route::put('/conges/update/{conge}', [EmployerDashboardController::class, 'updateConge'])->name('conges.update');
+    Route::delete('/conges/delete/{conge}', [EmployerDashboardController::class, 'deleteConge'])->name('conges.delete');
 
-        Route::get('/pointage', [PointageController::class, 'index'])->name('pointage.index');
-        Route::post('/pointage/check-in-matin', [PointageController::class, 'checkInMatin'])->name('pointage.check_in_matin');
-        Route::post('/pointage/check-out-matin', [PointageController::class, 'checkOutMatin'])->name('pointage.check_out_matin');
-        Route::post('/pointage/check-in-apres-midi', [PointageController::class, 'checkInApresMidi'])->name('pointage.check_in_apres_midi');
-        Route::post('/pointage/check-out-apres-midi', [PointageController::class, 'checkOutApresMidi'])->name('pointage.check_out_apres_midi');
-    });
+    // Contrat employé
+    Route::get('/contrat', [EmployerDashboardController::class, 'contrat'])->name('contrat');
+
+    // Pointage employé
+    Route::get('/pointage', [PointageController::class, 'index'])->name('pointage.index');
+    Route::post('/pointage/check-in-matin', [PointageController::class, 'checkInMatin'])->name('pointage.check_in_matin');
+    Route::post('/pointage/check-out-matin', [PointageController::class, 'checkOutMatin'])->name('pointage.check_out_matin');
+    Route::post('/pointage/check-in-apres-midi', [PointageController::class, 'checkInApresMidi'])->name('pointage.check_in_apres_midi');
+    Route::post('/pointage/check-out-apres-midi', [PointageController::class, 'checkOutApresMidi'])->name('pointage.check_out_apres_midi');
 });

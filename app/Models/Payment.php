@@ -8,29 +8,35 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class Payment extends Model
 {
     use HasFactory;
+
     protected $fillable = [
         'reference',
-        'employer_id',
+        'user_id',
+        'contract_type',
+        'base_salary',
+        'overtime_hours',
+        'overtime_amount',
+        'bonuses',
+        'allowances',
+        'gross_salary',
+        'cnss',
+        'irpp',
+        'css',
         'amount',
         'launch_date',
         'done_time',
         'month',
         'year',
-        'type_contrat',
-        'salaire_base',
-        'heures_sup',
-        'montant_heures_sup',
-        'primes',
-        'indemnites',
-        'salaire_brut',
-        'cnss',
-        'irpp',
-        'css',
     ];
 
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    // Alias compatibilité
     public function employer()
     {
-        return $this->belongsTo(Employer::class, 'employer_id');
+        return $this->belongsTo(User::class, 'user_id');
     }
-    
 }

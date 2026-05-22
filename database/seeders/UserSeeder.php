@@ -12,9 +12,8 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         $company1 = Company::where('name', 'SummitRise')->first();
-        
 
-        // Admin — pas de company
+        // Admin
         $admin = User::updateOrCreate(
             ['email' => 'admin@gmail.com'],
             [
@@ -25,7 +24,7 @@ class UserSeeder extends Seeder
         );
         $admin->syncRoles(['admin']);
 
-        // RH — lié à SummitRise
+        // RH
         $rh = User::updateOrCreate(
             ['email' => 'rh@gmail.com'],
             [
@@ -36,7 +35,7 @@ class UserSeeder extends Seeder
         );
         $rh->syncRoles(['rh']);
 
-        // Manager — lié à SummitRise
+        // Manager
         $manager = User::updateOrCreate(
             ['email' => 'manager@gmail.com'],
             [
@@ -46,5 +45,32 @@ class UserSeeder extends Seeder
             ]
         );
         $manager->syncRoles(['manager']);
+
+        // Employé de test
+        $employer = User::updateOrCreate(
+            ['email' => 'employer@gmail.com'],
+            [
+                'name'                    => 'Employer',
+                'last_name'               => 'Employer',
+                'first_name'              => 'Production',
+                'password'                => Hash::make('123456'),
+                'phone'                   => '12345678',
+                'company_id'              => $company1->id,
+                'department_id'           => 1,
+                'contract_type'           => 'CDD',
+                'start_date'              => '2026-01-01',
+                'end_date'                => '2026-12-31',
+                'cnss'                    => '2222222222',
+                'rib'                     => '1234567890123456',
+                'salary'                  => 800,
+                'family_head'             => false,
+                'children_count'          => 0,
+                'disabled_children_count' => 0,
+                'student_children_count'  => 0,
+            ]
+        );
+        $employer->syncRoles(['employer']);
+
+        $this->command->info('✓ 4 utilisateurs créés (admin, rh, manager, employer)');
     }
 }

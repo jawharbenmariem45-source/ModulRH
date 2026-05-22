@@ -10,17 +10,23 @@ class Attendance extends Model
     use HasFactory;
 
     protected $fillable = [
-        'employer_id',
+        'user_id',
         'date',
-        'check_in_morning_time',
-        'check_out_morning_time',
-        'check_in_afternoon_time',
-        'check_out_afternoon_time',
+        'morning_check_in',
+        'morning_check_out',
+        'afternoon_check_in',
+        'afternoon_check_out',
         'status',
     ];
 
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    // Alias compatibilité
     public function employer()
     {
-        return $this->belongsTo(Employer::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

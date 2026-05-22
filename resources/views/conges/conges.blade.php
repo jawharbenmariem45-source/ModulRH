@@ -3,7 +3,6 @@
 @section('content')
 <div class="container" style="margin-top: 20px;">
 
-    {{-- En-tête --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1 class="app-page-title">Mes Congés</h1>
         <button type="button" class="btn app-btn-secondary" data-bs-toggle="modal" data-bs-target="#modalDemandeConge">
@@ -12,7 +11,6 @@
     </div>
     <hr class="mb-4">
 
-    {{-- Messages flash --}}
     @if(session('success'))
     <div class="alert alert-success alert-dismissible fade show">
         {{ session('success') }}
@@ -26,29 +24,60 @@
     </div>
     @endif
 
-    {{-- Cartes solde congés --}}
+    @php
+        $droits  = $soldeConges['droits_annuels']   ?? 0;
+        $acquis  = $soldeConges['jours_acquis']     ?? 0;
+        $pris    = $soldeConges['jours_pris']       ?? 0;
+        $restant = $soldeConges['solde']            ?? 0;
+        $bonus   = $soldeConges['bonus_anciennete'] ?? 0;
+        $note    = $soldeConges['note']             ?? '';
+        $isCivp  = ($employer->contract_type ?? '') === 'CIVP';
+    @endphp
+
+    @if($isCivp)
+    <div class="alert alert-warning mb-4">
+        <strong>Contrat CIVP :</strong> Pas de congé payé légal (stage).
+        Les permissions exceptionnelles sont accordées à la discrétion de l'employeur.
+    </div>
+    @else
     <div class="row g-3 mb-4">
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="app-card shadow-sm p-3 text-center">
-                <div style="font-size: 2rem; font-weight: 700; color: #1a6b8a;">{{ $joursAccordes ?? 0 }}</div>
-                <div class="text-muted">Jours accordés / an</div>
+                <div style="font-size: 2rem; font-weight: 700; color: #1a6b8a;">{{ $droits }}</div>
+                <div class="text-muted small">Jours accordés / an</div>
+                @if($bonus > 0)
+                    <div class="text-success" style="font-size:10px;">dont +{{ $bonus }}j ancienneté</div>
+                @endif
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="app-card shadow-sm p-3 text-center">
-                <div style="font-size: 2rem; font-weight: 700; color: #e74c3c;">{{ $congesPris ?? 0 }}</div>
-                <div class="text-muted">Jours pris</div>
+                <div style="font-size: 2rem; font-weight: 700; color: #2d6a4f;">{{ $acquis }}</div>
+                <div class="text-muted small">Jours acquis</div>
+                <div style="font-size:10px; color:#718096;">{{ $soldeConges['taux_mensuel'] ?? '1.833' }}j / mois</div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="app-card shadow-sm p-3 text-center">
-                <div style="font-size: 2rem; font-weight: 700; color: {{ ($solde ?? 0) > 5 ? '#27ae60' : '#e67e22' }};">
-                    {{ $solde ?? 0 }}
+                <div style="font-size: 2rem; font-weight: 700; color: #e74c3c;">{{ $pris }}</div>
+                <div class="text-muted small">Jours pris (ouvrés)</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="app-card shadow-sm p-3 text-center">
+                <div style="font-size: 2rem; font-weight: 700; color: {{ $restant > 5 ? '#27ae60' : '#e67e22' }};">
+                    {{ $restant }}
                 </div>
-                <div class="text-muted">Jours restants</div>
+                <div class="text-muted small">Jours restants</div>
             </div>
         </div>
     </div>
+    @if($note)
+    <div class="alert alert-info py-2 mb-3" style="font-size:12px;">
+        <i class="fas fa-info-circle me-1"></i> {{ $note }}
+    </div>
+    @endif
+    @endif
 
     {{-- Tableau --}}
     <div class="app-card shadow-sm mb-5">
@@ -60,7 +89,7 @@
                             <th>#</th>
                             <th>Date début</th>
                             <th>Date fin</th>
-                            <th>Nombre de jours</th>
+                            <th>Jours ouvrés</th>
                             <th>Motif</th>
                             <th>Document</th>
                             <th>Statut</th>
@@ -74,15 +103,12 @@
                             <td>{{ $conge->start_date }}</td>
                             <td>{{ $conge->end_date }}</td>
                             <td>
-                                <span class="badge bg-info text-dark">
-                                    {{ $conge->days_count ?? 0 }} j
-                                </span>
+                                <span class="badge bg-info text-dark">{{ $conge->days_count ?? 0 }} j</span>
                             </td>
                             <td>{{ $conge->reason ?? '-' }}</td>
                             <td>
                                 @if($conge->document)
-                                    <a href="{{ asset('storage/' . $conge->document) }}"
-                                       target="_blank"
+                                    <a href="{{ asset('storage/' . $conge->document) }}" target="_blank"
                                        class="btn btn-sm btn-outline-secondary">
                                         <i class="fas fa-file"></i> Voir
                                     </a>
@@ -107,8 +133,7 @@
                                     <a href="{{ route('employer_space.conges.edit', $conge->id) }}"
                                        class="btn btn-sm btn-warning me-1">Modifier</a>
                                     <form action="{{ route('employer_space.conges.delete', $conge->id) }}"
-                                          method="POST"
-                                          style="display:inline"
+                                          method="POST" style="display:inline"
                                           onsubmit="return confirm('Annuler cette demande ?')">
                                         @csrf
                                         @method('DELETE')
@@ -131,15 +156,12 @@
     </div>
 </div>
 
-{{-- ══════════════════════════════════════════════════════════
-     MODAL — Nouvelle Demande de Congé
-══════════════════════════════════════════════════════════ --}}
-<div class="modal fade" id="modalDemandeConge" tabindex="-1" aria-labelledby="modalDemandeCongeLabel" aria-hidden="true">
+{{-- MODAL --}}
+<div class="modal fade" id="modalDemandeConge" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-
             <div class="modal-header" style="background: #1a6b8a;">
-                <h5 class="modal-title text-white" id="modalDemandeCongeLabel">
+                <h5 class="modal-title text-white">
                     <i class="fas fa-calendar-plus me-2"></i> Nouvelle Demande de Congé
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -147,10 +169,8 @@
 
             <form action="{{ route('employer_space.conges.store') }}" method="POST" enctype="multipart/form-data">
                 @csrf
-
                 <div class="modal-body">
 
-                    {{-- Erreurs de validation --}}
                     @if($errors->any())
                     <div class="alert alert-danger">
                         <ul class="mb-0">
@@ -163,11 +183,8 @@
 
                     <div class="row g-3">
 
-                        {{-- Type de congé --}}
                         <div class="col-12">
-                            <label class="form-label fw-bold">
-                                Type de congé <span class="text-danger">*</span>
-                            </label>
+                            <label class="form-label fw-bold">Type de congé <span class="text-danger">*</span></label>
                             <select name="type" class="form-select @error('type') is-invalid @enderror" required>
                                 <option value="">-- Choisir un type --</option>
                                 <option value="Congé Annuel" {{ old('type') == 'Congé Annuel' ? 'selected' : '' }}>Congé Annuel</option>
@@ -175,106 +192,64 @@
                                 <option value="Maternité"    {{ old('type') == 'Maternité'    ? 'selected' : '' }}>Maternité</option>
                                 <option value="Sans solde"   {{ old('type') == 'Sans solde'   ? 'selected' : '' }}>Sans solde</option>
                             </select>
-                            @error('type')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                            @error('type')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
 
-                        {{-- Date début --}}
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">
-                                Date de début <span class="text-danger">*</span>
-                            </label>
-                            <input type="date"
-                                   name="start_date"
-                                   id="start_date"
+                            <label class="form-label fw-bold">Date de début <span class="text-danger">*</span></label>
+                            <input type="date" name="start_date" id="start_date"
                                    class="form-control @error('start_date') is-invalid @enderror"
-                                   value="{{ old('start_date') }}"
-                                   min="{{ date('Y-m-d') }}"
-                                   required>
-                            @error('start_date')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                                   value="{{ old('start_date') }}" min="{{ date('Y-m-d') }}" required>
+                            @error('start_date')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
 
-                        {{-- Date fin --}}
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">
-                                Date de fin <span class="text-danger">*</span>
-                            </label>
-                            <input type="date"
-                                   name="end_date"
-                                   id="end_date"
+                            <label class="form-label fw-bold">Date de fin <span class="text-danger">*</span></label>
+                            <input type="date" name="end_date" id="end_date"
                                    class="form-control @error('end_date') is-invalid @enderror"
-                                   value="{{ old('end_date') }}"
-                                   min="{{ date('Y-m-d') }}"
-                                   required>
-                            @error('end_date')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                                   value="{{ old('end_date') }}" min="{{ date('Y-m-d') }}" required>
+                            @error('end_date')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
 
-                        {{-- Nombre de jours calculé automatiquement --}}
                         <div class="col-12">
                             <div class="alert alert-info py-2 mb-0" id="joursCalcBox" style="display:none;">
                                 <i class="fas fa-calendar-check me-1"></i>
-                                Durée : <strong id="joursCalcVal">0</strong> jour(s)
-                                &nbsp;|&nbsp; Solde restant : <strong>{{ $solde ?? 0 }}</strong> jour(s)
+                                Jours ouvrés déduits : <strong id="joursCalcVal">0</strong>
+                                &nbsp;|&nbsp; Solde restant : <strong>{{ $restant }}</strong> jour(s)
+                                <br><small class="text-muted">Samedis, dimanches et jours fériés tunisiens non comptés.</small>
                             </div>
                         </div>
 
-                        {{-- Motif (optionnel) --}}
                         <div class="col-12">
-                            <label class="form-label fw-bold">
-                                Motif
-                                <span class="text-muted fw-normal">(optionnel)</span>
-                            </label>
-                            <textarea name="reason"
-                                      class="form-control @error('reason') is-invalid @enderror"
-                                      rows="3"
-                                      placeholder="Décrivez brièvement le motif de votre demande...">{{ old('reason') }}</textarea>
-                            @error('reason')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                            <label class="form-label fw-bold">Motif <span class="text-muted fw-normal">(optionnel)</span></label>
+                            <textarea name="reason" class="form-control @error('reason') is-invalid @enderror"
+                                      rows="3" placeholder="Décrivez brièvement le motif...">{{ old('reason') }}</textarea>
+                            @error('reason')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
 
-                        {{-- Document justificatif (optionnel) --}}
                         <div class="col-12">
-                            <label class="form-label fw-bold">
-                                Document justificatif
-                                <span class="text-muted fw-normal">(optionnel)</span>
-                            </label>
-                            <input type="file"
-                                   name="document"
+                            <label class="form-label fw-bold">Document justificatif <span class="text-muted fw-normal">(optionnel)</span></label>
+                            <input type="file" name="document"
                                    class="form-control @error('document') is-invalid @enderror"
                                    accept=".pdf,.jpg,.jpeg,.png">
-                            <div class="form-text">
-                                <i class="fas fa-info-circle me-1"></i>
-                                Formats acceptés : PDF, JPG, PNG &mdash; Taille max : 2 Mo
-                            </div>
-                            @error('document')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                            <div class="form-text">Formats acceptés : PDF, JPG, PNG — Max 2 Mo</div>
+                            @error('document')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
 
                     </div>
                 </div>
 
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        <i class="fas fa-times me-1"></i> Annuler
-                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
                     <button type="submit" class="btn btn-primary" style="background:#1a6b8a; border-color:#1a6b8a;">
                         <i class="fas fa-paper-plane me-1"></i> Soumettre
                     </button>
                 </div>
-
             </form>
         </div>
     </div>
 </div>
 
-{{-- Rouvrir le modal automatiquement si erreur de validation --}}
 @if($errors->any())
 <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -283,36 +258,55 @@
 </script>
 @endif
 
-{{-- Calcul automatique du nombre de jours --}}
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const dateDebut = document.getElementById('start_date');
-        const dateFin   = document.getElementById('end_date');
-        const box       = document.getElementById('joursCalcBox');
-        const val       = document.getElementById('joursCalcVal');
+// Jours fériés Tunisie fixes (MM-DD)
+const FERIES_FIXES = ['01-01','03-20','04-09','05-01','06-01','07-25','08-13','10-15'];
+// Jours fériés variables 2026 (religieux)
+const FERIES_VAR   = ['2026-03-29','2026-03-30','2026-06-05','2026-06-06','2026-06-25','2026-09-04'];
 
-        function calculerJours() {
-            if (dateDebut.value && dateFin.value) {
-                const d1   = new Date(dateDebut.value);
-                const d2   = new Date(dateFin.value);
-                const diff = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
-                if (diff > 0) {
-                    val.textContent = diff;
-                    box.style.display = 'block';
-                } else {
-                    box.style.display = 'none';
-                }
-            }
+function estJourFerie(date) {
+    const mm   = String(date.getMonth()+1).padStart(2,'0');
+    const dd   = String(date.getDate()).padStart(2,'0');
+    const mmjj = mm + '-' + dd;
+    if (FERIES_FIXES.includes(mmjj)) return true;
+    const ymd  = date.getFullYear() + '-' + mm + '-' + dd;
+    return FERIES_VAR.includes(ymd);
+}
+
+function compterJoursOuvres(d1str, d2str) {
+    let jours = 0;
+    let cur   = new Date(d1str);
+    const fin = new Date(d2str);
+    cur.setHours(0,0,0,0);
+    fin.setHours(0,0,0,0);
+    while (cur <= fin) {
+        const dow = cur.getDay();
+        if (dow !== 0 && dow !== 6 && !estJourFerie(cur)) jours++;
+        cur.setDate(cur.getDate() + 1);
+    }
+    return jours;
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    const dateDebut = document.getElementById('start_date');
+    const dateFin   = document.getElementById('end_date');
+    const box       = document.getElementById('joursCalcBox');
+    const val       = document.getElementById('joursCalcVal');
+
+    function calculer() {
+        if (dateDebut.value && dateFin.value) {
+            const jours = compterJoursOuvres(dateDebut.value, dateFin.value);
+            val.textContent   = jours;
+            box.style.display = jours > 0 ? 'block' : 'none';
         }
+    }
 
-        // Mettre à jour date_fin min quand date_debut change
-        dateDebut.addEventListener('change', function () {
-            dateFin.min = dateDebut.value;
-            calculerJours();
-        });
-
-        dateFin.addEventListener('change', calculerJours);
+    dateDebut.addEventListener('change', function () {
+        dateFin.min = dateDebut.value;
+        calculer();
     });
+    dateFin.addEventListener('change', calculer);
+});
 </script>
 
 @endsection

@@ -2,7 +2,7 @@
 
 namespace App\Mail;
 
-use App\Models\Employer;
+use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -13,10 +13,10 @@ class EmployerCredentialsMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public Employer $employer;
+    public User $employer;
     public string $motDePasse;
 
-    public function __construct(Employer $employer, string $motDePasse)
+    public function __construct(User $employer, string $motDePasse)
     {
         $this->employer   = $employer;
         $this->motDePasse = $motDePasse;

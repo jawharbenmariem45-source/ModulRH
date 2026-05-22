@@ -4,44 +4,42 @@ namespace App\Console\Commands;
 
 use App\Mail\ContratExpirantEmployer;
 use App\Mail\ContratExpirantRH;
-use App\Models\Employer;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Mail;
-use Spatie\Permission\Models\Role;
 
 class EnvoyerNotificationsContrat extends Command
 {
-    protected $signature = 'contrats:notifier';
+    protected $signature   = 'contrats:notifier';
     protected $description = 'Envoyer des notifications pour les contrats expirant bientôt';
 
     public function handle()
     {
-        // Employés dont le contrat expire dans 30 jours ou moins
-        $employers = Employer::whereNotNull('date_fin')
+        $users = User::role('employer')
+            ->whereNotNull('end_date')
             ->whereNotNull('company_id')
-            ->where('type_contrat', '!=', 'CDI')
-            ->whereBetween('date_fin', [
+            ->where('contract_type', '!=', 'CDI')
+            ->whereBetween('end_date', [
                 Carbon::today(),
-                Carbon::today()->addDays(30)
+                Carbon::today()->addDays(30),
             ])
             ->get();
 
-        foreach ($employers as $employer) {
+        foreach ($users as $user) {
             // Email à l'employé
-            Mail::to($employer->email)->send(new ContratExpirantEmployer($employer));
+            Mail::to($user->email)->send(new ContratExpirantEmployer($user));
 
             // Email au RH de la même company
-            $rhUsers = User::where('company_id', $employer->company_id)
+            $rhUsers = User::where('company_id', $user->company_id)
                 ->role('rh')
                 ->get();
 
             foreach ($rhUsers as $rh) {
-                Mail::to($rh->email)->send(new ContratExpirantRH($employer));
+                Mail::to($rh->email)->send(new ContratExpirantRH($user));
             }
         }
 
-        $this->info($employers->count() . ' notification(s) envoyée(s).');
+        $this->info($users->count() . ' notification(s) envoyée(s).');
     }
 }

@@ -10,12 +10,12 @@ return new class extends Migration
     {
         Schema::create('attendances', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('employer_id')->nullable()->constrained('employers')->onDelete('cascade');
+            $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('cascade');
             $table->string('date')->nullable();
-            $table->string('morning_check_in')->nullable();    
-            $table->string('morning_check_out')->nullable();   
-            $table->string('afternoon_check_in')->nullable();  
-            $table->string('afternoon_check_out')->nullable(); 
+            $table->string('morning_check_in')->nullable();
+            $table->string('morning_check_out')->nullable();
+            $table->string('afternoon_check_in')->nullable();
+            $table->string('afternoon_check_out')->nullable();
             $table->string('status')->nullable();
             $table->timestamps();
         });

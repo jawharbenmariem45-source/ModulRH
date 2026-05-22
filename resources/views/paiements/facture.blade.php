@@ -46,49 +46,54 @@
         .two-col { display: table; width: 100%; }
         .col-left  { display: table-cell; width: 50%; padding-right: 8px; vertical-align: top; }
         .col-right { display: table-cell; width: 50%; padding-left: 8px; vertical-align: top; }
+        .info-box { background: #f0fff4; border: 1px solid #9ae6b4; padding: 8px 12px; border-radius: 4px; margin-bottom: 14px; font-size: 10px; color: #276749; }
     </style>
 </head>
 <body>
 
 @php
-// ✅ Nettoie les montants sales ($, €, DT, virgules, espaces)
 function cleanAmount($value): float {
     if (is_null($value)) return 0.0;
-    $str   = (string) $value;
-    $str   = str_replace(',', '.', $str);
-    $str   = preg_replace('/[^0-9.\-]/', '', $str);
-    $float = floatval($str);
-    return is_nan($float) ? 0.0 : $float;
+    $str = preg_replace('/[^0-9.\-]/', '', str_replace(',', '.', (string) $value));
+    $f   = floatval($str);
+    return is_nan($f) ? 0.0 : $f;
 }
 
-// ✅ Parse une date proprement ou retourne '-'
 function parseDate($date, $format = 'd/m/Y'): string {
     if (!$date) return '-';
-    try {
-        return \Carbon\Carbon::parse($date)->format($format);
-    } catch (\Exception $e) {
-        return (string) $date;
-    }
+    try { return \Carbon\Carbon::parse($date)->format($format); }
+    catch (\Exception $e) { return (string) $date; }
 }
+
+$employer = $fullPaymentInfo->employer;
+$tc       = $fullPaymentInfo->contract_type;
 
 $salaireBase      = cleanAmount($fullPaymentInfo->base_salary);
 $salaireProratise = cleanAmount($fullPaymentInfo->salaire_proratise ?? $fullPaymentInfo->gross_salary);
 $salaireBrut      = cleanAmount($fullPaymentInfo->gross_salary);
 $montantHS        = cleanAmount($fullPaymentInfo->overtime_amount);
-$primes           = cleanAmount($fullPaymentInfo->primes);
-$indemnites       = cleanAmount($fullPaymentInfo->indemnites);
+$bonuses          = cleanAmount($fullPaymentInfo->bonuses ?? 0);
+$allowances       = cleanAmount($fullPaymentInfo->allowances ?? 0);
 $cnss             = cleanAmount($fullPaymentInfo->cnss);
 $irpp             = cleanAmount($fullPaymentInfo->irpp);
 $css              = cleanAmount($fullPaymentInfo->css);
 $retenueSansSolde = cleanAmount($fullPaymentInfo->retenue_sans_solde ?? 0);
 $amount           = cleanAmount($fullPaymentInfo->amount);
 $heuresSup        = cleanAmount($fullPaymentInfo->overtime_hours ?? 0);
-$totalRetenues    = $cnss + $irpp + $css + $retenueSansSolde;
 
-$dateDebut = parseDate($fullPaymentInfo->employer->start_date);
-$dateFin   = $fullPaymentInfo->employer->end_date
-    ? parseDate($fullPaymentInfo->employer->end_date)
-    : 'CDI — Indéterminée';
+// Pour Karama : le net stocké inclut déjà la subvention 400 TND
+// Pour CIVP   : le net stocké = part entreprise (+ 200 TND ANETI non inclus)
+$totalRetenues = $cnss + $irpp + $css + $retenueSansSolde;
+
+// Jours présences — stockés dans la DB si dispo, sinon calculés depuis les congés
+$joursOuvres     = $fullPaymentInfo->jours_ouvres ?? 22;
+$joursTravailles = $fullPaymentInfo->jours_travailles ?? 0;
+$joursConge      = $fullPaymentInfo->jours_conge ?? ($conges ? $conges->sum('days_count') : 0);
+$joursSansSolde  = $fullPaymentInfo->jours_sans_solde ?? 0;
+$joursPayes      = $fullPaymentInfo->jours_payes ?? ($joursTravailles + $joursConge);
+
+$dateDebut = parseDate($employer->start_date);
+$dateFin   = $employer->end_date ? parseDate($employer->end_date) : 'CDI — Indéterminée';
 @endphp
 
 {{-- EN-TÊTE --}}
@@ -96,14 +101,12 @@ $dateFin   = $fullPaymentInfo->employer->end_date
     <div class="header-top">
         <div class="header-left">
             <div class="company-name">
-                {{ strtoupper($fullPaymentInfo->employer->company->name ?? 'ENTREPRISE') }}
+                {{ strtoupper($employer->company->name ?? 'ENTREPRISE') }}
             </div>
             <div class="doc-title">Bulletin de Paie</div>
         </div>
         <div class="header-right">
-            <div class="periode-badge">
-                {{ $fullPaymentInfo->month }} {{ $fullPaymentInfo->year }}
-            </div>
+            <div class="periode-badge">{{ $fullPaymentInfo->month }} {{ $fullPaymentInfo->year }}</div>
             <div class="ref">Réf : {{ $fullPaymentInfo->reference }}</div>
         </div>
     </div>
@@ -116,26 +119,23 @@ $dateFin   = $fullPaymentInfo->employer->end_date
         <table class="info-table">
             <tr>
                 <td class="label">Nom & Prénom</td>
-                <td class="value">
-                    {{ strtoupper($fullPaymentInfo->employer->last_name) }}
-                    {{ $fullPaymentInfo->employer->first_name }}
-                </td>
+                <td class="value">{{ strtoupper($employer->last_name) }} {{ $employer->first_name }}</td>
             </tr>
             <tr>
                 <td class="label">Email</td>
-                <td class="value">{{ $fullPaymentInfo->employer->email }}</td>
+                <td class="value">{{ $employer->email }}</td>
             </tr>
             <tr>
                 <td class="label">Téléphone</td>
-                <td class="value">{{ $fullPaymentInfo->employer->phone ?? '-' }}</td>
+                <td class="value">{{ $employer->phone ?? '-' }}</td>
             </tr>
             <tr>
                 <td class="label">N° CNSS</td>
-                <td class="value">{{ $fullPaymentInfo->employer->cnss ?? '-' }}</td>
+                <td class="value">{{ $employer->cnss ?? '-' }}</td>
             </tr>
             <tr>
                 <td class="label">RIB</td>
-                <td class="value">{{ $fullPaymentInfo->employer->rib ?? '-' }}</td>
+                <td class="value">{{ $employer->rib ?? '-' }}</td>
             </tr>
         </table>
     </div>
@@ -146,7 +146,6 @@ $dateFin   = $fullPaymentInfo->employer->end_date
             <tr>
                 <td class="label">Type de contrat</td>
                 <td class="value">
-                    @php $tc = $fullPaymentInfo->contract_type; @endphp
                     <span class="badge badge-{{ strtolower($tc) }}">{{ $tc }}</span>
                 </td>
             </tr>
@@ -160,11 +159,11 @@ $dateFin   = $fullPaymentInfo->employer->end_date
             </tr>
             <tr>
                 <td class="label">Département</td>
-                <td class="value">{{ $fullPaymentInfo->employer->departement->name ?? '-' }}</td>
+                <td class="value">{{ $employer->departement->name ?? '-' }}</td>
             </tr>
             <tr>
                 <td class="label">Chef de famille</td>
-                <td class="value">{{ $fullPaymentInfo->employer->family_head ? 'Oui' : 'Non' }}</td>
+                <td class="value">{{ $employer->family_head ? 'Oui' : 'Non' }}</td>
             </tr>
         </table>
     </div>
@@ -185,13 +184,11 @@ $dateFin   = $fullPaymentInfo->employer->end_date
     </thead>
     <tbody>
         <tr>
-            <td class="montant">26</td>
-            <td class="montant">{{ $fullPaymentInfo->jours_travailles ?? 0 }}</td>
-            <td class="montant positive">
-                {{ $fullPaymentInfo->jours_conge ?? ($conges ? $conges->sum('days_count') : 0) }}
-            </td>
-            <td class="montant negative">{{ $fullPaymentInfo->jours_sans_solde ?? 0 }}</td>
-            <td class="montant">{{ $fullPaymentInfo->jours_payes ?? 0 }}</td>
+            <td class="montant">{{ $joursOuvres }}</td>
+            <td class="montant">{{ $joursTravailles }}</td>
+            <td class="montant positive">{{ $joursConge }}</td>
+            <td class="montant negative">{{ $joursSansSolde }}</td>
+            <td class="montant">{{ $joursPayes }}</td>
             <td class="montant">{{ number_format($heuresSup, 2) }} h</td>
         </tr>
     </tbody>
@@ -213,26 +210,40 @@ $dateFin   = $fullPaymentInfo->employer->end_date
                     <td>Salaire de base</td>
                     <td class="montant positive">{{ number_format($salaireBase, 3, '.', ' ') }}</td>
                 </tr>
+                @if($salaireProratise != $salaireBase)
                 <tr>
                     <td>Salaire proratisé</td>
                     <td class="montant positive">{{ number_format($salaireProratise, 3, '.', ' ') }}</td>
                 </tr>
+                @endif
                 @if($montantHS > 0)
                 <tr>
-                    <td>Heures supplémentaires</td>
+                    <td>Heures supplémentaires ({{ number_format($heuresSup, 2) }} h)</td>
                     <td class="montant positive">{{ number_format($montantHS, 3, '.', ' ') }}</td>
                 </tr>
                 @endif
-                @if($primes > 0)
+                @if($bonuses > 0)
                 <tr>
                     <td>Primes</td>
-                    <td class="montant positive">{{ number_format($primes, 3, '.', ' ') }}</td>
+                    <td class="montant positive">{{ number_format($bonuses, 3, '.', ' ') }}</td>
                 </tr>
                 @endif
-                @if($indemnites > 0)
+                @if($allowances > 0)
                 <tr>
                     <td>Indemnités</td>
-                    <td class="montant positive">{{ number_format($indemnites, 3, '.', ' ') }}</td>
+                    <td class="montant positive">{{ number_format($allowances, 3, '.', ' ') }}</td>
+                </tr>
+                @endif
+                @if($tc === 'CIVP')
+                <tr>
+                    <td style="color:#744210; font-style:italic;">Bourse ANETI (versée séparément)</td>
+                    <td class="montant" style="color:#744210;">+ 200.000</td>
+                </tr>
+                @endif
+                @if($tc === 'Karama')
+                <tr>
+                    <td style="color:#553c9a; font-style:italic;">Subvention État (incluse dans le net)</td>
+                    <td class="montant" style="color:#553c9a;">+ 400.000</td>
                 </tr>
                 @endif
             </tbody>
@@ -256,15 +267,30 @@ $dateFin   = $fullPaymentInfo->employer->end_date
             </thead>
             <tbody>
                 <tr>
-                    <td>CNSS salarié</td>
+                    <td>
+                        CNSS salarié
+                        @if(in_array($tc, ['CIVP', 'Karama']))
+                            <span style="color:#2d6a4f; font-size:9px;">(exonéré)</span>
+                        @endif
+                    </td>
                     <td class="montant negative">{{ number_format($cnss, 3, '.', ' ') }}</td>
                 </tr>
                 <tr>
-                    <td>IRPP</td>
+                    <td>
+                        IRPP
+                        @if($tc === 'CIVP')
+                            <span style="color:#2d6a4f; font-size:9px;">(exonéré)</span>
+                        @endif
+                    </td>
                     <td class="montant negative">{{ number_format($irpp, 3, '.', ' ') }}</td>
                 </tr>
                 <tr>
-                    <td>CSS (0.5%)</td>
+                    <td>
+                        CSS (0.5%)
+                        @if($tc === 'CIVP')
+                            <span style="color:#2d6a4f; font-size:9px;">(exonéré)</span>
+                        @endif
+                    </td>
                     <td class="montant negative">{{ number_format($css, 3, '.', ' ') }}</td>
                 </tr>
                 @if($retenueSansSolde > 0)
@@ -300,7 +326,22 @@ $dateFin   = $fullPaymentInfo->employer->end_date
     </table>
 </div>
 
-{{-- CONGÉS --}}
+{{-- NOTE CIVP / KARAMA --}}
+@if($tc === 'CIVP')
+<div class="info-box">
+    <strong>Contrat CIVP :</strong> Le montant ci-dessus représente la part versée par l'entreprise.
+    Le stagiaire reçoit en plus <strong>200 TND</strong> de bourse versée directement par l'ANETI sur son compte bancaire.
+    Revenu net total : {{ number_format($amount + 200, 3, '.', ' ') }} TND.
+</div>
+@elseif($tc === 'Karama')
+<div class="info-box" style="background:#faf5ff; border-color:#d6bcfa; color:#44337a;">
+    <strong>Contrat Karama :</strong> Le net à payer inclut la subvention de <strong>400 TND</strong> versée par l'État (ANETI).
+    Part employeur nette : {{ number_format($amount - 400, 3, '.', ' ') }} TND.
+    Part État : 400.000 TND. CNSS prise en charge par l'État.
+</div>
+@endif
+
+{{-- CONGÉS DU MOIS --}}
 @if($conges && $conges->count() > 0)
 <div class="section-title">Congés du mois</div>
 <table class="paie-table">
@@ -317,7 +358,7 @@ $dateFin   = $fullPaymentInfo->employer->end_date
     <tbody>
         @foreach($conges as $c)
         <tr>
-            <td>{{ $c->type ?? 'Congé annuel' }}</td>
+            <td>{{ $c->type ?? 'Congé' }}</td>
             <td>{{ parseDate($c->start_date) }}</td>
             <td>{{ parseDate($c->end_date) }}</td>
             <td class="montant">{{ $c->days_count ?? '-' }}</td>
@@ -334,31 +375,47 @@ $dateFin   = $fullPaymentInfo->employer->end_date
 <table class="info-table" style="margin-bottom:14px;">
     <tr>
         <td class="label">Situation familiale</td>
-        <td class="value">{{ $fullPaymentInfo->employer->family_head ? 'Chef de famille' : 'Célibataire' }}</td>
+        <td class="value">{{ $employer->family_head ? 'Chef de famille' : 'Célibataire' }}</td>
         <td class="label">Enfants à charge</td>
-        <td class="value">{{ $fullPaymentInfo->employer->last_namebre_enfants ?? 0 }}</td>
+        <td class="value">{{ $employer->children_count ?? 0 }}</td>
     </tr>
     <tr>
         <td class="label">Enfants infirmes</td>
-        <td class="value">{{ $fullPaymentInfo->employer->last_namebre_enfants_infirmes ?? 0 }}</td>
+        <td class="value">{{ $employer->disabled_children_count ?? 0 }}</td>
         <td class="label">Enfants étudiants</td>
-        <td class="value">{{ $fullPaymentInfo->employer->last_namebre_enfants_etudiants ?? 0 }}</td>
+        <td class="value">{{ $employer->student_children_count ?? 0 }}</td>
     </tr>
     <tr>
         <td class="label">Taux CNSS</td>
-        <td class="value">9.18% + 1% maladie</td>
+        <td class="value">
+            @if(in_array($tc, ['CIVP', 'Karama']))
+                0% (État prend en charge)
+            @else
+                9.68% (9.18% + 0.50% assurance emploi)
+            @endif
+        </td>
         <td class="label">CSS</td>
-        <td class="value">0.5%</td>
+        <td class="value">
+            @if($tc === 'CIVP')
+                0% (exonéré)
+            @else
+                0.5% sur AAI > 5 000 TND/an
+            @endif
+        </td>
     </tr>
-    @if($fullPaymentInfo->contract_type === 'CIVP')
+    @if($tc === 'CIVP')
     <tr>
         <td class="label" colspan="2">Régime CIVP</td>
-        <td class="value" colspan="2" style="color:#744210;">Exonéré CNSS · IRPP · CSS</td>
+        <td class="value" colspan="2" style="color:#744210;">
+            Exonération totale : CNSS = 0 · IRPP = 0 · CSS = 0
+        </td>
     </tr>
-    @elseif($fullPaymentInfo->contract_type === 'Karama')
+    @elseif($tc === 'Karama')
     <tr>
         <td class="label" colspan="2">Régime Karama</td>
-        <td class="value" colspan="2" style="color:#553c9a;">CNSS réduite 50% · Exonéré IRPP · CSS</td>
+        <td class="value" colspan="2" style="color:#553c9a;">
+            CNSS = 0 (État) · IRPP calculé sur part employeur uniquement · Subvention 400 TND exonérée
+        </td>
     </tr>
     @endif
 </table>
@@ -380,8 +437,7 @@ $dateFin   = $fullPaymentInfo->employer->end_date
 <div class="footer">
     Bulletin de paie généré le {{ \Carbon\Carbon::now()->format('d/m/Y à H:i') }} —
     {{ $fullPaymentInfo->month }} {{ $fullPaymentInfo->year }} —
-    Réf. {{ $fullPaymentInfo->reference }} —
-    Document confidentiel
+    Réf. {{ $fullPaymentInfo->reference }} — Document confidentiel
 </div>
 
 </body>

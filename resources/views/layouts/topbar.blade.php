@@ -1,8 +1,8 @@
 @php
-    $isEmployer = auth('employer')->check();
-    $currentUser = $isEmployer ? auth('employer')->user() : auth()->user();
-    $userName = $isEmployer ? ($currentUser->nom ?? 'Employé') : ($currentUser->name ?? 'Utilisateur');
-    $logoutRoute = $isEmployer ? route('employer_space.logout') : route('logout');
+    $currentUser = auth()->user();
+    $userName    = $currentUser->first_name
+                    ? $currentUser->first_name . ' ' . $currentUser->last_name
+                    : ($currentUser->name ?? 'Utilisateur');
 @endphp
 
 <style>
@@ -11,80 +11,37 @@
         border-bottom: 1px solid hsl(186, 67%, 88%) !important;
         box-shadow: 0 2px 8px rgba(0, 174, 199, 0.08) !important;
     }
-
-    .app-header-inner {
-        background: #ffffff !important;
-    }
-
-    #sidepanel-toggler {
-        color: hsl(189, 100%, 23%) !important;
-        transition: color 0.2s ease;
-    }
-
-    #sidepanel-toggler:hover {
-        color: hsl(194, 100%, 46%) !important;
-    }
-
-    /* Avatar dropdown */
+    .app-header-inner { background: #ffffff !important; }
+    #sidepanel-toggler { color: hsl(189, 100%, 23%) !important; transition: color 0.2s ease; }
+    #sidepanel-toggler:hover { color: hsl(194, 100%, 46%) !important; }
     .app-user-dropdown .dropdown-toggle img {
-        width: 38px;
-        height: 38px;
-        border-radius: 50%;
-        border: 2px solid hsl(194, 100%, 46%);
-        transition: all 0.2s ease;
+        width: 38px; height: 38px; border-radius: 50%;
+        border: 2px solid hsl(194, 100%, 46%); transition: all 0.2s ease;
     }
-
     .app-user-dropdown .dropdown-toggle img:hover {
         border-color: hsl(189, 100%, 23%);
         box-shadow: 0 4px 12px rgba(0, 174, 199, 0.3);
     }
-
-    .app-user-dropdown .dropdown-toggle::after {
-        display: none;
-    }
-
-    /* Dropdown menu */
+    .app-user-dropdown .dropdown-toggle::after { display: none; }
     .app-user-dropdown .dropdown-menu {
         border: 1px solid hsl(186, 67%, 88%) !important;
         border-radius: 10px !important;
         box-shadow: 0 8px 24px rgba(0, 174, 199, 0.15) !important;
-        padding: 8px 0 !important;
-        min-width: 180px;
+        padding: 8px 0 !important; min-width: 180px;
     }
-
     .app-user-dropdown .dropdown-item {
-        color: hsl(189, 100%, 23%) !important;
-        font-weight: 500;
-        padding: 10px 18px;
-        transition: all 0.2s ease;
-        font-size: 0.9rem;
+        color: hsl(189, 100%, 23%) !important; font-weight: 500;
+        padding: 10px 18px; transition: all 0.2s ease; font-size: 0.9rem;
     }
-
     .app-user-dropdown .dropdown-item:first-child {
-        font-weight: 700;
-        color: hsl(189, 100%, 23%) !important;
-        pointer-events: none;
+        font-weight: 700; color: hsl(189, 100%, 23%) !important; pointer-events: none;
     }
-
     .app-user-dropdown .dropdown-item:hover {
-        background: hsl(186, 67%, 94%) !important;
-        color: hsl(194, 100%, 46%) !important;
+        background: hsl(186, 67%, 94%) !important; color: hsl(194, 100%, 46%) !important;
     }
-
-    .app-user-dropdown .dropdown-divider {
-        border-color: hsl(186, 67%, 88%) !important;
-        margin: 4px 0;
-    }
-
-    /* Logout item */
-    .app-user-dropdown .dropdown-item.logout-item {
-        color: #dc2626 !important;
-    }
-
-    .app-user-dropdown .dropdown-item.logout-item:hover {
-        background: #fef2f2 !important;
-        color: #b91c1c !important;
-    }
+    .app-user-dropdown .dropdown-divider { border-color: hsl(186, 67%, 88%) !important; margin: 4px 0; }
+    .app-user-dropdown .dropdown-item.logout-item { color: #dc2626 !important; }
+    .app-user-dropdown .dropdown-item.logout-item:hover { background: #fef2f2 !important; color: #b91c1c !important; }
 </style>
 
 <div class="app-header-inner">
@@ -104,7 +61,7 @@
                 <div class="app-utilities col-auto">
                     <div class="app-utility-item app-user-dropdown dropdown">
                         <a class="dropdown-toggle" id="user-dropdown-toggle" data-bs-toggle="dropdown" href="#" role="button" aria-expanded="false">
-                            <img src="https://ui-avatars.com/api/?name={{ $userName }}&background=00c2e0&color=ffffff&bold=true" 
+                            <img src="https://ui-avatars.com/api/?name={{ urlencode($userName) }}&background=00c2e0&color=ffffff&bold=true"
                                  alt="user profile">
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="user-dropdown-toggle">
@@ -118,7 +75,7 @@
                             </li>
                             <li><hr class="dropdown-divider"></li>
                             <li>
-                                <form method="POST" action="{{ $logoutRoute }}" id="logout-form">
+                                <form method="POST" action="{{ route('logout') }}" id="logout-form">
                                     @csrf
                                 </form>
                                 <a class="dropdown-item logout-item" href="#"

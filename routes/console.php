@@ -9,3 +9,8 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('contrats:notifier')->dailyAt('08:00');
+
+Schedule::command('discipline:calculate')
+    ->quarterly()
+    ->at('01:00')
+    ->appendOutputTo(storage_path('logs/discipline.log'));

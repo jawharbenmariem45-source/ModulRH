@@ -3,7 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Attendance;
-use App\Models\Employer;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Carbon\Carbon;
 
@@ -13,16 +13,14 @@ class AttendanceFactory extends Factory
 
     public function definition(): array
     {
-        $status   = $this->faker->randomElement(['present', 'absent', 'late', 'on_leave']);
-        $dateBase = $this->faker->dateTimeBetween('-6 months', 'now');
-        $dateSale = $this->faker->randomElement([
-            $dateBase->format('Y-m-d'),
-            $dateBase->format('d/m/Y'),
-            $dateBase->format('d-m-Y'),
-            $dateBase->format('m/d/Y'),
-            $dateBase->format('Y/m/d'),
-            $dateBase->format('d.m.Y'),
+        $status = $this->faker->randomElement([
+            'present', 'present', 'present', 'present',
+            'absent', 'late', 'on_leave',
         ]);
+
+        $date = Carbon::instance(
+            $this->faker->dateTimeBetween('-6 months', 'now')
+        )->toDateString();
 
         $morningCheckIn    = null;
         $morningCheckOut   = null;
@@ -30,42 +28,56 @@ class AttendanceFactory extends Factory
         $afternoonCheckOut = null;
 
         if (in_array($status, ['present', 'late'])) {
-            $baseDate = Carbon::parse($dateBase->format('Y-m-d'));
-            $dirty    = $this->faker->boolean(30);
+            $heureEntree = $status === 'late' ? $this->faker->numberBetween(9, 10) : 8;
+            $min = str_pad(rand(0, 59), 2, '0', STR_PAD_LEFT);
 
-            if ($dirty) {
-                $morningCheckIn    = $baseDate->copy()->setTime(12, rand(0, 59));
-                $morningCheckOut   = $baseDate->copy()->setTime(8, rand(0, 59));
-                $afternoonCheckIn  = $baseDate->copy()->setTime(17, rand(0, 59));
-                $afternoonCheckOut = $baseDate->copy()->setTime(13, rand(0, 59));
-            } else {
-                $morningCheckIn    = $baseDate->copy()->setTime(
-                    $status === 'late' ? $this->faker->numberBetween(9, 10) : 8,
-                    $this->faker->numberBetween(0, 59)
-                );
-                $morningCheckOut   = $baseDate->copy()->setTime(12, $this->faker->numberBetween(0, 30));
-                $afternoonCheckIn  = $baseDate->copy()->setTime(13, $this->faker->numberBetween(0, 30));
-                $afternoonCheckOut = $baseDate->copy()->setTime(17, $this->faker->numberBetween(0, 59));
-            }
+            $casIncomplet = $this->faker->randomElement([
+                'complet', 'complet', 'complet', 'complet', 'complet', 'complet',
+                'no_checkout_matin', 'no_checkin_apmidi',
+                'no_checkout_apmidi', 'matin_seulement', 'apmidi_seulement',
+            ]);
 
-            if ($this->faker->boolean(20)) {
-                $morningCheckOut   = null;
-                $afternoonCheckOut = null;
+            switch ($casIncomplet) {
+                case 'complet':
+                    $morningCheckIn    = $date . ' ' . $heureEntree . ':' . $min . ':00';
+                    $morningCheckOut   = $date . ' 12:' . str_pad(rand(0, 30), 2, '0', STR_PAD_LEFT) . ':00';
+                    $afternoonCheckIn  = $date . ' 13:' . str_pad(rand(0, 30), 2, '0', STR_PAD_LEFT) . ':00';
+                    $afternoonCheckOut = $date . ' 17:' . str_pad(rand(0, 59), 2, '0', STR_PAD_LEFT) . ':00';
+                    break;
+                case 'no_checkout_matin':
+                    $morningCheckIn    = $date . ' ' . $heureEntree . ':' . $min . ':00';
+                    $afternoonCheckIn  = $date . ' 13:' . str_pad(rand(0, 30), 2, '0', STR_PAD_LEFT) . ':00';
+                    $afternoonCheckOut = $date . ' 17:' . str_pad(rand(0, 59), 2, '0', STR_PAD_LEFT) . ':00';
+                    break;
+                case 'no_checkin_apmidi':
+                    $morningCheckIn    = $date . ' ' . $heureEntree . ':' . $min . ':00';
+                    $morningCheckOut   = $date . ' 12:' . str_pad(rand(0, 30), 2, '0', STR_PAD_LEFT) . ':00';
+                    $afternoonCheckOut = $date . ' 17:' . str_pad(rand(0, 59), 2, '0', STR_PAD_LEFT) . ':00';
+                    break;
+                case 'no_checkout_apmidi':
+                    $morningCheckIn   = $date . ' ' . $heureEntree . ':' . $min . ':00';
+                    $morningCheckOut  = $date . ' 12:' . str_pad(rand(0, 30), 2, '0', STR_PAD_LEFT) . ':00';
+                    $afternoonCheckIn = $date . ' 13:' . str_pad(rand(0, 30), 2, '0', STR_PAD_LEFT) . ':00';
+                    break;
+                case 'matin_seulement':
+                    $morningCheckIn  = $date . ' ' . $heureEntree . ':' . $min . ':00';
+                    $morningCheckOut = $date . ' 12:' . str_pad(rand(0, 30), 2, '0', STR_PAD_LEFT) . ':00';
+                    break;
+                case 'apmidi_seulement':
+                    $afternoonCheckIn  = $date . ' 13:' . str_pad(rand(0, 30), 2, '0', STR_PAD_LEFT) . ':00';
+                    $afternoonCheckOut = $date . ' 17:' . str_pad(rand(0, 59), 2, '0', STR_PAD_LEFT) . ':00';
+                    break;
             }
         }
 
-        $statusSale = $this->faker->boolean(15)
-            ? $this->faker->randomElement(['absent', 'on_leave'])
-            : $status;
-
         return [
-            'employer_id'         => Employer::inRandomOrder()->first()?->id ?? 1,
-            'date'                => $dateSale,
+            'user_id'             => User::role('employer')->inRandomOrder()->first()?->id ?? 1,
+            'date'                => $date,
             'morning_check_in'    => $morningCheckIn,
             'morning_check_out'   => $morningCheckOut,
             'afternoon_check_in'  => $afternoonCheckIn,
             'afternoon_check_out' => $afternoonCheckOut,
-            'status'              => $statusSale,
+            'status'              => $status,
         ];
     }
 }

@@ -12,7 +12,7 @@ class RolesAndPermissionsSeeder extends Seeder
     {
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
-        $permissionsWeb = [
+        $permissions = [
             'view employers', 'create employer', 'edit employer', 'delete employer',
             'view contracts', 'edit contract', 'delete contract', 'download contract pdf',
             'view payments', 'process payments', 'download invoice',
@@ -22,21 +22,11 @@ class RolesAndPermissionsSeeder extends Seeder
             'view settings', 'edit settings',
         ];
 
-        foreach ($permissionsWeb as $permission) {
+        foreach ($permissions as $permission) {
             Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
         }
 
-        $permissionsEmployer = [
-            'view leaves', 'create leave', 'edit leave',
-            'view payments', 'download invoice',
-            'view contracts', 'download contract pdf',
-        ];
-
-        foreach ($permissionsEmployer as $permission) {
-            Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'employer']);
-        }
-
-        // Admin — tout sauf settings
+        // Admin
         $admin = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
         $admin->syncPermissions(
             Permission::where('guard_name', 'web')
@@ -45,7 +35,7 @@ class RolesAndPermissionsSeeder extends Seeder
                 ->toArray()
         );
 
-        // RH — tout + settings
+        // RH
         $rh = Role::firstOrCreate(['name' => 'rh', 'guard_name' => 'web']);
         $rh->syncPermissions([
             'view employers', 'create employer', 'edit employer', 'delete employer',
@@ -56,14 +46,14 @@ class RolesAndPermissionsSeeder extends Seeder
             'view settings', 'edit settings',
         ]);
 
-        // Manager — congés uniquement
+        // Manager
         $manager = Role::firstOrCreate(['name' => 'manager', 'guard_name' => 'web']);
         $manager->syncPermissions([
             'view leaves', 'approve leave', 'reject leave',
         ]);
 
-        // Employer (guard employer)
-        $employer = Role::firstOrCreate(['name' => 'employer', 'guard_name' => 'employer']);
+        // Employer — guard web
+        $employer = Role::firstOrCreate(['name' => 'employer', 'guard_name' => 'web']);
         $employer->syncPermissions([
             'view leaves', 'create leave', 'edit leave',
             'view payments', 'download invoice',

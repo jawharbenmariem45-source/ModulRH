@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Company;
 use App\Models\Departement;
-use App\Models\Employer;
 use App\Models\User;
 use App\Models\Conge;
 use App\Models\Payment;
@@ -18,21 +17,25 @@ class AppController extends Controller
         $user = Auth::user();
 
         return match(true) {
-            $user->hasRole('admin')   => $this->dashboardAdmin(),
-            $user->hasRole('rh')      => $this->dashboardRh(),
-            $user->hasRole('manager') => $this->dashboardManager(),
-            default => redirect()->route('login'),
+            $user->hasRole('admin')    => $this->dashboardAdmin(),
+            $user->hasRole('rh')       => $this->dashboardRh(),
+            $user->hasRole('manager')  => $this->dashboardManager(),
+            $user->hasRole('employer') => $this->dashboardEmployer(),
+            default                    => redirect()->route('login'),
         };
     }
+
+    // ── Admin ─────────────────────────────────────────────────────────────────
 
     private function dashboardAdmin()
     {
         $totalDepartements    = Departement::count();
-        $totalEmployers       = Employer::count();
+        $totalEmployers       = User::role('employer')->count();
         $totalAdministrateurs = User::count();
-        $paymentNotification  = $this->getPaymentNotification();
+        $paymentNotification  = '';
 
-        $contratsAlertes = Employer::whereNotNull('end_date')
+        $contratsAlertes = User::role('employer')
+            ->whereNotNull('end_date')
             ->whereDate('end_date', '>=', Carbon::today())
             ->whereDate('end_date', '<=', Carbon::today()->addDays(7))
             ->count();
@@ -44,17 +47,27 @@ class AppController extends Controller
         ));
     }
 
+    // ── RH ───────────────────────────────────────────────────────────────────
+
     private function dashboardRh()
     {
-        $user           = Auth::user();
-        $totalEmployers = Employer::count();
+        $user      = Auth::user();
+        $companyId = $user->company_id;
 
-        $contratsAlertes = Employer::whereNotNull('end_date')
+        $totalEmployers = User::role('employer')
+            ->where('company_id', $companyId)
+            ->count();
+
+        $contratsAlertes = User::role('employer')
+            ->where('company_id', $companyId)
+            ->whereNotNull('end_date')
             ->whereDate('end_date', '>=', Carbon::today())
             ->whereDate('end_date', '<=', Carbon::today()->addDays(30))
             ->count();
 
-        $congesEnAttente = Conge::where('status', 'En attente')->count();
+        $congesEnAttente = Conge::whereHas('user', fn($q) =>
+            $q->where('company_id', $companyId)
+        )->where('status', 'En attente')->count();
 
         $monthMapping = [
             'JANUARY'   => 'JANVIER',  'FEBRUARY'  => 'FEVRIER',
@@ -66,11 +79,13 @@ class AppController extends Controller
         ];
 
         $currentMonthFrench  = $monthMapping[strtoupper(Carbon::now()->format('F'))] ?? '';
-        $paiementsMoisActuel = Payment::where('month', $currentMonthFrench)
-            ->where('year', Carbon::now()->format('Y'))
-            ->count();
+        $paiementsMoisActuel = Payment::whereHas('user', fn($q) =>
+            $q->where('company_id', $companyId)
+        )->where('month', $currentMonthFrench)
+         ->where('year', Carbon::now()->format('Y'))
+         ->count();
 
-        $paymentNotification = $this->getPaymentNotification($user->company_id);
+        $paymentNotification = $this->getPaymentNotification($companyId);
 
         return view('dashboard.rh', compact(
             'totalEmployers', 'contratsAlertes',
@@ -79,12 +94,28 @@ class AppController extends Controller
         ));
     }
 
+    // ── Manager ───────────────────────────────────────────────────────────────
+
     private function dashboardManager()
     {
-        $congesEnAttente = Conge::where('status', 'En attente')->count();
-        $congesApprouves = Conge::where('status', 'Approuvé')->count();
-        $congesRefuses   = Conge::where('status', 'Refusé')->count();
-        $totalEmployers  = Employer::count();
+        $user      = Auth::user();
+        $companyId = $user->company_id;
+
+        $totalEmployers = User::role('employer')
+            ->where('company_id', $companyId)
+            ->count();
+
+        $congesEnAttente = Conge::whereHas('user', fn($q) =>
+            $q->where('company_id', $companyId)
+        )->where('status', 'En attente')->count();
+
+        $congesApprouves = Conge::whereHas('user', fn($q) =>
+            $q->where('company_id', $companyId)
+        )->whereIn('status', ['Approuvé', 'approuvé'])->count();
+
+        $congesRefuses = Conge::whereHas('user', fn($q) =>
+            $q->where('company_id', $companyId)
+        )->whereIn('status', ['Refusé', 'refusé'])->count();
 
         return view('dashboard.manager', compact(
             'congesEnAttente', 'congesApprouves',
@@ -92,11 +123,43 @@ class AppController extends Controller
         ));
     }
 
-    private function getPaymentNotification(int $companyId = null)
+    // ── Employer ──────────────────────────────────────────────────────────────
+
+    private function dashboardEmployer()
+    {
+        $user = Auth::user();
+
+        if ($user->contract_type === 'CDI') {
+            $contrat = true;
+        } elseif ($user->contract_type && $user->end_date) {
+            try {
+                $contrat = Carbon::parse($user->end_date)->isFuture();
+            } catch (\Exception $e) {
+                $contrat = true;
+            }
+        } else {
+            $contrat = $user->contract_type ? true : false;
+        }
+
+        $congesEnAttente  = $user->conges()->whereIn('status', ['En attente', 'en attente', 'en_attente'])->count();
+        $congesApprouves  = $user->conges()->whereIn('status', ['Approuvé', 'approuvé', 'accepte', 'APPROUVE'])->count();
+        $totalPaiements   = $user->payments()->count();
+        $dernierConges    = $user->conges()->latest()->take(5)->get();
+        $dernierPaiements = $user->payments()->latest()->take(5)->get();
+
+        return view('dashboard.employer', compact(
+            'contrat', 'congesEnAttente', 'congesApprouves',
+            'totalPaiements', 'dernierConges', 'dernierPaiements'
+        ));
+    }
+
+    // ── Helper ────────────────────────────────────────────────────────────────
+
+    private function getPaymentNotification(int $companyId = null): string
     {
         $company = $companyId ? Company::find($companyId) : null;
 
-        if (!$company) return '';
+        if (!$company || !$company->payment_date) return '';
 
         $date        = $company->payment_date;
         $currentDate = Carbon::now()->day;
