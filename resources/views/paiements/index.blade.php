@@ -71,7 +71,6 @@
                         <th>Reference</th>
                         <th>Employer</th>
                         <th>Montant payé</th>
-                        <th>Date de transaction</th>
                         <th>Mois</th>
                         <th>Année</th>
                         <th>Actions</th>
@@ -83,14 +82,11 @@
                         <td>{{ $payment->reference }}</td>
                         <td>{{ $payment->employer->last_name }} {{ $payment->employer->first_name }}</td>
                         <td>{{ $payment->amount }} DT</td>
-                        <td>{{ date('d-m-Y', strtotime($payment->done_time)) }}</td>
                         <td>{{ $payment->month }}</td>
                         <td>{{ $payment->year }}</td>
-                        <td><span class="badge bg-success">{{ $payment->status }}</span></td>
                         <td>
                             <a href="{{ route('payment.preview', $payment->id) }}"
-                               title="Voir PDF"
-                               target="_blank"
+                               title="Voir PDF" target="_blank"
                                class="btn btn-sm btn-outline-info me-1">
                                 <i class="fa fa-eye"></i>
                             </a>
@@ -103,7 +99,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="8" class="text-center text-muted" style="padding: 3rem;">
+                        <td colspan="6" class="text-center text-muted" style="padding: 3rem;">
                             Aucune transaction effectuée
                         </td>
                     </tr>

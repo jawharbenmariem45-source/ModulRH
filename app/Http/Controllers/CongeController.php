@@ -11,15 +11,18 @@ class CongeController extends Controller
 {
     public function index()
     {
-        $user = auth()->user();
+        $user      = auth()->user();
+        $companyId = $user->company_id;
 
         if ($user->hasRole('manager')) {
-            $conges = Conge::with(['employer.departement'])
+            $conges = Conge::with(['user.departement', 'employer.departement'])
+                ->whereHas('user', fn($q) => $q->where('company_id', $companyId))
                 ->where('status', 'En attente')
                 ->latest()
                 ->paginate(10);
         } else {
-            $conges = Conge::with(['employer.departement'])
+            $conges = Conge::with(['user.departement', 'employer.departement'])
+                ->whereHas('user', fn($q) => $q->where('company_id', $companyId))
                 ->latest()
                 ->paginate(10);
         }

@@ -37,7 +37,7 @@
                             <th>Jours</th>
                             <th>Motif</th>
                             <th>Statut</th>
-                            @if(auth()->user()->hasRole('manager') || auth()->user()->hasRole('rh'))
+                            @if(auth()->user()->hasRole('manager'))
                                 <th>Actions</th>
                             @endif
                         </tr>
@@ -80,7 +80,7 @@
                                     <span class="badge bg-secondary">{{ $c->status ?? 'N/A' }}</span>
                                 @endif
                             </td>
-                            @if(auth()->user()->hasRole('manager') || auth()->user()->hasRole('rh'))
+                            @if(auth()->user()->hasRole('manager'))
                             <td>
                                 @php $statutRaw = strtolower(trim($c->status ?? '')); @endphp
                                 @if(in_array($statutRaw, ['en attente', 'en_attente']))
@@ -124,18 +124,25 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header border-0">
-                <h5 class="modal-title text-success"><i class="fas fa-check-circle me-2"></i> Approuver le congé</h5>
+                <h5 class="modal-title text-success">
+                    <i class="fas fa-check-circle me-2"></i> Approuver le congé
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <p>Approuver le congé de <strong id="approuver-nom"></strong> ?</p>
-                <p class="text-muted small">Du <strong id="approuver-debut"></strong> au <strong id="approuver-fin"></strong></p>
+                <p class="text-muted small">
+                    Du <strong id="approuver-debut"></strong>
+                    au <strong id="approuver-fin"></strong>
+                </p>
             </div>
             <div class="modal-footer border-0">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
                 <form id="formApprouver" method="POST">
                     @csrf @method('PATCH')
-                    <button type="submit" class="btn btn-success"><i class="fas fa-check"></i> Confirmer</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check"></i> Confirmer
+                    </button>
                 </form>
             </div>
         </div>
@@ -147,18 +154,25 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header border-0">
-                <h5 class="modal-title text-danger"><i class="fas fa-times-circle me-2"></i> Refuser le congé</h5>
+                <h5 class="modal-title text-danger">
+                    <i class="fas fa-times-circle me-2"></i> Refuser le congé
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <p>Refuser le congé de <strong id="refuser-nom"></strong> ?</p>
-                <p class="text-muted small">Du <strong id="refuser-debut"></strong> au <strong id="refuser-fin"></strong></p>
+                <p class="text-muted small">
+                    Du <strong id="refuser-debut"></strong>
+                    au <strong id="refuser-fin"></strong>
+                </p>
             </div>
             <div class="modal-footer border-0">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
                 <form id="formRefuser" method="POST">
                     @csrf @method('PATCH')
-                    <button type="submit" class="btn btn-danger"><i class="fas fa-times"></i> Confirmer</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-times"></i> Confirmer
+                    </button>
                 </form>
             </div>
         </div>

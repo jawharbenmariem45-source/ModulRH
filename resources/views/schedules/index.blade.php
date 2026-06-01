@@ -1,28 +1,24 @@
 @extends('layouts.template')
-
 @section('content')
-<div class="row g-3 mb-4 align-items-center justify-content-between">
-    <div class="col-auto">
-        <h1 class="app-page-title mb-0">Gestion des Horaires</h1>
-    </div>
-    <div class="col-auto">
-        <button class="btn app-btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalAddSchedule">
-            + Ajouter un horaire
-        </button>
-    </div>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="app-page-title mb-0">Gestion des Horaires</h1>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAddSchedule">
+        + Ajouter un horaire
+    </button>
 </div>
 
 @if(session('success_message'))
-<div class="alert alert-success alert-dismissible fade show">
-    {{ session('success_message') }}
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
+    <div class="alert alert-success alert-dismissible fade show">
+        {{ session('success_message') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
 @endif
 
-<div class="app-card shadow-sm mb-5">
-    <div class="app-card-body">
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
         <div class="table-responsive">
-            <table class="table app-table-hover mb-0">
+            <table class="table table-bordered mb-0">
                 <thead>
                     <tr>
                         <th>#</th>
@@ -38,15 +34,13 @@
                     @forelse($schedules as $schedule)
                     <tr>
                         <td>{{ $loop->iteration }}</td>
-                        <td>
-                            <strong>{{ $schedule->name }}</strong>
-                        </td>
+                        <td><strong>{{ $schedule->name }}</strong></td>
                         <td>{{ $schedule->start_time }}</td>
                         <td>{{ $schedule->end_time }}</td>
                         <td>{{ $schedule->break_start ?? '-' }}</td>
                         <td>{{ $schedule->break_end ?? '-' }}</td>
                         <td>
-                            <button class="btn btn-sm app-btn-primary"
+                            <button class="btn btn-sm btn-outline-success me-1"
                                 data-bs-toggle="modal"
                                 data-bs-target="#modalEditSchedule"
                                 data-id="{{ $schedule->id }}"
@@ -55,13 +49,13 @@
                                 data-end="{{ $schedule->end_time }}"
                                 data-break-start="{{ $schedule->break_start }}"
                                 data-break-end="{{ $schedule->break_end }}">
-                                Éditer
+                                <i class="fas fa-edit"></i> Éditer
                             </button>
                             <form action="{{ route('schedules.destroy', $schedule) }}" method="POST" style="display:inline">
                                 @csrf @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-danger"
+                                <button type="submit" class="btn btn-sm btn-outline-danger"
                                     onclick="return confirm('Supprimer cet horaire ?')">
-                                    Supprimer
+                                    <i class="fas fa-trash"></i> Supprimer
                                 </button>
                             </form>
                         </td>
@@ -91,7 +85,8 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Nom <span class="text-danger">*</span></label>
-                        <input type="text" name="name" class="form-control" placeholder="Ex: Normal, Matin, Soir..." required>
+                        <input type="text" name="name" class="form-control"
+                            placeholder="Ex: Normal, Matin, Soir..." required>
                     </div>
                     <div class="row">
                         <div class="col mb-3">
@@ -116,7 +111,7 @@
                 </div>
                 <div class="modal-footer border-0">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn app-btn-primary">Enregistrer</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
                 </div>
             </form>
         </div>
@@ -161,7 +156,7 @@
                 </div>
                 <div class="modal-footer border-0">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn app-btn-primary">Mettre à jour</button>
+                    <button type="submit" class="btn btn-primary">Mettre à jour</button>
                 </div>
             </form>
         </div>
@@ -179,5 +174,4 @@ document.getElementById('modalEditSchedule').addEventListener('show.bs.modal', f
     document.getElementById('formEditSchedule').action = '/schedules/' + btn.dataset.id;
 });
 </script>
-
 @endsection

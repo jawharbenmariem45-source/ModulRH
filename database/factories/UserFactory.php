@@ -157,6 +157,7 @@ class UserFactory extends Factory
             'email_verified_at'       => now(),
             'password'                => Hash::make('password'),
             'phone'                   => $this->genererTelephone(),
+            'gender'                  => $this->faker->randomElement(['Homme', 'Femme']),
             'department_id'           => $deptId,
             'company_id'              => $companyId,
             'post_id'                 => $post?->id,
@@ -249,6 +250,7 @@ class UserFactory extends Factory
                 'post_id'       => $post?->id,
                 'start_date'    => $start->toDateString(),
                 'end_date'      => $start->copy()->addMonths(rand(6, 12))->toDateString(),
+                // Part entreprise : 200 à 400 TND (ANETI verse 200 TND en plus)
                 'salary'        => $this->genererSalaire($deptId, 'CIVP'),
             ];
         });
@@ -267,6 +269,7 @@ class UserFactory extends Factory
                 'post_id'       => $post?->id,
                 'start_date'    => $start->toDateString(),
                 'end_date'      => $start->copy()->addMonths(rand(6, 12))->toDateString(),
+                // Part employeur : 200 à 800 TND + 400 TND État → net 600 à 1200 TND
                 'salary'        => $this->faker->numberBetween(200, 800),
             ];
         });

@@ -3,175 +3,358 @@
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-    <title>Fiche de Paie</title>
+    <title>Bulletin de Paie</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: DejaVu Sans, sans-serif; font-size: 11px; color: #1a1a2e; background: #fff; }
-        .header { background: #1a1a2e; color: #fff; padding: 18px 24px; margin-bottom: 18px; }
-        .header-top { display: table; width: 100%; }
-        .header-left  { display: table-cell; vertical-align: middle; width: 60%; }
-        .header-right { display: table-cell; vertical-align: middle; width: 40%; text-align: right; }
-        .company-name { font-size: 20px; font-weight: bold; letter-spacing: 1px; }
-        .doc-title    { font-size: 13px; color: #a0aec0; margin-top: 4px; }
-        .periode-badge { display: inline-block; background: #2d6a4f; color: #fff; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; letter-spacing: 1px; }
-        .ref { font-size: 10px; color: #a0aec0; margin-top: 6px; }
-        .section-title { background: #2d6a4f; color: #fff; padding: 5px 12px; font-size: 10px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 0; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
-        .info-table td { padding: 5px 10px; border: 1px solid #e2e8f0; vertical-align: top; }
-        .info-table td.label { background: #f7fafc; color: #718096; font-size: 9.5px; text-transform: uppercase; font-weight: bold; width: 30%; }
-        .info-table td.value { color: #1a1a2e; font-weight: bold; }
-        .paie-table thead tr th { background: #1a1a2e; color: #fff; padding: 6px 10px; text-align: left; font-size: 9.5px; text-transform: uppercase; }
-        .paie-table tbody tr td { padding: 5px 10px; border-bottom: 1px solid #e2e8f0; }
-        .paie-table tbody tr:nth-child(even) td { background: #f7fafc; }
-        .paie-table tfoot tr td { padding: 6px 10px; font-weight: bold; border-top: 2px solid #2d6a4f; }
-        .montant { text-align: right; }
-        .positive { color: #2d6a4f; }
-        .negative { color: #c0392b; }
-        .recap-box { background: #1a1a2e; color: #fff; padding: 14px 20px; margin-bottom: 14px; border-radius: 4px; }
-        .recap-table { width: 100%; }
-        .recap-table td { padding: 4px 8px; }
-        .recap-label  { color: #a0aec0; font-size: 10px; text-transform: uppercase; }
-        .recap-value  { text-align: right; font-size: 13px; font-weight: bold; color: #fff; }
-        .recap-net    { font-size: 18px; color: #68d391; }
-        .recap-net-label { font-size: 12px; color: #68d391; text-transform: uppercase; }
-        .footer { border-top: 2px solid #e2e8f0; padding-top: 10px; margin-top: 14px; font-size: 9px; color: #a0aec0; text-align: center; }
-        .signature-zone { display: table; width: 100%; margin-top: 20px; }
-        .signature-cell { display: table-cell; width: 33%; text-align: center; padding: 0 10px; }
-        .signature-line { border-top: 1px solid #cbd5e0; margin-top: 40px; padding-top: 4px; font-size: 9px; color: #718096; }
-        .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 9.5px; font-weight: bold; color: #fff; }
+        body { font-family: DejaVu Sans, sans-serif; font-size: 9px; color: #000; background: #fff; }
+
+        /* ── En-tête ── */
+        .header-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+        .header-table td { vertical-align: top; padding: 4px; }
+        .company-box { border: 1px solid #000; padding: 6px; width: 45%; }
+        .company-name { font-size: 11px; font-weight: bold; text-transform: uppercase; }
+        .company-sub  { font-size: 9px; margin-top: 2px; }
+        .bulletin-title { font-size: 16px; font-weight: bold; color: #c00; text-align: right; text-transform: uppercase; }
+        .mois-box { text-align: right; font-size: 10px; margin-top: 4px; }
+
+        /* ── Infos employé / société ── */
+        .info-table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+        .info-table td { border: 1px solid #aaa; padding: 3px 5px; font-size: 8.5px; }
+        .info-table .lbl { background: #eee; font-weight: bold; width: 30%; }
+
+        /* ── Tableau principal ── */
+        .main-table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+        .main-table th {
+            background: #1a1a2e; color: #fff;
+            padding: 4px 5px; font-size: 8px;
+            text-align: center; border: 1px solid #000;
+        }
+        .main-table td {
+            border: 1px solid #aaa; padding: 3px 5px;
+            font-size: 8.5px; vertical-align: middle;
+        }
+        .main-table .num { text-align: right; }
+        .main-table .lbl-col { width: 30%; }
+        .main-table .total-row td { background: #f0f0f0; font-weight: bold; }
+        .main-table .section-row td { background: #dde; font-weight: bold; font-size: 8px; text-transform: uppercase; }
+        .gain { color: #1a6b3a; }
+        .retenue { color: #c00; }
+
+        /* ── Récapitulatif ── */
+        .recap-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+        .recap-table th { background: #1a1a2e; color: #fff; padding: 4px; font-size: 8px; border: 1px solid #000; text-align: center; }
+        .recap-table td { border: 1px solid #aaa; padding: 3px 6px; font-size: 8.5px; text-align: center; }
+        .net-cell { font-size: 13px; font-weight: bold; color: #c00; }
+
+        /* ── Signatures ── */
+        .sig-table { width: 100%; margin-top: 14px; }
+        .sig-table td { text-align: center; font-size: 8px; padding-top: 30px; border-top: 1px solid #aaa; width: 33%; }
+
+        /* ── Pied ── */
+        .footer { font-size: 7px; color: #666; text-align: center; margin-top: 10px; border-top: 1px solid #ccc; padding-top: 4px; }
+
+        .badge-contrat { display: inline-block; padding: 1px 6px; border-radius: 3px; color: #fff; font-size: 8px; font-weight: bold; }
         .badge-cdi    { background: #2d6a4f; }
         .badge-cdd    { background: #2b6cb0; }
         .badge-civp   { background: #744210; }
         .badge-karama { background: #553c9a; }
-        .two-col { display: table; width: 100%; }
-        .col-left  { display: table-cell; width: 50%; padding-right: 8px; vertical-align: top; }
-        .col-right { display: table-cell; width: 50%; padding-left: 8px; vertical-align: top; }
-        .info-box { background: #f0fff4; border: 1px solid #9ae6b4; padding: 8px 12px; border-radius: 4px; margin-bottom: 14px; font-size: 10px; color: #276749; }
+        .note-box { border: 1px solid #9ae6b4; background: #f0fff4; padding: 4px 8px; font-size: 8px; color: #276749; margin-bottom: 6px; border-radius: 3px; }
+        .note-box-karama { border-color: #d6bcfa; background: #faf5ff; color: #44337a; }
     </style>
 </head>
 <body>
 
 @php
-function cleanAmount($value): float {
-    if (is_null($value)) return 0.0;
-    $str = preg_replace('/[^0-9.\-]/', '', str_replace(',', '.', (string) $value));
-    $f   = floatval($str);
-    return is_nan($f) ? 0.0 : $f;
+function cleanAmt($v): float {
+    if (is_null($v)) return 0.0;
+    $s = preg_replace('/[^0-9.\-]/', '', str_replace(',', '.', (string)$v));
+    return is_nan(floatval($s)) ? 0.0 : floatval($s);
+}
+function fmt($v): string { return number_format(cleanAmt($v), 3, '.', ' '); }
+function parseD($d, $f='d/m/Y'): string {
+    if (!$d) return '-';
+    try { return \Carbon\Carbon::parse($d)->format($f); } catch(\Exception $e) { return (string)$d; }
 }
 
-function parseDate($date, $format = 'd/m/Y'): string {
-    if (!$date) return '-';
-    try { return \Carbon\Carbon::parse($date)->format($format); }
-    catch (\Exception $e) { return (string) $date; }
-}
+$emp   = $fullPaymentInfo->employer;
+$tc    = $fullPaymentInfo->contract_type ?? 'CDI';
+$co    = $emp->company ?? null;
 
-$employer = $fullPaymentInfo->employer;
-$tc       = $fullPaymentInfo->contract_type;
+$base      = cleanAmt($fullPaymentInfo->base_salary);
+$prorat    = cleanAmt($fullPaymentInfo->salaire_proratise ?? $fullPaymentInfo->gross_salary);
+$brut      = cleanAmt($fullPaymentInfo->gross_salary);
+$hs        = cleanAmt($fullPaymentInfo->overtime_hours ?? 0);
+$hsAmt     = cleanAmt($fullPaymentInfo->overtime_amount);
+$primes    = cleanAmt($fullPaymentInfo->bonuses ?? 0);
+$indemn    = cleanAmt($fullPaymentInfo->allowances ?? 0);
+$cnss      = cleanAmt($fullPaymentInfo->cnss);
+$irpp      = cleanAmt($fullPaymentInfo->irpp);
+$css       = cleanAmt($fullPaymentInfo->css);
+$retenue   = cleanAmt($fullPaymentInfo->retenue_sans_solde ?? 0);
+$net       = cleanAmt($fullPaymentInfo->amount);
+$totalRet  = $cnss + $irpp + $css + $retenue;
 
-$salaireBase      = cleanAmount($fullPaymentInfo->base_salary);
-$salaireProratise = cleanAmount($fullPaymentInfo->salaire_proratise ?? $fullPaymentInfo->gross_salary);
-$salaireBrut      = cleanAmount($fullPaymentInfo->gross_salary);
-$montantHS        = cleanAmount($fullPaymentInfo->overtime_amount);
-$bonuses          = cleanAmount($fullPaymentInfo->bonuses ?? 0);
-$allowances       = cleanAmount($fullPaymentInfo->allowances ?? 0);
-$cnss             = cleanAmount($fullPaymentInfo->cnss);
-$irpp             = cleanAmount($fullPaymentInfo->irpp);
-$css              = cleanAmount($fullPaymentInfo->css);
-$retenueSansSolde = cleanAmount($fullPaymentInfo->retenue_sans_solde ?? 0);
-$amount           = cleanAmount($fullPaymentInfo->amount);
-$heuresSup        = cleanAmount($fullPaymentInfo->overtime_hours ?? 0);
-
-// Pour Karama : le net stocké inclut déjà la subvention 400 TND
-// Pour CIVP   : le net stocké = part entreprise (+ 200 TND ANETI non inclus)
-$totalRetenues = $cnss + $irpp + $css + $retenueSansSolde;
-
-// Jours présences — stockés dans la DB si dispo, sinon calculés depuis les congés
 $joursOuvres     = $fullPaymentInfo->jours_ouvres ?? 22;
 $joursTravailles = $fullPaymentInfo->jours_travailles ?? 0;
-$joursConge      = $fullPaymentInfo->jours_conge ?? ($conges ? $conges->sum('days_count') : 0);
+$joursConge      = $fullPaymentInfo->jours_conge ?? 0;
 $joursSansSolde  = $fullPaymentInfo->jours_sans_solde ?? 0;
 $joursPayes      = $fullPaymentInfo->jours_payes ?? ($joursTravailles + $joursConge);
 
-$dateDebut = parseDate($employer->start_date);
-$dateFin   = $employer->end_date ? parseDate($employer->end_date) : 'CDI — Indéterminée';
+$isCivp   = $tc === 'CIVP';
+$isKarama = $tc === 'Karama';
 @endphp
 
-{{-- EN-TÊTE --}}
-<div class="header">
-    <div class="header-top">
-        <div class="header-left">
-            <div class="company-name">
-                {{ strtoupper($employer->company->name ?? 'ENTREPRISE') }}
+{{-- ══ EN-TÊTE ══ --}}
+<table class="header-table">
+    <tr>
+        <td style="width:48%;">
+            <div class="company-box">
+                <div class="company-name">{{ strtoupper($co->name ?? 'ENTREPRISE') }}</div>
+                <div class="company-sub">Régime : {{ $co->work_schedule ?? '40h' }} / semaine</div>
+                <div class="company-sub">Jour de paie : {{ $co->payment_date ?? '-' }}</div>
             </div>
-            <div class="doc-title">Bulletin de Paie</div>
-        </div>
-        <div class="header-right">
-            <div class="periode-badge">{{ $fullPaymentInfo->month }} {{ $fullPaymentInfo->year }}</div>
-            <div class="ref">Réf : {{ $fullPaymentInfo->reference }}</div>
-        </div>
-    </div>
-</div>
+        </td>
+        <td style="width:4%;"></td>
+        <td style="width:48%; vertical-align:top;">
+            <div class="bulletin-title">Bulletin de Paie</div>
+            <div class="mois-box">
+                <strong>Période :</strong> {{ $fullPaymentInfo->month }} {{ $fullPaymentInfo->year }}
+                &nbsp;&nbsp;
+                <strong>Réf :</strong> {{ $fullPaymentInfo->reference }}
+            </div>
+        </td>
+    </tr>
+</table>
 
-{{-- INFORMATIONS EMPLOYÉ + CONTRAT --}}
-<div class="two-col">
-    <div class="col-left">
-        <div class="section-title">Informations Employé</div>
-        <table class="info-table">
-            <tr>
-                <td class="label">Nom & Prénom</td>
-                <td class="value">{{ strtoupper($employer->last_name) }} {{ $employer->first_name }}</td>
-            </tr>
-            <tr>
-                <td class="label">Email</td>
-                <td class="value">{{ $employer->email }}</td>
-            </tr>
-            <tr>
-                <td class="label">Téléphone</td>
-                <td class="value">{{ $employer->phone ?? '-' }}</td>
-            </tr>
-            <tr>
-                <td class="label">N° CNSS</td>
-                <td class="value">{{ $employer->cnss ?? '-' }}</td>
-            </tr>
-            <tr>
-                <td class="label">RIB</td>
-                <td class="value">{{ $employer->rib ?? '-' }}</td>
-            </tr>
-        </table>
-    </div>
+{{-- ══ INFOS EMPLOYÉ + CONTRAT ══ --}}
+<table class="info-table">
+    <tr>
+        <td class="lbl">Matricule / N° CNSS</td>
+        <td>{{ $emp->cnss ?? '-' }}</td>
+        <td class="lbl">Type de contrat</td>
+        <td>
+            <span class="badge-contrat badge-{{ strtolower($tc) }}">{{ $tc }}</span>
+        </td>
+    </tr>
+    <tr>
+        <td class="lbl">Nom & Prénom</td>
+        <td><strong>{{ strtoupper($emp->last_name) }} {{ $emp->first_name }}</strong></td>
+        <td class="lbl">Date début</td>
+        <td>{{ parseD($emp->start_date) }}</td>
+    </tr>
+    <tr>
+        <td class="lbl">Email</td>
+        <td>{{ $emp->email }}</td>
+        <td class="lbl">Date fin</td>
+        <td>{{ $emp->end_date ? parseD($emp->end_date) : 'CDI — Indéterminée' }}</td>
+    </tr>
+    <tr>
+        <td class="lbl">Téléphone</td>
+        <td>{{ $emp->phone ?? '-' }}</td>
+        <td class="lbl">Département</td>
+        <td>{{ $emp->departement->name ?? '-' }}</td>
+    </tr>
+    <tr>
+        <td class="lbl">RIB</td>
+        <td>{{ $emp->rib ?? '-' }}</td>
+        <td class="lbl">Situation familiale</td>
+        <td>
+            {{ $emp->family_head ? 'Chef de famille' : 'Célibataire' }}
+            @if(($emp->children_count ?? 0) > 0)
+                — {{ $emp->children_count }} enfant(s)
+            @endif
+        </td>
+    </tr>
+</table>
 
-    <div class="col-right">
-        <div class="section-title">Informations Contrat</div>
-        <table class="info-table">
-            <tr>
-                <td class="label">Type de contrat</td>
-                <td class="value">
-                    <span class="badge badge-{{ strtolower($tc) }}">{{ $tc }}</span>
-                </td>
-            </tr>
-            <tr>
-                <td class="label">Date début</td>
-                <td class="value">{{ $dateDebut }}</td>
-            </tr>
-            <tr>
-                <td class="label">Date fin</td>
-                <td class="value">{{ $dateFin }}</td>
-            </tr>
-            <tr>
-                <td class="label">Département</td>
-                <td class="value">{{ $employer->departement->name ?? '-' }}</td>
-            </tr>
-            <tr>
-                <td class="label">Chef de famille</td>
-                <td class="value">{{ $employer->family_head ? 'Oui' : 'Non' }}</td>
-            </tr>
-        </table>
-    </div>
-</div>
+{{-- ══ TABLEAU PRINCIPAL ══ --}}
+<table class="main-table">
+    <thead>
+        <tr>
+            <th style="width:5%;">N°</th>
+            <th class="lbl-col" style="width:32%;">Libellé</th>
+            <th style="width:8%;">Nombre</th>
+            <th style="width:10%;">Base (TND)</th>
+            <th style="width:10%;">Taux</th>
+            <th style="width:12%;">Gain (TND)</th>
+            <th style="width:12%;">Retenue (TND)</th>
+        </tr>
+    </thead>
+    <tbody>
 
-{{-- PRÉSENCES --}}
-<div class="section-title">Présences du mois</div>
-<table class="paie-table">
+        {{-- Section Gains --}}
+        <tr class="section-row"><td colspan="7">Éléments de rémunération</td></tr>
+
+        <tr>
+            <td class="num">101</td>
+            <td>Salaire de base</td>
+            <td class="num">{{ $joursOuvres }}j</td>
+            <td class="num">{{ fmt($base) }}</td>
+            <td class="num">-</td>
+            <td class="num gain">{{ fmt($base) }}</td>
+            <td></td>
+        </tr>
+
+        @if($prorat != $base)
+        <tr>
+            <td class="num">102</td>
+            <td>Salaire proratisé ({{ $joursPayes }}j payés)</td>
+            <td class="num">{{ $joursPayes }}j</td>
+            <td class="num">{{ fmt($base) }}</td>
+            <td class="num">-</td>
+            <td class="num gain">{{ fmt($prorat) }}</td>
+            <td></td>
+        </tr>
+        @endif
+
+        @if($hs > 0)
+        <tr>
+            <td class="num">103</td>
+            <td>Heures supplémentaires</td>
+            <td class="num">{{ number_format($hs, 2) }}h</td>
+            <td class="num">{{ fmt($base / ($joursOuvres * 8)) }}/h</td>
+            <td class="num">+25%</td>
+            <td class="num gain">{{ fmt($hsAmt) }}</td>
+            <td></td>
+        </tr>
+        @endif
+
+        @if($primes > 0)
+        <tr>
+            <td class="num">104</td>
+            <td>Primes</td>
+            <td class="num">-</td>
+            <td class="num">-</td>
+            <td class="num">-</td>
+            <td class="num gain">{{ fmt($primes) }}</td>
+            <td></td>
+        </tr>
+        @endif
+
+        @if($indemn > 0)
+        <tr>
+            <td class="num">105</td>
+            <td>Indemnités</td>
+            <td class="num">-</td>
+            <td class="num">-</td>
+            <td class="num">-</td>
+            <td class="num gain">{{ fmt($indemn) }}</td>
+            <td></td>
+        </tr>
+        @endif
+
+        @if($isKarama)
+        <tr>
+            <td class="num">106</td>
+            <td>Subvention État (Karama)</td>
+            <td class="num">-</td>
+            <td class="num">-</td>
+            <td class="num">Exo.</td>
+            <td class="num" style="color:#553c9a;">400.000</td>
+            <td></td>
+        </tr>
+        @endif
+
+        @if($isCivp)
+        <tr>
+            <td class="num">106</td>
+            <td>Bourse ANETI (CIVP)</td>
+            <td class="num">-</td>
+            <td class="num">-</td>
+            <td class="num">Exo.</td>
+            <td class="num" style="color:#744210;">200.000</td>
+            <td></td>
+        </tr>
+        @endif
+
+        <tr class="total-row">
+            <td colspan="5"><strong>Total Brut</strong></td>
+            <td class="num gain"><strong>{{ fmt($brut) }}</strong></td>
+            <td></td>
+        </tr>
+
+        {{-- Section Cotisations --}}
+        <tr class="section-row"><td colspan="7">Cotisations & Retenues</td></tr>
+
+        <tr>
+            <td class="num">351</td>
+            <td>
+                CNSS salariale
+                @if($isCivp || $isKarama)
+                    <span style="color:#2d6a4f;">(État)</span>
+                @endif
+            </td>
+            <td class="num">-</td>
+            <td class="num">{{ fmt(min($brut, 6000)) }}</td>
+            <td class="num">{{ ($isCivp || $isKarama) ? '0%' : '9.68%' }}</td>
+            <td></td>
+            <td class="num retenue">{{ fmt($cnss) }}</td>
+        </tr>
+
+        <tr>
+            <td class="num">352</td>
+            <td>
+                Salaire Net Imposable
+                @if(!$isCivp)
+                    <span style="font-size:7px;">(après abat. 20%)</span>
+                @endif
+            </td>
+            <td class="num">-</td>
+            <td class="num">{{ fmt($brut - $cnss) }}</td>
+            <td class="num">{{ $isCivp ? '0%' : '20%' }}</td>
+            <td></td>
+            <td></td>
+        </tr>
+
+        <tr>
+            <td class="num">353</td>
+            <td>
+                IRPP
+                @if($isCivp)<span style="color:#2d6a4f;">(exonéré)</span>@endif
+            </td>
+            <td class="num">-</td>
+            <td class="num">-</td>
+            <td class="num">Barème</td>
+            <td></td>
+            <td class="num retenue">{{ fmt($irpp) }}</td>
+        </tr>
+
+        <tr>
+            <td class="num">354</td>
+            <td>
+                CSS (Contribution Solidarité)
+                @if($isCivp)<span style="color:#2d6a4f;">(exonérée)</span>@endif
+            </td>
+            <td class="num">-</td>
+            <td class="num">-</td>
+            <td class="num">0.5%</td>
+            <td></td>
+            <td class="num retenue">{{ fmt($css) }}</td>
+        </tr>
+
+        @if($retenue > 0)
+        <tr>
+            <td class="num">355</td>
+            <td>Retenue absence non justifiée</td>
+            <td class="num">{{ $joursSansSolde }}j</td>
+            <td class="num">-</td>
+            <td class="num">-</td>
+            <td></td>
+            <td class="num retenue">{{ fmt($retenue) }}</td>
+        </tr>
+        @endif
+
+        <tr class="total-row">
+            <td colspan="5"><strong>Total Cotisations</strong></td>
+            <td></td>
+            <td class="num retenue"><strong>{{ fmt($totalRet) }}</strong></td>
+        </tr>
+
+    </tbody>
+</table>
+
+{{-- ══ PRÉSENCES ══ --}}
+<table class="main-table" style="margin-bottom:6px;">
     <thead>
         <tr>
             <th>Jours ouvrés</th>
@@ -184,173 +367,69 @@ $dateFin   = $employer->end_date ? parseDate($employer->end_date) : 'CDI — Ind
     </thead>
     <tbody>
         <tr>
-            <td class="montant">{{ $joursOuvres }}</td>
-            <td class="montant">{{ $joursTravailles }}</td>
-            <td class="montant positive">{{ $joursConge }}</td>
-            <td class="montant negative">{{ $joursSansSolde }}</td>
-            <td class="montant">{{ $joursPayes }}</td>
-            <td class="montant">{{ number_format($heuresSup, 2) }} h</td>
+            <td class="num">{{ $joursOuvres }}</td>
+            <td class="num">{{ $joursTravailles }}</td>
+            <td class="num" style="color:#2d6a4f;">{{ $joursConge }}</td>
+            <td class="num" style="color:#c00;">{{ $joursSansSolde }}</td>
+            <td class="num">{{ $joursPayes }}</td>
+            <td class="num">{{ number_format($hs, 2) }} h</td>
         </tr>
     </tbody>
 </table>
 
-{{-- DÉTAIL PAIE --}}
-<div class="two-col">
-    <div class="col-left">
-        <div class="section-title">Gains</div>
-        <table class="paie-table">
-            <thead>
-                <tr>
-                    <th>Libellé</th>
-                    <th style="text-align:right">Montant (TND)</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Salaire de base</td>
-                    <td class="montant positive">{{ number_format($salaireBase, 3, '.', ' ') }}</td>
-                </tr>
-                @if($salaireProratise != $salaireBase)
-                <tr>
-                    <td>Salaire proratisé</td>
-                    <td class="montant positive">{{ number_format($salaireProratise, 3, '.', ' ') }}</td>
-                </tr>
-                @endif
-                @if($montantHS > 0)
-                <tr>
-                    <td>Heures supplémentaires ({{ number_format($heuresSup, 2) }} h)</td>
-                    <td class="montant positive">{{ number_format($montantHS, 3, '.', ' ') }}</td>
-                </tr>
-                @endif
-                @if($bonuses > 0)
-                <tr>
-                    <td>Primes</td>
-                    <td class="montant positive">{{ number_format($bonuses, 3, '.', ' ') }}</td>
-                </tr>
-                @endif
-                @if($allowances > 0)
-                <tr>
-                    <td>Indemnités</td>
-                    <td class="montant positive">{{ number_format($allowances, 3, '.', ' ') }}</td>
-                </tr>
-                @endif
-                @if($tc === 'CIVP')
-                <tr>
-                    <td style="color:#744210; font-style:italic;">Bourse ANETI (versée séparément)</td>
-                    <td class="montant" style="color:#744210;">+ 200.000</td>
-                </tr>
-                @endif
-                @if($tc === 'Karama')
-                <tr>
-                    <td style="color:#553c9a; font-style:italic;">Subvention État (incluse dans le net)</td>
-                    <td class="montant" style="color:#553c9a;">+ 400.000</td>
-                </tr>
-                @endif
-            </tbody>
-            <tfoot>
-                <tr>
-                    <td>Total brut</td>
-                    <td class="montant positive">{{ number_format($salaireBrut, 3, '.', ' ') }}</td>
-                </tr>
-            </tfoot>
-        </table>
-    </div>
-
-    <div class="col-right">
-        <div class="section-title">Retenues</div>
-        <table class="paie-table">
-            <thead>
-                <tr>
-                    <th>Libellé</th>
-                    <th style="text-align:right">Montant (TND)</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>
-                        CNSS salarié
-                        @if(in_array($tc, ['CIVP', 'Karama']))
-                            <span style="color:#2d6a4f; font-size:9px;">(exonéré)</span>
-                        @endif
-                    </td>
-                    <td class="montant negative">{{ number_format($cnss, 3, '.', ' ') }}</td>
-                </tr>
-                <tr>
-                    <td>
-                        IRPP
-                        @if($tc === 'CIVP')
-                            <span style="color:#2d6a4f; font-size:9px;">(exonéré)</span>
-                        @endif
-                    </td>
-                    <td class="montant negative">{{ number_format($irpp, 3, '.', ' ') }}</td>
-                </tr>
-                <tr>
-                    <td>
-                        CSS (0.5%)
-                        @if($tc === 'CIVP')
-                            <span style="color:#2d6a4f; font-size:9px;">(exonéré)</span>
-                        @endif
-                    </td>
-                    <td class="montant negative">{{ number_format($css, 3, '.', ' ') }}</td>
-                </tr>
-                @if($retenueSansSolde > 0)
-                <tr>
-                    <td>Retenue absence non justifiée</td>
-                    <td class="montant negative">{{ number_format($retenueSansSolde, 3, '.', ' ') }}</td>
-                </tr>
-                @endif
-            </tbody>
-            <tfoot>
-                <tr>
-                    <td>Total retenues</td>
-                    <td class="montant negative">{{ number_format($totalRetenues, 3, '.', ' ') }}</td>
-                </tr>
-            </tfoot>
-        </table>
-    </div>
-</div>
-
-{{-- RÉCAPITULATIF NET --}}
-<div class="recap-box">
-    <table class="recap-table">
+{{-- ══ RÉCAPITULATIF NET ══ --}}
+<table class="recap-table">
+    <thead>
         <tr>
-            <td class="recap-label">Salaire brut</td>
-            <td class="recap-label">Total retenues</td>
-            <td class="recap-label recap-net-label">Net à payer</td>
+            <th>Salaire Brut (TND)</th>
+            <th>Charges Salariales (TND)</th>
+            <th>Charges Patronales</th>
+            <th>CNSS</th>
+            <th>IRPP</th>
+            <th>CSS</th>
+            <th>Retenues</th>
+            <th style="background:#c00;">NET À PAYER (TND)</th>
         </tr>
+    </thead>
+    <tbody>
         <tr>
-            <td class="recap-value">{{ number_format($salaireBrut, 3, '.', ' ') }} TND</td>
-            <td class="recap-value">- {{ number_format($totalRetenues, 3, '.', ' ') }} TND</td>
-            <td class="recap-value recap-net">{{ number_format($amount, 3, '.', ' ') }} TND</td>
+            <td>{{ fmt($brut) }}</td>
+            <td>{{ fmt($totalRet) }}</td>
+            <td>0.000</td>
+            <td>{{ fmt($cnss) }}</td>
+            <td>{{ fmt($irpp) }}</td>
+            <td>{{ fmt($css) }}</td>
+            <td>{{ fmt($retenue) }}</td>
+            <td class="net-cell">{{ fmt($net) }}</td>
         </tr>
-    </table>
-</div>
+    </tbody>
+</table>
 
-{{-- NOTE CIVP / KARAMA --}}
-@if($tc === 'CIVP')
-<div class="info-box">
-    <strong>Contrat CIVP :</strong> Le montant ci-dessus représente la part versée par l'entreprise.
-    Le stagiaire reçoit en plus <strong>200 TND</strong> de bourse versée directement par l'ANETI sur son compte bancaire.
-    Revenu net total : {{ number_format($amount + 200, 3, '.', ' ') }} TND.
+{{-- Note CIVP / Karama --}}
+@if($isCivp)
+<div class="note-box">
+    <strong>Contrat CIVP :</strong> Exonération totale (CNSS = IRPP = CSS = 0).
+    Le stagiaire reçoit en plus <strong>200 TND</strong> de bourse versée directement par l'ANETI.
+    Revenu net total : <strong>{{ fmt($net + 200) }} TND</strong>.
 </div>
-@elseif($tc === 'Karama')
-<div class="info-box" style="background:#faf5ff; border-color:#d6bcfa; color:#44337a;">
-    <strong>Contrat Karama :</strong> Le net à payer inclut la subvention de <strong>400 TND</strong> versée par l'État (ANETI).
-    Part employeur nette : {{ number_format($amount - 400, 3, '.', ' ') }} TND.
-    Part État : 400.000 TND. CNSS prise en charge par l'État.
+@elseif($isKarama)
+<div class="note-box note-box-karama">
+    <strong>Contrat Karama :</strong> CNSS prise en charge par l'État.
+    Part employeur nette : <strong>{{ fmt($net - 400) }} TND</strong> +
+    Subvention État : <strong>400.000 TND</strong> =
+    Net total : <strong>{{ fmt($net) }} TND</strong>.
 </div>
 @endif
 
-{{-- CONGÉS DU MOIS --}}
+{{-- Congés du mois --}}
 @if($conges && $conges->count() > 0)
-<div class="section-title">Congés du mois</div>
-<table class="paie-table">
+<table class="main-table" style="margin-bottom:6px;">
     <thead>
         <tr>
-            <th>Type</th>
+            <th>Type de congé</th>
             <th>Date début</th>
             <th>Date fin</th>
-            <th>Jours</th>
+            <th>Jours ouvrés</th>
             <th>Motif</th>
             <th>Statut</th>
         </tr>
@@ -358,82 +437,28 @@ $dateFin   = $employer->end_date ? parseDate($employer->end_date) : 'CDI — Ind
     <tbody>
         @foreach($conges as $c)
         <tr>
-            <td>{{ $c->type ?? 'Congé' }}</td>
-            <td>{{ parseDate($c->start_date) }}</td>
-            <td>{{ parseDate($c->end_date) }}</td>
-            <td class="montant">{{ $c->days_count ?? '-' }}</td>
+            <td>{{ $c->type ?? '-' }}</td>
+            <td>{{ parseD($c->start_date) }}</td>
+            <td>{{ parseD($c->end_date) }}</td>
+            <td class="num">{{ $c->days_count ?? '-' }}</td>
             <td>{{ $c->reason ?? '-' }}</td>
-            <td><span style="color:#2d6a4f; font-weight:bold;">{{ $c->status }}</span></td>
+            <td style="color:#2d6a4f; font-weight:bold;">{{ $c->status }}</td>
         </tr>
         @endforeach
     </tbody>
 </table>
 @endif
 
-{{-- INFORMATIONS FISCALES --}}
-<div class="section-title">Informations fiscales & sociales</div>
-<table class="info-table" style="margin-bottom:14px;">
+{{-- ══ SIGNATURES ══ --}}
+<table class="sig-table">
     <tr>
-        <td class="label">Situation familiale</td>
-        <td class="value">{{ $employer->family_head ? 'Chef de famille' : 'Célibataire' }}</td>
-        <td class="label">Enfants à charge</td>
-        <td class="value">{{ $employer->children_count ?? 0 }}</td>
+        <td>L'Employeur</td>
+        <td>Le Responsable RH</td>
+        <td>L'Employé(e)</td>
     </tr>
-    <tr>
-        <td class="label">Enfants infirmes</td>
-        <td class="value">{{ $employer->disabled_children_count ?? 0 }}</td>
-        <td class="label">Enfants étudiants</td>
-        <td class="value">{{ $employer->student_children_count ?? 0 }}</td>
-    </tr>
-    <tr>
-        <td class="label">Taux CNSS</td>
-        <td class="value">
-            @if(in_array($tc, ['CIVP', 'Karama']))
-                0% (État prend en charge)
-            @else
-                9.68% (9.18% + 0.50% assurance emploi)
-            @endif
-        </td>
-        <td class="label">CSS</td>
-        <td class="value">
-            @if($tc === 'CIVP')
-                0% (exonéré)
-            @else
-                0.5% sur AAI > 5 000 TND/an
-            @endif
-        </td>
-    </tr>
-    @if($tc === 'CIVP')
-    <tr>
-        <td class="label" colspan="2">Régime CIVP</td>
-        <td class="value" colspan="2" style="color:#744210;">
-            Exonération totale : CNSS = 0 · IRPP = 0 · CSS = 0
-        </td>
-    </tr>
-    @elseif($tc === 'Karama')
-    <tr>
-        <td class="label" colspan="2">Régime Karama</td>
-        <td class="value" colspan="2" style="color:#553c9a;">
-            CNSS = 0 (État) · IRPP calculé sur part employeur uniquement · Subvention 400 TND exonérée
-        </td>
-    </tr>
-    @endif
 </table>
 
-{{-- SIGNATURES --}}
-<div class="signature-zone">
-    <div class="signature-cell">
-        <div class="signature-line">L'Employeur</div>
-    </div>
-    <div class="signature-cell">
-        <div class="signature-line">Le Responsable RH</div>
-    </div>
-    <div class="signature-cell">
-        <div class="signature-line">L'Employé(e)</div>
-    </div>
-</div>
-
-{{-- PIED DE PAGE --}}
+{{-- ══ PIED ══ --}}
 <div class="footer">
     Bulletin de paie généré le {{ \Carbon\Carbon::now()->format('d/m/Y à H:i') }} —
     {{ $fullPaymentInfo->month }} {{ $fullPaymentInfo->year }} —

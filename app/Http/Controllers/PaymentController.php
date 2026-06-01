@@ -7,7 +7,6 @@ use App\Models\Payment;
 use App\Models\Conge;
 use App\Models\Attendance;
 use App\Models\Company;
-use App\Console\Commands\CalculateDisciplineScores;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
@@ -33,9 +32,8 @@ class PaymentController extends Controller
     // CIVP
     const CIVP_ANETI        = 200.0;  // bourse ANETI versée directement au stagiaire
 
-    // Congés / Discipline
-    const CONGES_PAR_MOIS   = 1;      // 1 jour de congé acquis par mois travaillé
-    const DISCIPLINE_SEUIL  = 70;     // score min pour ETL favorable
+    // Congés
+    const CONGES_PAR_MOIS   = 1;
 
     // ── Helpers entreprise ────────────────────────────────────────────────────
 
@@ -59,37 +57,8 @@ class PaymentController extends Controller
 
     // ── ETL Pointage ──────────────────────────────────────────────────────────
 
-    private function etlCorrigerPointage(Attendance $att, bool $discipline): Attendance
-    {
-        $date = Carbon::parse($att->date);
-
-        if ($discipline) {
-            // Score ≥ 70 : pointage incomplet complété aux heures normales
-            if ($att->morning_check_in && !$att->morning_check_out)
-                $att->morning_check_out = $date->copy()->setTime(12, 0)->toDateTimeString();
-            if (!$att->morning_check_in && $att->morning_check_out)
-                $att->morning_check_in = $date->copy()->setTime(8, 0)->toDateTimeString();
-            if ($att->afternoon_check_in && !$att->afternoon_check_out)
-                $att->afternoon_check_out = $date->copy()->setTime(17, 0)->toDateTimeString();
-            if (!$att->afternoon_check_in && $att->afternoon_check_out)
-                $att->afternoon_check_in = $date->copy()->setTime(13, 0)->toDateTimeString();
-        } else {
-            // Score < 70 : demi-journée incomplète = supprimée (absence)
-            if ($att->morning_check_in && !$att->morning_check_out) {
-                $att->morning_check_in  = null;
-                $att->morning_check_out = null;
-            }
-            if ($att->afternoon_check_in && !$att->afternoon_check_out) {
-                $att->afternoon_check_in  = null;
-                $att->afternoon_check_out = null;
-            }
-        }
-        return $att;
-    }
-
     private function getPointage(User $user, int $mois, int $annee): array
     {
-        $discipline  = ($user->discipline_score ?? 100) >= self::DISCIPLINE_SEUIL;
         $attendances = Attendance::where('user_id', $user->id)
             ->whereMonth('date', $mois)
             ->whereYear('date', $annee)
@@ -103,22 +72,33 @@ class PaymentController extends Controller
             if ($att->status === 'absent')   { $joursAbsent++; continue; }
             if ($att->status === 'on_leave') { continue; }
 
-            $att         = $this->etlCorrigerPointage($att, $discipline);
             $minutesJour = 0;
 
+            // Matin
             if ($att->morning_check_in && $att->morning_check_out) {
-                try { $minutesJour += Carbon::parse($att->morning_check_in)
-                    ->diffInMinutes(Carbon::parse($att->morning_check_out)); }
-                catch (\Exception $e) {}
-            }
-            if ($att->afternoon_check_in && $att->afternoon_check_out) {
-                try { $minutesJour += Carbon::parse($att->afternoon_check_in)
-                    ->diffInMinutes(Carbon::parse($att->afternoon_check_out)); }
-                catch (\Exception $e) {}
+                try {
+                    $minutesJour += Carbon::parse($att->morning_check_in)
+                        ->diffInMinutes(Carbon::parse($att->morning_check_out));
+                } catch (\Exception $e) {}
             }
 
-            if ($minutesJour > 0) { $joursTravailles++; $minutesTravail += $minutesJour; }
-            else { $joursAbsent++; }
+            // Après-midi
+            if ($att->afternoon_check_in && $att->afternoon_check_out) {
+                try {
+                    $minutesJour += Carbon::parse($att->afternoon_check_in)
+                        ->diffInMinutes(Carbon::parse($att->afternoon_check_out));
+                } catch (\Exception $e) {}
+            }
+
+            // Pointage complet → jour travaillé
+            // Pointage incomplet → laissé tel quel (vide = sera nettoyé par ETL RH)
+            if ($minutesJour > 0) {
+                $joursTravailles++;
+                $minutesTravail += $minutesJour;
+            } else {
+                // Check-in sans check-out ou aucun pointage → absent
+                $joursAbsent++;
+            }
         }
 
         $heuresTravaillees = $minutesTravail / 60;
@@ -130,7 +110,7 @@ class PaymentController extends Controller
             'jours_sans_solde' => $joursAbsent,
             'heures_sup'       => $heuresSup,
             'regime'           => $this->getRegimeLabel($user->company_id),
-            'discipline'       => $discipline,
+            'discipline_score' => $user->discipline_score ?? 100,
         ];
     }
 
@@ -406,11 +386,25 @@ class PaymentController extends Controller
         if ($request->filled('month'))    $query->where('month', $request->month);
         if ($request->filled('year'))     $query->where('year', $request->year);
         if ($request->filled('employer')) {
-            $s = $request->employer;
-            $query->whereHas('user', fn($q) =>
-                $q->where('last_name', 'like', "%$s%")
-                  ->orWhere('first_name', 'like', "%$s%")
-            );
+            $search = trim($request->employer);
+            $mots   = array_filter(explode(' ', $search));
+
+            $query->whereHas('user', function ($q) use ($search, $mots) {
+                $q->where('email', 'like', "%$search%")
+                  ->orWhere('last_name', 'like', "%$search%")
+                  ->orWhere('first_name', 'like', "%$search%");
+
+                if (count($mots) >= 2) {
+                    $q->orWhere(function ($sub) use ($mots) {
+                        foreach ($mots as $mot) {
+                            $sub->where(function ($inner) use ($mot) {
+                                $inner->where('last_name', 'like', "%$mot%")
+                                      ->orWhere('first_name', 'like', "%$mot%");
+                            });
+                        }
+                    });
+                }
+            });
         }
 
         $payments = $query->orderBy('id', 'desc')->paginate(10)->withQueryString();
@@ -456,13 +450,6 @@ class PaymentController extends Controller
                 'Tous les employés ont déjà été payés pour '
                 . $currentMonthFrench . ' ' . $currentYear . '.'
             );
-        }
-
-        // Recalcul du score discipline avant le paiement
-        foreach ($users as $user) {
-            $user->update([
-                'discipline_score' => CalculateDisciplineScores::calculerScore($user),
-            ]);
         }
 
         $count = 0;

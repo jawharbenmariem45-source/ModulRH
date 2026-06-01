@@ -40,9 +40,15 @@ class DatabaseSeeder extends Seeder
             for ($m = 0; $m < 12; $m++) {
                 $date = Carbon::now()->subMonths($m);
                 try {
+                    $moisInt    = $date->month;
+                    $anneeInt   = $date->year;
+                    $launchDate = \Carbon\Carbon::create($anneeInt, $moisInt, rand(25, 28), rand(8, 17), rand(0, 59));
+
                     Payment::factory()->forUser($employerFixe)->create([
-                        'month' => $moisFrancais[$date->month],
-                        'year'  => (string) $date->year,
+                        'month'       => $moisFrancais[$moisInt],
+                        'year'        => (string) $anneeInt,
+                        'launch_date' => $launchDate->format('Y-m-d H:i:s'),
+                        'done_time'   => $launchDate->copy()->addMinutes(rand(1, 30))->format('Y-m-d H:i:s'),
                     ]);
                 } catch (\Exception $e) {}
             }
@@ -57,9 +63,9 @@ class DatabaseSeeder extends Seeder
 
         // ── Configuration par entreprise ──────────────────────────────────────
         $config = [
-            'AlphaCorp'  => ['nombre' => 8,   'mois' => 12, 'label' => 'Micro entreprise'],
-            'TechNova'   => ['nombre' => 35,  'mois' => 12, 'label' => 'Petite entreprise'],
-            'SummitRise' => ['nombre' => 120, 'mois' => 12, 'label' => 'Moyenne entreprise'],
+            'AlphaCorp'  => ['nombre' => 8,   'mois' => 12],
+            'TechNova'   => ['nombre' => 35,  'mois' => 12],
+            'SummitRise' => ['nombre' => 120, 'mois' => 12],
         ];
 
         foreach ($config as $nomCompany => $cfg) {
@@ -70,7 +76,7 @@ class DatabaseSeeder extends Seeder
             $moisHistorique = $cfg['mois'];
 
             $this->command->line('══════════════════════════════════════════════');
-            $this->command->info("  {$cfg['label']} — {$company->name}");
+            $this->command->info("  {$company->name}");
             $this->command->line('══════════════════════════════════════════════');
 
             $nbCDI    = (int) round($nombreEmployes * 0.55);
@@ -104,9 +110,15 @@ class DatabaseSeeder extends Seeder
                 for ($m = 0; $m < $moisHistorique; $m++) {
                     $date = Carbon::now()->subMonths($m);
                     try {
+                        $moisInt    = $date->month;
+                        $anneeInt   = $date->year;
+                        $launchDate = \Carbon\Carbon::create($anneeInt, $moisInt, rand(25, 28), rand(8, 17), rand(0, 59));
+
                         Payment::factory()->forUser($user)->create([
-                            'month' => $moisFrancais[$date->month],
-                            'year'  => (string) $date->year,
+                            'month'       => $moisFrancais[$moisInt],
+                            'year'        => (string) $anneeInt,
+                            'launch_date' => $launchDate->format('Y-m-d H:i:s'),
+                            'done_time'   => $launchDate->copy()->addMinutes(rand(1, 30))->format('Y-m-d H:i:s'),
                         ]);
                     } catch (\Exception $e) {}
                 }
@@ -128,9 +140,9 @@ class DatabaseSeeder extends Seeder
 
         $this->command->newLine();
         $this->command->info('✓ Base de données complète initialisée !');
-        $this->command->line('  AlphaCorp  (micro)   →   8 employés');
-        $this->command->line('  TechNova   (petite)  →  35 employés');
-        $this->command->line('  SummitRise (moyenne) → 120 employés');
+        $this->command->line('  AlphaCorp  →   8 employés');
+        $this->command->line('  TechNova   →  35 employés');
+        $this->command->line('  SummitRise → 120 employés');
         $this->command->line('  Total                → 163 employés');
     }
 

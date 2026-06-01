@@ -70,6 +70,7 @@
                         <th>Département</th>
                         <th>Nom</th>
                         <th>Prénom</th>
+                        <th>Genre</th>
                         <th>Email</th>
                         <th>Téléphone</th>
                         <th>Contrat</th>
@@ -85,13 +86,23 @@
                         <td>{{ $employer->departement->name ?? '-' }}</td>
                         <td>{{ $employer->last_name }}</td>
                         <td>{{ $employer->first_name }}</td>
+                        <td>
+                            @if($employer->gender === 'Femme')
+                                <span class="badge" style="background:#e91e8c;">♀ Femme</span>
+                            @elseif($employer->gender === 'Homme')
+                                <span class="badge" style="background:#1a6b8a;">♂ Homme</span>
+                            @else
+                                <span class="text-muted">-</span>
+                            @endif
+                        </td>
                         <td>{{ $employer->email }}</td>
                         <td>{{ $employer->phone }}</td>
                         <td>
                             <span class="badge
-                                {{ $employer->contract_type == 'CDI'   ? 'bg-success' :
-                                  ($employer->contract_type == 'CDD'   ? 'bg-primary' :
-                                  ($employer->contract_type == 'CIVP'  ? 'bg-warning' : 'bg-secondary')) }}">
+                                {{ $employer->contract_type == 'CDI'    ? 'bg-success' :
+                                  ($employer->contract_type == 'CDD'    ? 'bg-primary' :
+                                  ($employer->contract_type == 'CIVP'   ? 'bg-warning text-dark' :
+                                  ($employer->contract_type == 'Karama' ? 'bg-purple' : 'bg-secondary'))) }}">
                                 {{ $employer->contract_type }}
                             </span>
                         </td>
@@ -125,7 +136,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="10" class="text-center text-muted py-5">Aucun employé ajouté.</td>
+                        <td colspan="11" class="text-center text-muted py-5">Aucun employé ajouté.</td>
                     </tr>
                     @endforelse
                 </tbody>
@@ -136,9 +147,7 @@
 
 <nav class="app-pagination">{{ $employers->links() }}</nav>
 
-{{-- ══════════════════════════════════════
-     MODAL CREATE
-══════════════════════════════════════ --}}
+{{-- ══ MODAL CREATE ══ --}}
 <div class="modal fade" id="createModal" tabindex="-1">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
@@ -150,16 +159,23 @@
                 @csrf
                 <div class="modal-body px-4" style="overflow-y:auto; max-height:calc(100vh - 200px);">
 
-                    {{-- Informations personnelles --}}
                     <p class="text-muted text-uppercase fw-semibold small mb-2 mt-1" style="letter-spacing:.08em;">Informations personnelles</p>
                     <div class="row g-3 mb-3">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">Nom <span class="text-danger">*</span></label>
                             <input type="text" name="last_name" class="form-control" value="{{ old('last_name') }}" required>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">Prénom <span class="text-danger">*</span></label>
                             <input type="text" name="first_name" class="form-control" value="{{ old('first_name') }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Genre <span class="text-danger">*</span></label>
+                            <select name="gender" class="form-select" required>
+                                <option value="">-- Choisir --</option>
+                                <option value="Homme" {{ old('gender') == 'Homme' ? 'selected' : '' }}>♂ Homme</option>
+                                <option value="Femme" {{ old('gender') == 'Femme' ? 'selected' : '' }}>♀ Femme</option>
+                            </select>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Email <span class="text-danger">*</span></label>
@@ -175,7 +191,6 @@
 
                     <hr class="my-3">
 
-                    {{-- Poste & Organisation --}}
                     <p class="text-muted text-uppercase fw-semibold small mb-2" style="letter-spacing:.08em;">Poste & Organisation</p>
                     <div class="row g-3 mb-3">
                         <div class="col-md-4">
@@ -197,8 +212,8 @@
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Horaire</label>
-                            <select name="schedule_id" class="form-select">
+                            <label class="form-label">Horaire <span class="text-danger">*</span></label>
+                            <select name="schedule_id" class="form-select" required>
                                 <option value="">-- Choisir --</option>
                                 @foreach($schedules as $schedule)
                                     <option value="{{ $schedule->id }}" {{ old('schedule_id') == $schedule->id ? 'selected' : '' }}>
@@ -211,7 +226,6 @@
 
                     <hr class="my-3">
 
-                    {{-- Contrat & Salaire --}}
                     <p class="text-muted text-uppercase fw-semibold small mb-2" style="letter-spacing:.08em;">Contrat & Salaire</p>
                     <div class="row g-3 mb-3">
                         <div class="col-md-4">
@@ -228,18 +242,17 @@
                             <input type="date" name="start_date" class="form-control" value="{{ old('start_date') }}" required>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Date de fin</label>
+                            <label class="form-label">Date de fin <span class="text-danger" id="label_fin_create">*</span></label>
                             <input type="date" name="end_date" id="date_fin_create" class="form-control" value="{{ old('end_date') }}">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Salaire mensuel (DT)</label>
-                            <input type="number" name="salary" class="form-control" min="0" value="{{ old('salary') }}">
+                            <label class="form-label">Salaire mensuel (DT) <span class="text-danger">*</span></label>
+                            <input type="number" name="salary" class="form-control" min="1" value="{{ old('salary') }}" required>
                         </div>
                     </div>
 
                     <hr class="my-3">
 
-                    {{-- Situation familiale --}}
                     <p class="text-muted text-uppercase fw-semibold small mb-2" style="letter-spacing:.08em;">Situation familiale</p>
                     <div class="row g-3 mb-3">
                         <div class="col-md-3">
@@ -265,7 +278,6 @@
 
                     <hr class="my-3">
 
-                    {{-- Documents & Identifiants --}}
                     <p class="text-muted text-uppercase fw-semibold small mb-2" style="letter-spacing:.08em;">Documents & Identifiants</p>
                     <div class="row g-3">
                         <div class="col-md-4">
@@ -297,9 +309,7 @@
     </div>
 </div>
 
-{{-- ══════════════════════════════════════
-     MODAL EDIT
-══════════════════════════════════════ --}}
+{{-- ══ MODAL EDIT ══ --}}
 <div class="modal fade" id="editModal" tabindex="-1">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
@@ -311,16 +321,23 @@
                 @csrf @method('PUT')
                 <div class="modal-body px-4" style="overflow-y:auto; max-height:calc(100vh - 200px);">
 
-                    {{-- Informations personnelles --}}
                     <p class="text-muted text-uppercase fw-semibold small mb-2 mt-1" style="letter-spacing:.08em;">Informations personnelles</p>
                     <div class="row g-3 mb-3">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">Nom <span class="text-danger">*</span></label>
                             <input type="text" name="last_name" id="edit_nom" class="form-control" required>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">Prénom <span class="text-danger">*</span></label>
                             <input type="text" name="first_name" id="edit_prenom" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Genre <span class="text-danger">*</span></label>
+                            <select name="gender" id="edit_gender" class="form-select" required>
+                                <option value="">-- Choisir --</option>
+                                <option value="Homme">♂ Homme</option>
+                                <option value="Femme">♀ Femme</option>
+                            </select>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Email <span class="text-danger">*</span></label>
@@ -335,7 +352,6 @@
 
                     <hr class="my-3">
 
-                    {{-- Poste & Organisation --}}
                     <p class="text-muted text-uppercase fw-semibold small mb-2" style="letter-spacing:.08em;">Poste & Organisation</p>
                     <div class="row g-3 mb-3">
                         <div class="col-md-4">
@@ -348,8 +364,8 @@
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Poste</label>
-                            <select name="post_id" id="edit_post" class="form-select">
+                            <label class="form-label">Poste <span class="text-danger">*</span></label>
+                            <select name="post_id" id="edit_post" class="form-select" required>
                                 <option value="">-- Choisir --</option>
                                 @foreach($posts as $post)
                                     <option value="{{ $post->id }}">{{ $post->name }}</option>
@@ -357,8 +373,8 @@
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Horaire</label>
-                            <select name="schedule_id" id="edit_schedule" class="form-select">
+                            <label class="form-label">Horaire <span class="text-danger">*</span></label>
+                            <select name="schedule_id" id="edit_schedule" class="form-select" required>
                                 <option value="">-- Choisir --</option>
                                 @foreach($schedules as $schedule)
                                     <option value="{{ $schedule->id }}">
@@ -371,7 +387,6 @@
 
                     <hr class="my-3">
 
-                    {{-- Contrat & Salaire --}}
                     <p class="text-muted text-uppercase fw-semibold small mb-2" style="letter-spacing:.08em;">Contrat & Salaire</p>
                     <div class="row g-3 mb-3">
                         <div class="col-md-4">
@@ -388,18 +403,17 @@
                             <input type="date" name="start_date" id="edit_date_debut" class="form-control" required>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Date de fin</label>
+                            <label class="form-label">Date de fin <span class="text-danger" id="label_fin_edit">*</span></label>
                             <input type="date" name="end_date" id="edit_date_fin" class="form-control">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Salaire mensuel (DT)</label>
-                            <input type="number" name="salary" id="edit_salaire" class="form-control" min="0">
+                            <label class="form-label">Salaire mensuel (DT) <span class="text-danger">*</span></label>
+                            <input type="number" name="salary" id="edit_salaire" class="form-control" min="1" required>
                         </div>
                     </div>
 
                     <hr class="my-3">
 
-                    {{-- Situation familiale --}}
                     <p class="text-muted text-uppercase fw-semibold small mb-2" style="letter-spacing:.08em;">Situation familiale</p>
                     <div class="row g-3 mb-3">
                         <div class="col-md-3">
@@ -425,7 +439,6 @@
 
                     <hr class="my-3">
 
-                    {{-- Documents & Identifiants --}}
                     <p class="text-muted text-uppercase fw-semibold small mb-2" style="letter-spacing:.08em;">Documents & Identifiants</p>
                     <div class="row g-3">
                         <div class="col-md-4">
@@ -462,6 +475,7 @@ const employers = {
         prenom:                  "{{ addslashes($employer->first_name) }}",
         email:                   "{{ $employer->email }}",
         phone:                   "{{ $employer->phone }}",
+        gender:                  "{{ $employer->gender }}",
         rib:                     "{{ $employer->rib }}",
         rib_image:               "{{ $employer->rib_image ? asset('storage/' . $employer->rib_image) : '' }}",
         department_id:           "{{ $employer->department_id }}",
@@ -488,6 +502,7 @@ function openEditModal(id) {
     document.getElementById('edit_prenom').value                   = e.prenom;
     document.getElementById('edit_email').value                    = e.email;
     document.getElementById('edit_telephone').value                = e.phone;
+    document.getElementById('edit_gender').value                   = e.gender;
     document.getElementById('edit_rib').value                      = e.rib;
     document.getElementById('edit_date_debut').value               = e.start_date;
     document.getElementById('edit_date_fin').value                 = e.end_date;
@@ -507,28 +522,33 @@ function openEditModal(id) {
         : '';
 
     document.getElementById('editForm').action = e.update_url;
-    toggleDateFin('edit_type_contrat', 'edit_date_fin');
+    toggleDateFin('edit_type_contrat', 'edit_date_fin', 'label_fin_edit');
     new bootstrap.Modal(document.getElementById('editModal')).show();
 }
 
-function toggleDateFin(selectId, inputId) {
+function toggleDateFin(selectId, inputId, labelId) {
     const val   = document.getElementById(selectId).value;
     const input = document.getElementById(inputId);
+    const label = document.getElementById(labelId);
     if (val === 'CDI') {
         input.value            = '';
         input.disabled         = true;
+        input.required         = false;
         input.style.background = '#eaecf4';
+        if (label) label.style.display = 'none';
     } else {
         input.disabled         = false;
+        input.required         = true;
         input.style.background = '';
+        if (label) label.style.display = 'inline';
     }
 }
 
 document.getElementById('edit_type_contrat').addEventListener('change', () =>
-    toggleDateFin('edit_type_contrat', 'edit_date_fin'));
+    toggleDateFin('edit_type_contrat', 'edit_date_fin', 'label_fin_edit'));
 
 document.getElementById('type_contrat_create').addEventListener('change', () =>
-    toggleDateFin('type_contrat_create', 'date_fin_create'));
+    toggleDateFin('type_contrat_create', 'date_fin_create', 'label_fin_create'));
 
 document.getElementById('rib_image_create').addEventListener('change', function () {
     const file = this.files[0];

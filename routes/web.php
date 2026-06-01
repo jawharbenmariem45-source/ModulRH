@@ -15,6 +15,7 @@ use App\Http\Controllers\PointageController;
 use App\Http\Controllers\EmployerDashboardController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\ScheduleController;
+use App\Http\Controllers\EtlController;
 use Illuminate\Support\Facades\Route;
 
 // ── Authentification publique ─────────────────────────────
@@ -25,7 +26,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::get('/validate-account/{email}', [AdminController::class, 'defineAccess']);
 Route::post('/validate-account/{email}', [AdminController::class, 'submitDefineAccess'])->name('submitDefineAccess');
 
-// ── Dashboard — tous les rôles sur /dashboard ─────────────
+// ── Dashboard ─────────────────────────────────────────────
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [AppController::class, 'index'])->name('dashboard');
 });
@@ -148,10 +149,9 @@ Route::middleware('auth')->prefix('schedules')->name('schedules.')->group(functi
     Route::delete('/{schedule}', [ScheduleController::class, 'destroy'])->name('destroy');
 });
 
-// ── Espace employé — pointage / congés / paiements / contrat ─
+// ── Espace employé ────────────────────────────────────────
 Route::middleware('auth')->prefix('espace-employe')->name('employer_space.')->group(function () {
 
-    // dashboard redirige vers /dashboard maintenant
     Route::get('/dashboard', fn() => redirect()->route('dashboard'))->name('dashboard');
 
     // Paiements employé

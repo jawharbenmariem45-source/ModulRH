@@ -17,6 +17,7 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password')->nullable();
             $table->string('phone', 20)->nullable();
+            $table->enum('gender', ['Homme', 'Femme'])->nullable();
             $table->foreignId('department_id')->nullable()->constrained('departements')->onDelete('set null');
             $table->foreignId('company_id')->nullable()->constrained('companies')->onDelete('set null');
             $table->foreignId('post_id')->nullable()->constrained('posts')->onDelete('set null');

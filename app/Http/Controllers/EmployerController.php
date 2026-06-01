@@ -21,14 +21,28 @@ class EmployerController extends Controller
     public function index(Request $request)
     {
         $departements = Departement::all();
-        $query        = User::role('employer')->with('departement');
+        $query        = User::role('employer')->with('departement')
+                            ->where('company_id', auth()->user()->company_id);
 
         if ($request->filled('searchorders')) {
-            $search = $request->searchorders;
-            $query->where(function ($q) use ($search) {
-                $q->where('last_name', 'like', "%$search%")
-                  ->orWhere('first_name', 'like', "%$search%")
-                  ->orWhere('email', 'like', "%$search%");
+            $search = trim($request->searchorders);
+            $mots   = array_filter(explode(' ', $search));
+
+            $query->where(function ($q) use ($search, $mots) {
+                $q->where('email', 'like', "%$search%")
+                  ->orWhere('last_name', 'like', "%$search%")
+                  ->orWhere('first_name', 'like', "%$search%");
+
+                if (count($mots) >= 2) {
+                    $q->orWhere(function ($sub) use ($mots) {
+                        foreach ($mots as $mot) {
+                            $sub->where(function ($inner) use ($mot) {
+                                $inner->where('last_name', 'like', "%$mot%")
+                                      ->orWhere('first_name', 'like', "%$mot%");
+                            });
+                        }
+                    });
+                }
             });
         }
 
@@ -48,24 +62,29 @@ class EmployerController extends Controller
     {
         $departements = Departement::all();
         $contracts    = Contract::where('active', true)->get();
-        return view('employers.create', compact('departements', 'contracts'));
+        $posts        = Post::all();
+        $schedules    = Schedule::all();
+        return view('employers.create', compact('departements', 'contracts', 'posts', 'schedules'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
             'department_id'           => 'required|exists:departements,id',
+            'post_id'                 => 'required|exists:posts,id',
+            'schedule_id'             => 'required|exists:schedules,id',
             'last_name'               => 'required|string|max:255',
             'first_name'              => 'required|string|max:255',
             'email'                   => 'required|email|unique:users,email',
             'phone'                   => 'required|digits:8',
+            'gender'                  => 'required|in:Homme,Femme',
             'contract_type'           => 'required',
+            'salary'                  => 'required|numeric|min:1',
             'start_date'              => 'required|date',
-            'end_date'                => $request->contract_type === 'CDI' ? 'nullable' : 'nullable|date|after:start_date',
+            'end_date'                => $request->contract_type === 'CDI' ? 'nullable' : 'required|date|after:start_date',
             'rib'                     => 'nullable|string|max:23',
             'rib_image'               => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
             'cnss'                    => 'nullable|digits:10',
-            'salary'                  => 'nullable|numeric|min:0',
             'family_head'             => 'nullable|boolean',
             'children_count'          => 'nullable|integer|min:0|max:4',
             'disabled_children_count' => 'nullable|integer|min:0',
@@ -91,6 +110,7 @@ class EmployerController extends Controller
                 'email'                   => $request->email,
                 'password'                => Hash::make(\Illuminate\Support\Str::random(16)),
                 'phone'                   => $request->phone,
+                'gender'                  => $request->gender,
                 'contract_type'           => $request->contract_type,
                 'start_date'              => $request->start_date,
                 'end_date'                => $request->end_date,
@@ -124,25 +144,30 @@ class EmployerController extends Controller
     {
         $departements = Departement::all();
         $contracts    = Contract::where('active', true)->get();
+        $posts        = Post::all();
+        $schedules    = Schedule::all();
         $employer     = $user;
-        return view('employers.edit', compact('employer', 'departements', 'contracts'));
+        return view('employers.edit', compact('employer', 'departements', 'contracts', 'posts', 'schedules'));
     }
 
     public function update(Request $request, User $user)
     {
         $request->validate([
             'department_id'           => 'required|exists:departements,id',
+            'post_id'                 => 'required|exists:posts,id',
+            'schedule_id'             => 'required|exists:schedules,id',
             'last_name'               => 'required|string|max:255',
             'first_name'              => 'required|string|max:255',
             'email'                   => 'required|email|unique:users,email,' . $user->id,
             'phone'                   => 'required|digits:8',
+            'gender'                  => 'required|in:Homme,Femme',
             'contract_type'           => 'required',
+            'salary'                  => 'required|numeric|min:1',
             'start_date'              => 'required|date',
-            'end_date'                => $request->contract_type === 'CDI' ? 'nullable' : 'nullable|date|after:start_date',
+            'end_date'                => $request->contract_type === 'CDI' ? 'nullable' : 'required|date|after:start_date',
             'rib'                     => 'nullable|string|max:23',
             'rib_image'               => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
             'cnss'                    => 'nullable|digits:10',
-            'salary'                  => 'nullable|numeric|min:0',
             'family_head'             => 'nullable|boolean',
             'children_count'          => 'nullable|integer|min:0|max:4',
             'disabled_children_count' => 'nullable|integer|min:0',
@@ -159,6 +184,7 @@ class EmployerController extends Controller
                 'first_name'              => $request->first_name,
                 'email'                   => $request->email,
                 'phone'                   => $request->phone,
+                'gender'                  => $request->gender,
                 'contract_type'           => $request->contract_type,
                 'start_date'              => $request->start_date,
                 'end_date'                => $request->end_date,

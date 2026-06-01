@@ -134,8 +134,23 @@ class PaymentFactory extends Factory
     {
         $user = User::role('employer')->inRandomOrder()->first();
 
-        $launchDate = $this->faker->dateTimeBetween('-2 years', 'now');
-        $doneTime   = Carbon::parse($launchDate)->addMinutes(rand(1, 60));
+        $moisFrancais = [
+            'JANVIER'=>1,'FEVRIER'=>2,'MARS'=>3,'AVRIL'=>4,'MAI'=>5,'JUIN'=>6,
+            'JUILLET'=>7,'AOUT'=>8,'SEPTEMBRE'=>9,'OCTOBRE'=>10,'NOVEMBRE'=>11,'DECEMBRE'=>12,
+        ];
+
+        $moisNom  = $this->faker->randomElement(array_keys($moisFrancais));
+        $annee    = (string) $this->faker->numberBetween(2024, 2026);
+        $moisInt  = $moisFrancais[$moisNom];
+
+        // Date de transaction cohérente avec le mois/année du paiement
+        // (entre le 25 et 30 du mois concerné — jour de paie habituel)
+        try {
+            $launchDate = \Carbon\Carbon::create($annee, $moisInt, rand(25, 28), rand(8, 17), rand(0, 59));
+        } catch (\Exception $e) {
+            $launchDate = \Carbon\Carbon::now();
+        }
+        $doneTime = $launchDate->copy()->addMinutes(rand(1, 60));
 
         $paie = $this->calculerPaie($user);
 
@@ -154,12 +169,9 @@ class PaymentFactory extends Factory
             'css'             => $paie['css'],
             'amount'          => $paie['amount'],
             'launch_date'     => $launchDate->format('Y-m-d H:i:s'),
-            'done_time'       => $doneTime,
-            'month'           => $this->faker->randomElement([
-                'JANVIER', 'FEVRIER', 'MARS', 'AVRIL', 'MAI', 'JUIN',
-                'JUILLET', 'AOUT', 'SEPTEMBRE', 'OCTOBRE', 'NOVEMBRE', 'DECEMBRE',
-            ]),
-            'year' => (string) $this->faker->numberBetween(2024, 2026),
+            'done_time'       => $doneTime->format('Y-m-d H:i:s'),
+            'month'           => $moisNom,
+            'year'            => $annee,
         ];
     }
 
@@ -168,7 +180,7 @@ class PaymentFactory extends Factory
      */
     public function forUser(User $user): static
     {
-        return $this->state(function () use ($user) {
+        return $this->state(function (array $attributes) use ($user) {
             $paie = $this->calculerPaie($user);
             return [
                 'user_id'         => $user->id,
