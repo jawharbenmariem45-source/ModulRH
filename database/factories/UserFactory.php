@@ -5,7 +5,7 @@ namespace Database\Factories;
 use App\Models\User;
 use App\Models\Company;
 use App\Models\Departement;
-use App\Models\Post;
+use App\Models\Poste;
 use App\Models\Schedule;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -44,7 +44,6 @@ class UserFactory extends Factory
         '90', '91', '92', '93', '94', '95', '96', '97', '98',
     ];
 
-    // Plages de salaires CDI/CDD par département (SMIG 2026 = 470 TND)
     private static array $salaires = [
         1 => [1000, 4000], // Direction
         2 => [600,  2500], // RH
@@ -63,8 +62,6 @@ class UserFactory extends Factory
     ];
 
     private static int $compteur = 1;
-
-    // ── Générateurs ───────────────────────────────────────────────────────────
 
     private function genererPrenom(): string
     {
@@ -100,15 +97,8 @@ class UserFactory extends Factory
 
     private function genererSalaire(int $deptId, string $contractType): int
     {
-        // CIVP : part entreprise entre 200 et 400 TND
-        // (l'ANETI ajoute 200 TND → net stagiaire entre 400 et 600 TND)
-        if ($contractType === 'CIVP') return $this->faker->numberBetween(200, 400);
-
-        // Karama : part employeur entre 200 et 800 TND selon profil
-        // + 400 TND État → net entre 600 et 1200 TND
+        if ($contractType === 'CIVP')   return $this->faker->numberBetween(200, 400);
         if ($contractType === 'Karama') return $this->faker->numberBetween(200, 800);
-
-        // CDI / CDD : selon grille par département
         $plage = self::$salaires[$deptId] ?? [470, 2000];
         return $this->faker->numberBetween($plage[0], $plage[1]);
     }
@@ -116,13 +106,11 @@ class UserFactory extends Factory
     private function genererDisciplineScore(): int
     {
         $rand = rand(1, 100);
-        if ($rand <= 40) return rand(90, 100); // 40% bons employés
-        if ($rand <= 70) return rand(70, 89);  // 30% moyens
-        if ($rand <= 90) return rand(50, 69);  // 20% passables
-        return rand(20, 49);                   // 10% mauvais
+        if ($rand <= 40) return rand(90, 100);
+        if ($rand <= 70) return rand(70, 89);
+        if ($rand <= 90) return rand(50, 69);
+        return rand(20, 49);
     }
-
-    // ── Definition ────────────────────────────────────────────────────────────
 
     public function definition(): array
     {
@@ -132,8 +120,8 @@ class UserFactory extends Factory
         $deptId       = $dept?->id ?? 1;
         $contractType = $this->faker->randomElement(['CDI', 'CDD', 'CIVP', 'Karama']);
 
-        $post       = Post::where('department_id', $deptId)->inRandomOrder()->first();
-        $schedule   = Schedule::inRandomOrder()->first();
+        $poste    = Poste::where('departement_id', $deptId)->inRandomOrder()->first();
+        $schedule = Schedule::inRandomOrder()->first();
 
         $prenom  = $this->genererPrenom();
         $nom     = $this->genererNom();
@@ -158,9 +146,9 @@ class UserFactory extends Factory
             'password'                => Hash::make('password'),
             'phone'                   => $this->genererTelephone(),
             'gender'                  => $this->faker->randomElement(['Homme', 'Femme']),
-            'department_id'           => $deptId,
+            'departement_id'          => $deptId,
             'company_id'              => $companyId,
-            'post_id'                 => $post?->id,
+            'poste_id'                => $poste?->id,
             'schedule_id'             => $schedule?->id,
             'salary'                  => $this->genererSalaire($deptId, $contractType),
             'discipline_score'        => $this->genererDisciplineScore(),
@@ -172,13 +160,11 @@ class UserFactory extends Factory
             'rib'                     => $this->genererRib(),
             'rib_image'               => null,
             'cnss'                    => $this->genererCnss(),
-            'start_date'              => $startDate->format('Y-m-d'),
-            'end_date'                => $endDate?->format('Y-m-d'),
+            'start_date'              => Carbon::parse($startDate)->toDateString(),
+            'end_date'                => $endDate?->toDateString(),
             'remember_token'          => Str::random(10),
         ];
     }
-
-    // ── États ─────────────────────────────────────────────────────────────────
 
     public function unverified(): static
     {
@@ -190,11 +176,11 @@ class UserFactory extends Factory
         return $this->state(function () {
             $dept   = Departement::inRandomOrder()->first();
             $deptId = $dept?->id ?? 1;
-            $post   = Post::where('department_id', $deptId)->inRandomOrder()->first();
+            $poste  = Poste::where('departement_id', $deptId)->inRandomOrder()->first();
             return [
                 'contract_type'    => 'CDI',
-                'department_id'    => $deptId,
-                'post_id'          => $post?->id,
+                'departement_id'   => $deptId,
+                'poste_id'         => $poste?->id,
                 'start_date'       => Carbon::now()->subYears(rand(3, 10))->startOfMonth()->toDateString(),
                 'end_date'         => null,
                 'discipline_score' => rand(75, 100),
@@ -208,13 +194,13 @@ class UserFactory extends Factory
         return $this->state(function () {
             $dept   = Departement::inRandomOrder()->first();
             $deptId = $dept?->id ?? 1;
-            $post   = Post::where('department_id', $deptId)->inRandomOrder()->first();
+            $poste  = Poste::where('departement_id', $deptId)->inRandomOrder()->first();
             return [
-                'contract_type' => 'CDI',
-                'department_id' => $deptId,
-                'post_id'       => $post?->id,
-                'end_date'      => null,
-                'salary'        => $this->genererSalaire($deptId, 'CDI'),
+                'contract_type'  => 'CDI',
+                'departement_id' => $deptId,
+                'poste_id'       => $poste?->id,
+                'end_date'       => null,
+                'salary'         => $this->genererSalaire($deptId, 'CDI'),
             ];
         });
     }
@@ -225,14 +211,14 @@ class UserFactory extends Factory
             $start  = Carbon::now()->subMonths(rand(1, 12))->startOfMonth();
             $dept   = Departement::inRandomOrder()->first();
             $deptId = $dept?->id ?? 1;
-            $post   = Post::where('department_id', $deptId)->inRandomOrder()->first();
+            $poste  = Poste::where('departement_id', $deptId)->inRandomOrder()->first();
             return [
-                'contract_type' => 'CDD',
-                'department_id' => $deptId,
-                'post_id'       => $post?->id,
-                'start_date'    => $start->toDateString(),
-                'end_date'      => $start->copy()->addMonths(rand(6, 24))->toDateString(),
-                'salary'        => $this->genererSalaire($deptId, 'CDD'),
+                'contract_type'  => 'CDD',
+                'departement_id' => $deptId,
+                'poste_id'       => $poste?->id,
+                'start_date'     => $start->toDateString(),
+                'end_date'       => $start->copy()->addMonths(rand(6, 24))->toDateString(),
+                'salary'         => $this->genererSalaire($deptId, 'CDD'),
             ];
         });
     }
@@ -243,15 +229,14 @@ class UserFactory extends Factory
             $start  = Carbon::now()->subMonths(rand(1, 6))->startOfMonth();
             $dept   = Departement::inRandomOrder()->first();
             $deptId = $dept?->id ?? 1;
-            $post   = Post::where('department_id', $deptId)->inRandomOrder()->first();
+            $poste  = Poste::where('departement_id', $deptId)->inRandomOrder()->first();
             return [
-                'contract_type' => 'CIVP',
-                'department_id' => $deptId,
-                'post_id'       => $post?->id,
-                'start_date'    => $start->toDateString(),
-                'end_date'      => $start->copy()->addMonths(rand(6, 12))->toDateString(),
-                // Part entreprise : 200 à 400 TND (ANETI verse 200 TND en plus)
-                'salary'        => $this->genererSalaire($deptId, 'CIVP'),
+                'contract_type'  => 'CIVP',
+                'departement_id' => $deptId,
+                'poste_id'       => $poste?->id,
+                'start_date'     => $start->toDateString(),
+                'end_date'       => $start->copy()->addMonths(rand(6, 12))->toDateString(),
+                'salary'         => $this->genererSalaire($deptId, 'CIVP'),
             ];
         });
     }
@@ -262,15 +247,14 @@ class UserFactory extends Factory
             $start  = Carbon::now()->subMonths(rand(1, 6))->startOfMonth();
             $dept   = Departement::inRandomOrder()->first();
             $deptId = $dept?->id ?? 1;
-            $post   = Post::where('department_id', $deptId)->inRandomOrder()->first();
+            $poste  = Poste::where('departement_id', $deptId)->inRandomOrder()->first();
             return [
-                'contract_type' => 'Karama',
-                'department_id' => $deptId,
-                'post_id'       => $post?->id,
-                'start_date'    => $start->toDateString(),
-                'end_date'      => $start->copy()->addMonths(rand(6, 12))->toDateString(),
-                // Part employeur : 200 à 800 TND + 400 TND État → net 600 à 1200 TND
-                'salary'        => $this->faker->numberBetween(200, 800),
+                'contract_type'  => 'Karama',
+                'departement_id' => $deptId,
+                'poste_id'       => $poste?->id,
+                'start_date'     => $start->toDateString(),
+                'end_date'       => $start->copy()->addMonths(rand(6, 12))->toDateString(),
+                'salary'         => $this->faker->numberBetween(200, 800),
             ];
         });
     }

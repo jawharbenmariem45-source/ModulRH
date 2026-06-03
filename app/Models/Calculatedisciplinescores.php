@@ -4,7 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\User;
 use App\Models\Attendance;
-use App\Models\Conge;
+use App\Models\Leave;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 
@@ -45,8 +45,8 @@ class CalculateDisciplineScores extends Command
         $nbRetards    = $attendances->where('status', 'late')->count();
         $nbAbsences   = $attendances->where('status', 'absent')->count();
 
-        $joursConge = Conge::where('user_id', $user->id)
-            ->whereIn('status', ['Approuvé', 'approuvé'])
+        $joursConge = Leave::where('user_id', $user->id)
+            ->whereIn('status', ['approved', 'Approuvé'])
             ->whereBetween('start_date', [$debut->format('Y-m-d'), $fin->format('Y-m-d')])
             ->sum('days_count');
 
@@ -54,7 +54,7 @@ class CalculateDisciplineScores extends Command
 
         $tauxRetard  = ($nbRetards / $nbTravailles) * 100;
         $tauxAbsence = ($nbAbsences / $nbTravailles) * 100;
-        $congeExcess = max((int)$joursConge - 6, 0);
+        $congeExcess = max((int) $joursConge - 6, 0);
 
         $score = 100
             - ($tauxRetard  * 0.5)

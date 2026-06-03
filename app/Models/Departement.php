@@ -11,12 +11,17 @@ class Departement extends Model
 
     protected $fillable = ['name'];
 
-    public function users()
+    public function postes()
     {
-        return $this->hasMany(User::class, 'department_id');
+        return $this->hasMany(Poste::class);
     }
 
-    
+    public function users()
+    {
+        return $this->hasMany(User::class, 'departement_id');
+    }
+
+    // Alias compatibilité
     public function employers()
     {
         return $this->users();

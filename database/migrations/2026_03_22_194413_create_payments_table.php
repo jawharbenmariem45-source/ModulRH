@@ -13,20 +13,34 @@ return new class extends Migration
             $table->string('reference')->nullable();
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->string('contract_type')->nullable();
-            $table->string('base_salary')->nullable();
-            $table->string('overtime_hours')->nullable();
-            $table->string('overtime_amount')->nullable();
-            $table->string('bonuses')->nullable();
-            $table->string('allowances')->nullable();
-            $table->string('gross_salary')->nullable();
-            $table->string('cnss')->nullable();
-            $table->string('irpp')->nullable();
-            $table->string('css')->nullable();
-            $table->string('amount')->nullable();
-            $table->string('launch_date')->nullable();
-            $table->string('done_time')->nullable();
-            $table->string('month')->nullable();
-            $table->string('year')->nullable();
+
+            // Salaire & heures
+            $table->decimal('base_salary', 10, 3)->default(0);
+            $table->decimal('overtime_hours', 8, 2)->default(0);
+            $table->decimal('overtime_amount', 10, 3)->default(0);
+
+            // Primes & indemnités
+            $table->decimal('bonuses', 10, 3)->default(0);
+            $table->decimal('allowances', 10, 3)->default(0);
+
+            // Brut
+            $table->decimal('gross_salary', 10, 3)->default(0);
+
+            // Déductions (loi tunisienne)
+            $table->decimal('cnss', 10, 3)->default(0);    // 9.68%
+            $table->decimal('css', 10, 3)->default(0);     // 1%
+            $table->decimal('irpp', 10, 3)->default(0);    // barème progressif
+
+            // Net à payer
+            $table->decimal('amount', 10, 3)->default(0);
+
+            // Dates
+            $table->date('launch_date')->nullable();
+            $table->dateTime('done_time')->nullable();
+            $table->unsignedTinyInteger('month')->nullable();   // 1-12
+            $table->unsignedSmallInteger('year')->nullable();   // ex: 2026
+
+            $table->enum('status', ['pending', 'done', 'cancelled'])->default('pending');
             $table->timestamps();
         });
     }

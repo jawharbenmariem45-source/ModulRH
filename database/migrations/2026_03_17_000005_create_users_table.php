@@ -10,30 +10,41 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('last_name')->nullable();
-            $table->string('first_name')->nullable();
-            $table->string('email')->unique();
+            $table->string('name', 191);
+            $table->string('last_name', 191)->nullable();
+            $table->string('first_name', 191)->nullable();
+            $table->string('email', 191)->unique();
             $table->timestamp('email_verified_at')->nullable();
-            $table->string('password')->nullable();
+            $table->string('password', 191)->nullable();
             $table->string('phone', 20)->nullable();
             $table->enum('gender', ['Homme', 'Femme'])->nullable();
-            $table->foreignId('department_id')->nullable()->constrained('departements')->onDelete('set null');
+
+            // Relations
             $table->foreignId('company_id')->nullable()->constrained('companies')->onDelete('set null');
-            $table->foreignId('post_id')->nullable()->constrained('posts')->onDelete('set null');
+            $table->foreignId('departement_id')->nullable()->constrained('departements')->onDelete('set null');
+            $table->foreignId('poste_id')->nullable()->constrained('postes')->onDelete('set null');
             $table->foreignId('schedule_id')->nullable()->constrained('schedules')->onDelete('set null');
-            $table->string('salary')->nullable();
-            $table->integer('discipline_score')->default(100);
+
+            // Infos RH
+            $table->decimal('salary', 10, 3)->nullable();
+            $table->string('contract_type', 191)->nullable();
+            $table->date('start_date')->nullable();
+            $table->date('end_date')->nullable();
+
+            // Infos fiscales
             $table->boolean('family_head')->default(false);
             $table->integer('children_count')->default(0);
             $table->integer('disabled_children_count')->default(0);
             $table->integer('student_children_count')->default(0);
-            $table->string('contract_type')->nullable();
-            $table->string('rib')->nullable();
-            $table->string('rib_image')->nullable();
-            $table->string('cnss')->nullable();
-            $table->string('start_date')->nullable();
-            $table->string('end_date')->nullable();
+
+            // Infos bancaires / CNSS
+            $table->string('cnss', 191)->nullable();
+            $table->string('rib', 191)->nullable();
+            $table->string('rib_image', 191)->nullable();
+
+            // Discipline
+            $table->integer('discipline_score')->default(100);
+
             $table->rememberToken();
             $table->timestamps();
         });
@@ -56,8 +67,8 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('users');
-        Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
+        Schema::dropIfExists('password_reset_tokens');
+        Schema::dropIfExists('users');
     }
 };

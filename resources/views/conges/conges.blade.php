@@ -98,11 +98,18 @@
                     </thead>
                     <tbody>
                         @forelse($conges as $conge)
+                        @php
+                            $dateDebut = $conge->start_date ? \Carbon\Carbon::parse($conge->start_date)->format('d/m/Y') : '-';
+                            $dateFin   = $conge->end_date   ? \Carbon\Carbon::parse($conge->end_date)->format('d/m/Y')   : '-';
+                            $dateDebutInput = $conge->start_date ? \Carbon\Carbon::parse($conge->start_date)->format('Y-m-d') : '';
+                            $dateFinInput   = $conge->end_date   ? \Carbon\Carbon::parse($conge->end_date)->format('Y-m-d')   : '';
+                            $statut = strtolower(trim($conge->status ?? ''));
+                        @endphp
                         <tr>
                             <td>{{ $loop->iteration }}</td>
                             <td><span class="badge bg-info text-dark">{{ $conge->type ?? '-' }}</span></td>
-                            <td>{{ $conge->start_date }}</td>
-                            <td>{{ $conge->end_date }}</td>
+                            <td>{{ $dateDebut }}</td>
+                            <td>{{ $dateFin }}</td>
                             <td><span class="badge bg-secondary">{{ $conge->days_count ?? 0 }} j</span></td>
                             <td>{{ $conge->reason ?? '-' }}</td>
                             <td>
@@ -116,27 +123,25 @@
                                 @endif
                             </td>
                             <td>
-                                @php $statut = strtolower(trim($conge->status ?? '')); @endphp
-                                @if(in_array($statut, ['en_attente', 'en attente']))
+                                @if($statut === 'pending')
                                     <span class="badge bg-warning text-dark">En attente</span>
-                                @elseif(in_array($statut, ['approuvé', 'approuve', 'accepté', 'accepte']))
+                                @elseif($statut === 'approved')
                                     <span class="badge bg-success">Approuvé</span>
-                                @elseif(in_array($statut, ['refusé', 'refuse', 'rejeté', 'rejete']))
+                                @elseif($statut === 'rejected')
                                     <span class="badge bg-danger">Refusé</span>
                                 @else
                                     <span class="badge bg-secondary">{{ $conge->status ?? 'N/A' }}</span>
                                 @endif
                             </td>
                             <td>
-                                @if(in_array(strtolower(trim($conge->status ?? '')), ['en_attente', 'en attente']))
-                                    {{-- Bouton Modifier → ouvre modal édition --}}
+                                @if($statut === 'pending')
                                     <button type="button"
                                             class="btn btn-sm btn-warning me-1"
                                             data-bs-toggle="modal"
                                             data-bs-target="#modalEditConge"
                                             data-id="{{ $conge->id }}"
-                                            data-start="{{ $conge->start_date }}"
-                                            data-end="{{ $conge->end_date }}"
+                                            data-start="{{ $dateDebutInput }}"
+                                            data-end="{{ $dateFinInput }}"
                                             data-type="{{ $conge->type }}"
                                             data-reason="{{ $conge->reason }}">
                                         Modifier
@@ -318,20 +323,14 @@
 @endif
 
 <script>
-// ── Jours fériés Tunisie 2026 ─────────────────────────────────────────────
 const FERIES_FIXES = ['01-01','03-20','04-09','05-01','06-01','07-25','08-13','10-15','12-17'];
-const FERIES_VAR   = [
-    '2026-03-20','2026-03-21',
-    '2026-05-26','2026-05-27',
-    '2026-06-15',
-    '2026-08-24',
-];
+const FERIES_VAR   = ['2026-03-20','2026-03-21','2026-05-26','2026-05-27','2026-06-15','2026-08-24'];
 const TYPES_SANS_DEDUCTION = ['Maladie', 'Maternité'];
 const SOLDE = {{ $restant }};
 
 function estJourFerie(date) {
-    const mm   = String(date.getMonth()+1).padStart(2,'0');
-    const dd   = String(date.getDate()).padStart(2,'0');
+    const mm = String(date.getMonth()+1).padStart(2,'0');
+    const dd = String(date.getDate()).padStart(2,'0');
     if (FERIES_FIXES.includes(mm+'-'+dd)) return true;
     return FERIES_VAR.includes(date.getFullYear()+'-'+mm+'-'+dd);
 }
@@ -355,18 +354,14 @@ function mettreAJourCalc(startId, endId, typeId, boxId, joursId, soldeId, alertI
     const sVal  = document.getElementById(soldeId);
     const alert = document.getElementById(alertId);
     const btn   = document.getElementById(btnId);
-
     if (!start?.value || !end?.value) return;
-
     const jours      = compterJoursOuvres(start.value, end.value);
     const typeVal    = type?.value || '';
     const sansDeduct = TYPES_SANS_DEDUCTION.includes(typeVal);
     const soldeApres = sansDeduct ? SOLDE : Math.max(SOLDE - jours, 0);
-
     jVal.textContent  = jours;
     sVal.textContent  = soldeApres.toFixed(1);
     box.style.display = jours > 0 ? 'block' : 'none';
-
     if (sansDeduct || jours <= SOLDE) {
         box.className         = 'alert alert-info py-2 mb-0';
         alert.style.display   = 'none';
@@ -379,12 +374,9 @@ function mettreAJourCalc(startId, endId, typeId, boxId, joursId, soldeId, alertI
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-
-    // ── Nouvelle demande ──────────────────────────────────────────────────
     const newStart = document.getElementById('new_start');
     const newEnd   = document.getElementById('new_end');
     const newType  = document.getElementById('new_type');
-
     function calcNew() {
         mettreAJourCalc('new_start','new_end','new_type','newJoursBox','newJoursVal','newSoldeVal','newAlertSolde','newBtnSubmit');
     }
@@ -392,11 +384,9 @@ document.addEventListener('DOMContentLoaded', function () {
     newEnd?.addEventListener('change', calcNew);
     newType?.addEventListener('change', calcNew);
 
-    // ── Modifier demande ──────────────────────────────────────────────────
     const editStart = document.getElementById('edit_start');
     const editEnd   = document.getElementById('edit_end');
     const editType  = document.getElementById('edit_type');
-
     function calcEdit() {
         mettreAJourCalc('edit_start','edit_end','edit_type','editJoursBox','editJoursVal','editSoldeVal','editAlertSolde','editBtnSubmit');
     }
@@ -404,20 +394,14 @@ document.addEventListener('DOMContentLoaded', function () {
     editEnd?.addEventListener('change', calcEdit);
     editType?.addEventListener('change', calcEdit);
 
-    // Pré-remplir le modal d'édition au clic du bouton Modifier
     document.getElementById('modalEditConge').addEventListener('show.bs.modal', function(e) {
         const btn = e.relatedTarget;
         const id  = btn.dataset.id;
-
-        document.getElementById('formEditConge').action =
-            '{{ url("espace-employe/conges/update") }}/' + id;
-
+        document.getElementById('formEditConge').action = '{{ url("espace-employe/conges/update") }}/' + id;
         document.getElementById('edit_start').value  = btn.dataset.start;
         document.getElementById('edit_end').value    = btn.dataset.end;
         document.getElementById('edit_type').value   = btn.dataset.type;
         document.getElementById('edit_reason').value = btn.dataset.reason || '';
-
-        // Déclencher le calcul après pré-remplissage
         setTimeout(calcEdit, 100);
     });
 });

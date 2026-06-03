@@ -15,7 +15,6 @@ use App\Http\Controllers\PointageController;
 use App\Http\Controllers\EmployerDashboardController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\ScheduleController;
-use App\Http\Controllers\EtlController;
 use Illuminate\Support\Facades\Route;
 
 // ── Authentification publique ─────────────────────────────
@@ -82,23 +81,23 @@ Route::middleware(['auth', 'can:view employers'])->prefix('employer')->name('emp
     Route::get('/delete/{user}', [EmployerController::class, 'delete'])->name('delete');
 });
 
-// ── Contrats ──────────────────────────────────────────────
+// ── Contrats employés (historique) ────────────────────────
 Route::middleware(['auth', 'can:view contracts'])->prefix('contrats')->name('contrat.')->group(function () {
     Route::get('/', [ContratController::class, 'index'])->name('index');
     Route::post('/store', [ContratController::class, 'store'])->name('store');
-    Route::get('/edit/{user}', [ContratController::class, 'edit'])->name('edit');
-    Route::put('/update/{user}', [ContratController::class, 'update'])->name('update');
-    Route::get('/delete/{user}', [ContratController::class, 'delete'])->name('delete');
-    Route::get('/pdf/{user}', [ContratController::class, 'downloadPdf'])->name('pdf');
+    Route::get('/edit/{contrat}', [ContratController::class, 'edit'])->name('edit');
+    Route::put('/update/{contrat}', [ContratController::class, 'update'])->name('update');
+    Route::get('/delete/{contrat}', [ContratController::class, 'delete'])->name('delete');
+    Route::get('/pdf/{contrat}', [ContratController::class, 'downloadPdf'])->name('pdf');
 });
 
-// ── Types contrats ────────────────────────────────────────
+// ── Types de contrats ─────────────────────────────────────
 Route::middleware('auth')->prefix('admin/contracts')->name('contracts.')->group(function () {
     Route::get('/', [ContractTypeController::class, 'index'])->name('index');
     Route::post('/store', [ContractTypeController::class, 'store'])->name('store');
-    Route::put('/update/{contract}', [ContractTypeController::class, 'update'])->name('update');
-    Route::delete('/delete/{contract}', [ContractTypeController::class, 'destroy'])->name('destroy');
-    Route::patch('/{contract}/toggle', [ContractTypeController::class, 'toggle'])->name('toggle');
+    Route::put('/update/{contractType}', [ContractTypeController::class, 'update'])->name('update');
+    Route::delete('/delete/{contractType}', [ContractTypeController::class, 'destroy'])->name('destroy');
+    Route::patch('/{contractType}/toggle', [ContractTypeController::class, 'toggle'])->name('toggle');
 });
 
 // ── Paiements ─────────────────────────────────────────────
@@ -133,12 +132,12 @@ Route::middleware(['auth', 'can:view leaves'])->prefix('conges')->name('conge.')
     Route::patch('/{id}/rejeter', [CongeController::class, 'rejeter'])->name('rejeter');
 });
 
-// ── Posts ─────────────────────────────────────────────────
-Route::middleware('auth')->prefix('posts')->name('posts.')->group(function () {
+// ── Postes ────────────────────────────────────────────────
+Route::middleware('auth')->prefix('postes')->name('postes.')->group(function () {
     Route::get('/', [PostController::class, 'index'])->name('index');
     Route::post('/', [PostController::class, 'store'])->name('store');
-    Route::put('/{post}', [PostController::class, 'update'])->name('update');
-    Route::delete('/{post}', [PostController::class, 'destroy'])->name('destroy');
+    Route::put('/{poste}', [PostController::class, 'update'])->name('update');
+    Route::delete('/{poste}', [PostController::class, 'destroy'])->name('destroy');
 });
 
 // ── Schedules ─────────────────────────────────────────────

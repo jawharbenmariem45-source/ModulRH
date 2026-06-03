@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use App\Models\Conge;
+use App\Models\Leave;
 use App\Models\Payment;
 use App\Models\Company;
 use Illuminate\Database\Seeder;
@@ -42,19 +42,19 @@ class DatabaseSeeder extends Seeder
                 try {
                     $moisInt    = $date->month;
                     $anneeInt   = $date->year;
-                    $launchDate = \Carbon\Carbon::create($anneeInt, $moisInt, rand(25, 28), rand(8, 17), rand(0, 59));
+                    $launchDate = Carbon::create($anneeInt, $moisInt, rand(25, 28), rand(8, 17), rand(0, 59));
 
                     Payment::factory()->forUser($employerFixe)->create([
-                        'month'       => $moisFrancais[$moisInt],
-                        'year'        => (string) $anneeInt,
-                        'launch_date' => $launchDate->format('Y-m-d H:i:s'),
-                        'done_time'   => $launchDate->copy()->addMinutes(rand(1, 30))->format('Y-m-d H:i:s'),
+                        'month'       => $moisInt,
+                        'year'        => $anneeInt,
+                        'launch_date' => $launchDate->toDateString(),
+                        'done_time'   => $launchDate->copy()->addMinutes(rand(1, 30)),
                     ]);
                 } catch (\Exception $e) {}
             }
 
             try {
-                Conge::factory()->count(3)->create(['user_id' => $employerFixe->id]);
+                Leave::factory()->count(3)->create(['user_id' => $employerFixe->id]);
             } catch (\Exception $e) {}
 
             $this->genererPointages($employerFixe->id, 12);
@@ -106,26 +106,26 @@ class DatabaseSeeder extends Seeder
             $bar->start();
 
             foreach ($users as $user) {
-                // Paiements — 1 par mois avec le bon contrat de cet user
+                // Paiements — 1 par mois
                 for ($m = 0; $m < $moisHistorique; $m++) {
                     $date = Carbon::now()->subMonths($m);
                     try {
                         $moisInt    = $date->month;
                         $anneeInt   = $date->year;
-                        $launchDate = \Carbon\Carbon::create($anneeInt, $moisInt, rand(25, 28), rand(8, 17), rand(0, 59));
+                        $launchDate = Carbon::create($anneeInt, $moisInt, rand(25, 28), rand(8, 17), rand(0, 59));
 
                         Payment::factory()->forUser($user)->create([
-                            'month'       => $moisFrancais[$moisInt],
-                            'year'        => (string) $anneeInt,
-                            'launch_date' => $launchDate->format('Y-m-d H:i:s'),
-                            'done_time'   => $launchDate->copy()->addMinutes(rand(1, 30))->format('Y-m-d H:i:s'),
+                            'month'       => $moisInt,
+                            'year'        => $anneeInt,
+                            'launch_date' => $launchDate->toDateString(),
+                            'done_time'   => $launchDate->copy()->addMinutes(rand(1, 30)),
                         ]);
                     } catch (\Exception $e) {}
                 }
 
                 // Congés
                 try {
-                    Conge::factory()->count(rand(1, 3))->create(['user_id' => $user->id]);
+                    Leave::factory()->count(rand(1, 3))->create(['user_id' => $user->id]);
                 } catch (\Exception $e) {}
 
                 // Pointages
@@ -143,7 +143,7 @@ class DatabaseSeeder extends Seeder
         $this->command->line('  AlphaCorp  →   8 employés');
         $this->command->line('  TechNova   →  35 employés');
         $this->command->line('  SummitRise → 120 employés');
-        $this->command->line('  Total                → 163 employés');
+        $this->command->line('  Total      → 163 employés');
     }
 
     private function genererPointages(int $userId, int $mois): void

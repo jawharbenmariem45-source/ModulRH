@@ -2,26 +2,26 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Contract;
+use App\Models\ContractType;
 use Illuminate\Http\Request;
 
 class ContractTypeController extends Controller
 {
     public function index()
     {
-        $contracts = Contract::all();
+        $contracts = ContractType::all();
         return view('admins.contrats.index', compact('contracts'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'name'          => 'required|string|max:255|unique:contracts,name',
+            'name'          => 'required|string|max:255|unique:contract_types,name',
             'details'       => 'nullable|string',
             'duration_days' => 'nullable|integer|min:1',
         ]);
 
-        Contract::create([
+        ContractType::create([
             'name'          => $request->name,
             'details'       => $request->details,
             'duration_days' => $request->duration_days,
@@ -32,10 +32,10 @@ class ContractTypeController extends Controller
             ->with('success_message', 'Type de contrat ajouté !');
     }
 
-    public function update(Request $request, Contract $contract)
+    public function update(Request $request, ContractType $contract)
     {
         $request->validate([
-            'name'          => 'required|string|max:255|unique:contracts,name,' . $contract->id,
+            'name'          => 'required|string|max:255|unique:contract_types,name,' . $contract->id,
             'details'       => 'nullable|string',
             'duration_days' => 'nullable|integer|min:1',
         ]);
@@ -50,18 +50,17 @@ class ContractTypeController extends Controller
             ->with('success_message', 'Type de contrat mis à jour !');
     }
 
-    public function destroy(Contract $contract)
+    public function destroy(ContractType $contract)
     {
         $contract->delete();
         return redirect()->route('contracts.index')
             ->with('success_message', 'Type de contrat supprimé !');
     }
 
-    public function toggle(Contract $contract)
+    public function toggle(ContractType $contract)
     {
-        $newValue = !$contract->active;
-        $contract->update(['active' => $newValue]);
-        $message = $newValue ? 'Contrat activé !' : 'Contrat désactivé !';
+        $contract->update(['active' => !$contract->active]);
+        $message = $contract->active ? 'Contrat activé !' : 'Contrat désactivé !';
         return redirect()->route('contracts.index')
             ->with('success_message', $message);
     }

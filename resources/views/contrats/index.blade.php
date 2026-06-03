@@ -29,7 +29,7 @@
             <li>
                 <strong>{{ $alerte->last_name }} {{ $alerte->first_name }}</strong>
                 — {{ $alerte->contract_type }}
-                — expire le <strong>{{ $alerte->end_date }}</strong>
+                — expire le <strong>{{ $alerte->end_date ? \Carbon\Carbon::parse($alerte->end_date)->format('d/m/Y') : '-' }}</strong>
             </li>
             @endforeach
         </ul>
@@ -128,8 +128,8 @@
                     <td>{{ $contrat->last_name }} {{ $contrat->first_name }}</td>
                     <td>{{ $contrat->departement->name ?? '-' }}</td>
                     <td>{!! $badge !!}</td>
-                    <td>{{ $contrat->start_date ?? '-' }}</td>
-                    <td>{{ $contrat->end_date ?? '—' }}</td>
+                    <td>{{ $contrat->start_date ? \Carbon\Carbon::parse($contrat->start_date)->format('d/m/Y') : '-' }}</td>
+                    <td>{{ $contrat->end_date ? \Carbon\Carbon::parse($contrat->end_date)->format('d/m/Y') : '—' }}</td>
                     <td>
                         @if($contrat->rib_image)
                             @php $ext = pathinfo($contrat->rib_image, PATHINFO_EXTENSION); @endphp

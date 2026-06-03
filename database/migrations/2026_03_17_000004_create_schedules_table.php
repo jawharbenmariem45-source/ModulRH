@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('schedules', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->string('name', 191);
             $table->time('start_time');
             $table->time('end_time');
             $table->time('break_start')->nullable();

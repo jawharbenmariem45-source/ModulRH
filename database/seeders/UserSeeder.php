@@ -6,12 +6,16 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Models\Company;
+use App\Models\Departement;
+use App\Models\Poste;
 
 class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        $company1 = Company::where('name', 'SummitRise')->first();
+        $company1     = Company::where('name', 'SummitRise')->first();
+        $deptProd     = Departement::where('name', 'Production')->first();
+        $posteTech    = Poste::where('name', 'Technicien')->first();
 
         // Admin
         $admin = User::updateOrCreate(
@@ -28,9 +32,9 @@ class UserSeeder extends Seeder
         $rh = User::updateOrCreate(
             ['email' => 'rh@gmail.com'],
             [
-                'name'       => 'rh',
+                'name'       => 'RH',
                 'password'   => Hash::make('123456'),
-                'company_id' => $company1->id,
+                'company_id' => $company1?->id,
             ]
         );
         $rh->syncRoles(['rh']);
@@ -41,7 +45,7 @@ class UserSeeder extends Seeder
             [
                 'name'       => 'Manager',
                 'password'   => Hash::make('123456'),
-                'company_id' => $company1->id,
+                'company_id' => $company1?->id,
             ]
         );
         $manager->syncRoles(['manager']);
@@ -52,11 +56,12 @@ class UserSeeder extends Seeder
             [
                 'name'                    => 'Employer',
                 'last_name'               => 'Employer',
-                'first_name'              => 'Production',
+                'first_name'              => 'Test',
                 'password'                => Hash::make('123456'),
                 'phone'                   => '12345678',
-                'company_id'              => $company1->id,
-                'department_id'           => 1,
+                'company_id'              => $company1?->id,
+                'departement_id'          => $deptProd?->id,
+                'poste_id'                => $posteTech?->id,
                 'contract_type'           => 'CDD',
                 'start_date'              => '2026-01-01',
                 'end_date'                => '2026-12-31',

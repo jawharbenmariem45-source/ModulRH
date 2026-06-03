@@ -45,7 +45,9 @@
                     <tbody>
                         @forelse($conges as $c)
                         @php
-                            $employe = $c->user ?? $c->employer ?? null;
+                            $employe   = $c->user ?? $c->employer ?? null;
+                            $dateDebut = $c->start_date ? \Carbon\Carbon::parse($c->start_date)->format('d/m/Y') : '-';
+                            $dateFin   = $c->end_date   ? \Carbon\Carbon::parse($c->end_date)->format('d/m/Y')   : '-';
                         @endphp
                         <tr>
                             <td>
@@ -60,7 +62,7 @@
                                     <span class="badge bg-secondary">N/A</span>
                                 @endif
                             </td>
-                            <td>Du {{ $c->start_date }}<br>au {{ $c->end_date }}</td>
+                            <td>Du {{ $dateDebut }}<br>au {{ $dateFin }}</td>
                             <td>
                                 @if($c->days_count)
                                     <span class="badge bg-primary">{{ $c->days_count }}j</span>
@@ -70,11 +72,11 @@
                             <td>{{ $c->reason ?? '-' }}</td>
                             <td>
                                 @php $statut = strtolower(trim($c->status ?? '')); @endphp
-                                @if(in_array($statut, ['en attente', 'en_attente']))
+                                @if($statut === 'pending')
                                     <span class="badge bg-warning text-dark">En attente</span>
-                                @elseif(in_array($statut, ['approuvé', 'approuve', 'accepté', 'accepte']))
+                                @elseif($statut === 'approved')
                                     <span class="badge bg-success">Approuvé</span>
-                                @elseif(in_array($statut, ['refusé', 'refuse', 'rejeté', 'rejete']))
+                                @elseif($statut === 'rejected')
                                     <span class="badge bg-danger">Refusé</span>
                                 @else
                                     <span class="badge bg-secondary">{{ $c->status ?? 'N/A' }}</span>
@@ -82,22 +84,21 @@
                             </td>
                             @if(auth()->user()->hasRole('manager'))
                             <td>
-                                @php $statutRaw = strtolower(trim($c->status ?? '')); @endphp
-                                @if(in_array($statutRaw, ['en attente', 'en_attente']))
+                                @if(strtolower(trim($c->status ?? '')) === 'pending')
                                     <button type="button" class="btn btn-sm btn-success mb-1"
                                         data-bs-toggle="modal" data-bs-target="#modalApprouver"
                                         data-id="{{ $c->id }}"
                                         data-nom="{{ $employe->last_name ?? '' }} {{ $employe->first_name ?? '' }}"
-                                        data-debut="{{ $c->start_date }}"
-                                        data-fin="{{ $c->end_date }}">
+                                        data-debut="{{ $dateDebut }}"
+                                        data-fin="{{ $dateFin }}">
                                         <i class="fas fa-check"></i> Approuver
                                     </button>
                                     <button type="button" class="btn btn-sm btn-danger"
                                         data-bs-toggle="modal" data-bs-target="#modalRefuser"
                                         data-id="{{ $c->id }}"
                                         data-nom="{{ $employe->last_name ?? '' }} {{ $employe->first_name ?? '' }}"
-                                        data-debut="{{ $c->start_date }}"
-                                        data-fin="{{ $c->end_date }}">
+                                        data-debut="{{ $dateDebut }}"
+                                        data-fin="{{ $dateFin }}">
                                         <i class="fas fa-times"></i> Refuser
                                     </button>
                                 @else

@@ -18,9 +18,10 @@ class User extends Authenticatable
         'email',
         'password',
         'phone',
-        'department_id',
+        'gender',
+        'departement_id',
         'company_id',
-        'post_id',
+        'poste_id',
         'schedule_id',
         'salary',
         'discipline_score',
@@ -41,6 +42,8 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'family_head'       => 'boolean',
+        'start_date'        => 'date',
+        'end_date'          => 'date',
     ];
 
     // ── Boot ──────────────────────────────────────────────────────────────────
@@ -49,24 +52,30 @@ class User extends Authenticatable
     {
         parent::boot();
 
+        // Quand un employé est créé, on crée son contrat dans l'historique
         static::created(function (User $user) {
             if (!$user->contract_type) return;
-            $contract = Contract::where('name', $user->contract_type)->where('active', true)->first();
-            if ($contract) {
-                $user->contracts()->attach($contract->id, [
-                    'start_date' => $user->start_date,
-                    'end_date'   => $user->end_date,
+            $contractType = ContractType::where('name', $user->contract_type)->where('active', true)->first();
+            if ($contractType) {
+                Contract::create([
+                    'user_id'          => $user->id,
+                    'contract_type_id' => $contractType->id,
+                    'start_date'       => $user->start_date,
+                    'end_date'         => $user->end_date,
                 ]);
             }
         });
 
+        // Quand le contrat change, on enregistre le nouveau (l'ancien est conservé)
         static::updated(function (User $user) {
             if (!$user->wasChanged(['contract_type', 'start_date', 'end_date'])) return;
-            $contract = Contract::where('name', $user->contract_type)->where('active', true)->first();
-            if ($contract) {
-                $user->contracts()->attach($contract->id, [
-                    'start_date' => $user->start_date,
-                    'end_date'   => $user->end_date,
+            $contractType = ContractType::where('name', $user->contract_type)->where('active', true)->first();
+            if ($contractType) {
+                Contract::create([
+                    'user_id'          => $user->id,
+                    'contract_type_id' => $contractType->id,
+                    'start_date'       => $user->start_date,
+                    'end_date'         => $user->end_date,
                 ]);
             }
         });
@@ -76,7 +85,7 @@ class User extends Authenticatable
 
     public function departement()
     {
-        return $this->belongsTo(Departement::class, 'department_id');
+        return $this->belongsTo(Departement::class, 'departement_id');
     }
 
     public function company()
@@ -84,9 +93,9 @@ class User extends Authenticatable
         return $this->belongsTo(Company::class);
     }
 
-    public function post()
+    public function poste()
     {
-        return $this->belongsTo(Post::class);
+        return $this->belongsTo(Poste::class, 'poste_id');
     }
 
     public function schedule()
@@ -96,30 +105,33 @@ class User extends Authenticatable
 
     public function contracts()
     {
-        return $this->belongsToMany(Contract::class, 'employer_contract', 'user_id', 'contract_id')
-                    ->withPivot('start_date', 'end_date')
-                    ->withTimestamps()
-                    ->orderBy('employer_contract.created_at', 'desc');
+        return $this->hasMany(Contract::class)->orderByDesc('created_at');
     }
 
     public function activeContract()
     {
-        return $this->contracts()->first();
+        return $this->contracts()->whereNull('end_date')->orWhere('end_date', '>=', now())->first();
     }
 
     public function payments()
     {
-        return $this->hasMany(Payment::class, 'user_id');
+        return $this->hasMany(Payment::class);
     }
 
+    public function leaves()
+    {
+        return $this->hasMany(Leave::class);
+    }
+
+    // Alias pour compatibilité avec ancien code
     public function conges()
     {
-        return $this->hasMany(Conge::class, 'user_id');
+        return $this->leaves();
     }
 
     public function attendances()
     {
-        return $this->hasMany(Attendance::class, 'user_id');
+        return $this->hasMany(Attendance::class);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

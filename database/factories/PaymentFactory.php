@@ -11,10 +11,9 @@ class PaymentFactory extends Factory
 {
     protected $model = Payment::class;
 
-    // ── Constantes officielles Tunisie 2026 ───────────────────────────────────
-    const CNSS_TAUX      = 0.0968; // 9.68%
+    const CNSS_TAUX      = 0.0968;
     const CNSS_PLAFOND   = 6000;
-    const FRAIS_PRO_TAUX = 0.20;   // 20%
+    const FRAIS_PRO_TAUX = 0.20;
     const FRAIS_PRO_MAX  = 2000;
     const CSS_TAUX       = 0.005;
     const CSS_SEUIL      = 5000;
@@ -50,18 +49,14 @@ class PaymentFactory extends Factory
         $amount         = 0;
 
         switch ($contractType) {
-
-            // ── CDI / CDD ────────────────────────────────────────────────────
             case 'CDI':
             case 'CDD':
                 $overtimeHours  = $this->faker->numberBetween(0, 20);
                 $bonuses        = $this->faker->numberBetween(0, 100);
                 $allowances     = $this->faker->numberBetween(0, 50);
-                $tauxHoraire    = $baseSalary / 176; // régime 40h = 176h/mois
+                $tauxHoraire    = $baseSalary / 176;
                 $overtimeAmount = 0;
                 if ($overtimeHours > 0) {
-                    // Régime 40h : jusqu'à 32h sup → +25%, au-delà → +50%
-                    // (32h = différence entre 176h et 208h mensuel)
                     $heuresAvant48 = 32;
                     if ($overtimeHours <= $heuresAvant48) {
                         $overtimeAmount = round($overtimeHours * $tauxHoraire * 1.25, 3);
@@ -73,45 +68,34 @@ class PaymentFactory extends Factory
                         );
                     }
                 }
-                $grossSalary    = $baseSalary + $overtimeAmount + $bonuses + $allowances;
-                $cnss           = round(min($grossSalary, self::CNSS_PLAFOND) * self::CNSS_TAUX, 3);
-                $sncMensuel     = $grossSalary - $cnss;
-                $fraisPro       = min($sncMensuel * 12 * self::FRAIS_PRO_TAUX, self::FRAIS_PRO_MAX);
-                $aai            = max($sncMensuel * 12 - $fraisPro, 0);
-                $irpp           = round($this->calculerIRPPAnnuel($aai) / 12, 3);
-                $css            = $aai > self::CSS_SEUIL ? round(($aai * self::CSS_TAUX) / 12, 3) : 0;
-                $amount         = round($grossSalary - $cnss - $irpp - $css, 3);
+                $grossSalary = $baseSalary + $overtimeAmount + $bonuses + $allowances;
+                $cnss        = round(min($grossSalary, self::CNSS_PLAFOND) * self::CNSS_TAUX, 3);
+                $sncMensuel  = $grossSalary - $cnss;
+                $fraisPro    = min($sncMensuel * 12 * self::FRAIS_PRO_TAUX, self::FRAIS_PRO_MAX);
+                $aai         = max($sncMensuel * 12 - $fraisPro, 0);
+                $irpp        = round($this->calculerIRPPAnnuel($aai) / 12, 3);
+                $css         = $aai > self::CSS_SEUIL ? round(($aai * self::CSS_TAUX) / 12, 3) : 0;
+                $amount      = round($grossSalary - $cnss - $irpp - $css, 3);
                 break;
 
-            // ── CIVP ─────────────────────────────────────────────────────────
-            // Exonération totale CNSS + IRPP + CSS
-            // Net entreprise = Brut (aucune retenue)
-            // + 200 TND ANETI versés directement au stagiaire
             case 'CIVP':
                 $grossSalary = $baseSalary;
                 $cnss        = 0;
                 $irpp        = 0;
                 $css         = 0;
-                $amount      = $baseSalary; // net = brut, pas de retenues
+                $amount      = $baseSalary;
                 break;
 
-            // ── Karama ───────────────────────────────────────────────────────
-            // CNSS = 0 (État prend en charge)
-            // IRPP calculé sur brut employeur uniquement (subvention exonérée)
-            // FraisPro = 20% du brut annuel (plafonné 2000)
-            // Net = (brut - IRPP - CSS) + 400 TND subvention État
             case 'Karama':
-                $grossSalary = max($baseSalary, 200.0); // minimum légal part employeur
+                $grossSalary = max($baseSalary, 200.0);
                 $cnss        = 0;
                 $fraisPro    = min($grossSalary * 12 * self::FRAIS_PRO_TAUX, self::FRAIS_PRO_MAX);
                 $aai         = max($grossSalary * 12 - $fraisPro, 0);
                 $irpp        = round($this->calculerIRPPAnnuel($aai) / 12, 3);
                 $css         = $aai > self::CSS_SEUIL ? round(($aai * self::CSS_TAUX) / 12, 3) : 0;
-                // Net = part employeur nette + 400 TND subvention État
                 $amount      = round(($grossSalary - $irpp - $css) + self::KARAMA_SUBV, 3);
                 break;
 
-            // ── Défaut (CDI) ──────────────────────────────────────────────────
             default:
                 $grossSalary = $baseSalary;
                 $cnss        = round(min($grossSalary, self::CNSS_PLAFOND) * self::CNSS_TAUX, 3);
@@ -132,23 +116,14 @@ class PaymentFactory extends Factory
 
     public function definition(): array
     {
-        $user = User::role('employer')->inRandomOrder()->first();
+        $user    = User::role('employer')->inRandomOrder()->first();
+        $moisInt = $this->faker->numberBetween(1, 12);
+        $annee   = $this->faker->numberBetween(2024, 2026);
 
-        $moisFrancais = [
-            'JANVIER'=>1,'FEVRIER'=>2,'MARS'=>3,'AVRIL'=>4,'MAI'=>5,'JUIN'=>6,
-            'JUILLET'=>7,'AOUT'=>8,'SEPTEMBRE'=>9,'OCTOBRE'=>10,'NOVEMBRE'=>11,'DECEMBRE'=>12,
-        ];
-
-        $moisNom  = $this->faker->randomElement(array_keys($moisFrancais));
-        $annee    = (string) $this->faker->numberBetween(2024, 2026);
-        $moisInt  = $moisFrancais[$moisNom];
-
-        // Date de transaction cohérente avec le mois/année du paiement
-        // (entre le 25 et 30 du mois concerné — jour de paie habituel)
         try {
-            $launchDate = \Carbon\Carbon::create($annee, $moisInt, rand(25, 28), rand(8, 17), rand(0, 59));
+            $launchDate = Carbon::create($annee, $moisInt, rand(25, 28), rand(8, 17), rand(0, 59));
         } catch (\Exception $e) {
-            $launchDate = \Carbon\Carbon::now();
+            $launchDate = Carbon::now();
         }
         $doneTime = $launchDate->copy()->addMinutes(rand(1, 60));
 
@@ -168,16 +143,14 @@ class PaymentFactory extends Factory
             'irpp'            => $paie['irpp'],
             'css'             => $paie['css'],
             'amount'          => $paie['amount'],
-            'launch_date'     => $launchDate->format('Y-m-d H:i:s'),
-            'done_time'       => $doneTime->format('Y-m-d H:i:s'),
-            'month'           => $moisNom,
+            'launch_date'     => $launchDate->toDateString(),
+            'done_time'       => $doneTime->toDateTimeString(),
+            'month'           => $moisInt,
             'year'            => $annee,
+            'status'          => 'done',
         ];
     }
 
-    /**
-     * Crée un paiement pour un user spécifique avec son vrai contrat.
-     */
     public function forUser(User $user): static
     {
         return $this->state(function (array $attributes) use ($user) {
@@ -195,6 +168,7 @@ class PaymentFactory extends Factory
                 'irpp'            => $paie['irpp'],
                 'css'             => $paie['css'],
                 'amount'          => $paie['amount'],
+                'status'          => 'done',
             ];
         });
     }

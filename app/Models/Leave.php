@@ -2,17 +2,18 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
-class Contract extends Model
+class Leave extends Model
 {
     use HasFactory;
 
-    protected $table = 'contracts';
+    protected $table = 'leaves';
 
     protected $fillable = [
-        'user_id', 'contract_type_id', 'start_date', 'end_date',
+        'user_id', 'type', 'start_date', 'end_date',
+        'days_count', 'reason', 'document', 'status',
     ];
 
     protected $casts = [
@@ -25,8 +26,9 @@ class Contract extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function contractType()
+    // Alias compatibilité
+    public function employer()
     {
-        return $this->belongsTo(ContractType::class);
+        return $this->user();
     }
 }

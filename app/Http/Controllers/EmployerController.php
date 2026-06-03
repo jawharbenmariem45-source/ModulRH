@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\Departement;
-use App\Models\Contract;
-use App\Models\Post;
+use App\Models\ContractType;
+use App\Models\Poste;
 use App\Models\Schedule;
 use App\Models\ResetCodePassword;
 use Carbon\Carbon;
@@ -47,31 +47,31 @@ class EmployerController extends Controller
         }
 
         if ($request->filled('departement')) {
-            $query->where('department_id', $request->departement);
+            $query->where('departement_id', $request->departement);
         }
 
-        $employers = $query->paginate(10)->withQueryString();
-        $contracts = Contract::where('active', true)->get();
-        $posts     = Post::all();
-        $schedules = Schedule::all();
+        $employers     = $query->paginate(10)->withQueryString();
+        $contractTypes = ContractType::where('active', true)->get();
+        $postes        = Poste::all();
+        $schedules     = Schedule::all();
 
-        return view('employers.index', compact('employers', 'departements', 'contracts', 'posts', 'schedules'));
+        return view('employers.index', compact('employers', 'departements', 'contractTypes', 'postes', 'schedules'));
     }
 
     public function create()
     {
-        $departements = Departement::all();
-        $contracts    = Contract::where('active', true)->get();
-        $posts        = Post::all();
-        $schedules    = Schedule::all();
-        return view('employers.create', compact('departements', 'contracts', 'posts', 'schedules'));
+        $departements  = Departement::all();
+        $contractTypes = ContractType::where('active', true)->get();
+        $postes        = Poste::all();
+        $schedules     = Schedule::all();
+        return view('employers.create', compact('departements', 'contractTypes', 'postes', 'schedules'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'department_id'           => 'required|exists:departements,id',
-            'post_id'                 => 'required|exists:posts,id',
+            'departement_id'          => 'required|exists:departements,id',
+            'poste_id'                => 'required|exists:postes,id',
             'schedule_id'             => 'required|exists:schedules,id',
             'last_name'               => 'required|string|max:255',
             'first_name'              => 'required|string|max:255',
@@ -102,8 +102,8 @@ class EmployerController extends Controller
             $user = User::create([
                 'name'                    => $request->first_name . ' ' . $request->last_name,
                 'company_id'              => $companyId,
-                'department_id'           => $request->department_id,
-                'post_id'                 => $request->post_id,
+                'departement_id'          => $request->departement_id,
+                'poste_id'                => $request->poste_id,
                 'schedule_id'             => $request->schedule_id,
                 'last_name'               => $request->last_name,
                 'first_name'              => $request->first_name,
@@ -142,19 +142,19 @@ class EmployerController extends Controller
 
     public function edit(User $user)
     {
-        $departements = Departement::all();
-        $contracts    = Contract::where('active', true)->get();
-        $posts        = Post::all();
-        $schedules    = Schedule::all();
-        $employer     = $user;
-        return view('employers.edit', compact('employer', 'departements', 'contracts', 'posts', 'schedules'));
+        $departements  = Departement::all();
+        $contractTypes = ContractType::where('active', true)->get();
+        $postes        = Poste::all();
+        $schedules     = Schedule::all();
+        $employer      = $user;
+        return view('employers.edit', compact('employer', 'departements', 'contractTypes', 'postes', 'schedules'));
     }
 
     public function update(Request $request, User $user)
     {
         $request->validate([
-            'department_id'           => 'required|exists:departements,id',
-            'post_id'                 => 'required|exists:posts,id',
+            'departement_id'          => 'required|exists:departements,id',
+            'poste_id'                => 'required|exists:postes,id',
             'schedule_id'             => 'required|exists:schedules,id',
             'last_name'               => 'required|string|max:255',
             'first_name'              => 'required|string|max:255',
@@ -177,8 +177,8 @@ class EmployerController extends Controller
         try {
             $data = [
                 'name'                    => $request->first_name . ' ' . $request->last_name,
-                'department_id'           => $request->department_id,
-                'post_id'                 => $request->post_id,
+                'departement_id'          => $request->departement_id,
+                'poste_id'                => $request->poste_id,
                 'schedule_id'             => $request->schedule_id,
                 'last_name'               => $request->last_name,
                 'first_name'              => $request->first_name,
@@ -217,9 +217,9 @@ class EmployerController extends Controller
         if ($user->rib_image) Storage::disk('public')->delete($user->rib_image);
 
         $user->payments()->delete();
-        $user->conges()->delete();
+        $user->leaves()->delete();
         $user->attendances()->delete();
-        $user->contracts()->detach();
+        $user->contracts()->delete();
         $user->delete();
 
         return redirect()->route('employer.index')

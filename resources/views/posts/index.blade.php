@@ -33,27 +33,27 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($posts as $post)
+                    @forelse($postes as $poste)
                     <tr>
                         <td>{{ $loop->iteration }}</td>
-                        <td><strong>{{ $post->name }}</strong></td>
+                        <td><strong>{{ $poste->name }}</strong></td>
                         <td>
                             <span class="badge" style="background:#19a891; color:white">
-                                {{ $post->departement->name ?? '-' }}
+                                {{ $poste->departement->name ?? '-' }}
                             </span>
                         </td>
-                        <td class="text-muted small">{{ $post->description ?? '-' }}</td>
+                        <td class="text-muted small">{{ $poste->description ?? '-' }}</td>
                         <td>
                             <button class="btn btn-sm app-btn-primary"
                                 data-bs-toggle="modal"
                                 data-bs-target="#modalEditPost"
-                                data-id="{{ $post->id }}"
-                                data-name="{{ $post->name }}"
-                                data-description="{{ $post->description }}"
-                                data-department="{{ $post->department_id }}">
+                                data-id="{{ $poste->id }}"
+                                data-name="{{ $poste->name }}"
+                                data-description="{{ $poste->description }}"
+                                data-department="{{ $poste->departement_id }}">
                                 Éditer
                             </button>
-                            <form action="{{ route('posts.destroy', $post) }}" method="POST" style="display:inline">
+                            <form action="{{ route('postes.destroy', $poste) }}" method="POST" style="display:inline">
                                 @csrf @method('DELETE')
                                 <button type="submit" class="btn btn-sm btn-danger"
                                     onclick="return confirm('Supprimer ce poste ?')">
@@ -70,7 +70,7 @@
                 </tbody>
             </table>
         </div>
-        <div class="mt-3">{{ $posts->links() }}</div>
+        <div class="mt-3">{{ $postes->links() }}</div>
     </div>
 </div>
 
@@ -82,12 +82,12 @@
                 <h5 class="modal-title">Ajouter un poste</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form action="{{ route('posts.store') }}" method="POST">
+            <form action="{{ route('postes.store') }}" method="POST">
                 @csrf
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Département <span class="text-danger">*</span></label>
-                        <select name="department_id" class="form-select" required>
+                        <select name="departement_id" class="form-select" required>
                             <option value="">-- Choisir --</option>
                             @foreach($departements as $dept)
                                 <option value="{{ $dept->id }}">{{ $dept->name }}</option>
@@ -125,7 +125,7 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Département <span class="text-danger">*</span></label>
-                        <select name="department_id" id="edit-department" class="form-select" required>
+                        <select name="departement_id" id="edit-department" class="form-select" required>
                             <option value="">-- Choisir --</option>
                             @foreach($departements as $dept)
                                 <option value="{{ $dept->id }}">{{ $dept->name }}</option>
@@ -156,7 +156,7 @@ document.getElementById('modalEditPost').addEventListener('show.bs.modal', funct
     document.getElementById('edit-name').value        = btn.dataset.name;
     document.getElementById('edit-description').value = btn.dataset.description;
     document.getElementById('edit-department').value  = btn.dataset.department;
-    document.getElementById('formEditPost').action    = '/posts/' + btn.dataset.id;
+    document.getElementById('formEditPost').action    = '/postes/' + btn.dataset.id;
 });
 </script>
 @endsection

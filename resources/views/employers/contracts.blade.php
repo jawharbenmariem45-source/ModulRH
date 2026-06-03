@@ -29,13 +29,13 @@
 
                 <div class="mb-3">
                     <span class="fw-bold">Date de début : </span>
-                    {{ $employer->start_date ?? '—' }}
+                    {{ $employer->start_date ? \Carbon\Carbon::parse($employer->start_date)->format('d/m/Y') : '—' }}
                 </div>
 
                 <div class="mb-3">
                     <span class="fw-bold">Date de fin : </span>
                     @if($employer->end_date)
-                        {{ $employer->end_date }}
+                        {{ \Carbon\Carbon::parse($employer->end_date)->format('d/m/Y') }}
                         @if($jours !== null)
                             @if($jours > 0)
                                 <span class="text-muted small">(dans {{ $jours }} jours)</span>

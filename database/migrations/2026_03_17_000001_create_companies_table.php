@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('companies', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->string('name', 100);
             $table->integer('payment_date')->default(30);
             $table->enum('work_schedule', ['40h', '48h'])->default('40h');
             $table->timestamps();

@@ -195,19 +195,19 @@
                     <div class="row g-3 mb-3">
                         <div class="col-md-4">
                             <label class="form-label">Département <span class="text-danger">*</span></label>
-                            <select name="department_id" class="form-select" required>
+                            <select name="departement_id" class="form-select" required>
                                 <option value="">-- Choisir --</option>
                                 @foreach($departements as $dep)
-                                    <option value="{{ $dep->id }}" {{ old('department_id') == $dep->id ? 'selected' : '' }}>{{ $dep->name }}</option>
+                                    <option value="{{ $dep->id }}" {{ old('departement_id') == $dep->id ? 'selected' : '' }}>{{ $dep->name }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Poste <span class="text-danger">*</span></label>
-                            <select name="post_id" class="form-select" required>
+                            <select name="poste_id" class="form-select" required>
                                 <option value="">-- Choisir --</option>
-                                @foreach($posts as $post)
-                                    <option value="{{ $post->id }}" {{ old('post_id') == $post->id ? 'selected' : '' }}>{{ $post->name }}</option>
+                                @foreach($postes as $poste)
+                                    <option value="{{ $poste->id }}" {{ old('poste_id') == $poste->id ? 'selected' : '' }}>{{ $poste->name }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -232,8 +232,8 @@
                             <label class="form-label">Type de Contrat <span class="text-danger">*</span></label>
                             <select name="contract_type" id="type_contrat_create" class="form-select" required>
                                 <option value="">-- Choisir --</option>
-                                @foreach($contracts as $contract)
-                                    <option value="{{ $contract->name }}" {{ old('contract_type') == $contract->name ? 'selected' : '' }}>{{ $contract->name }}</option>
+                                @foreach($contractTypes as $contractType)
+                                    <option value="{{ $contractType->name }}" {{ old('contract_type') == $contractType->name ? 'selected' : '' }}>{{ $contractType->name }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -356,7 +356,7 @@
                     <div class="row g-3 mb-3">
                         <div class="col-md-4">
                             <label class="form-label">Département <span class="text-danger">*</span></label>
-                            <select name="department_id" id="edit_department" class="form-select" required>
+                            <select name="departement_id" id="edit_department" class="form-select" required>
                                 <option value="">-- Choisir --</option>
                                 @foreach($departements as $dep)
                                     <option value="{{ $dep->id }}">{{ $dep->name }}</option>
@@ -365,10 +365,10 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Poste <span class="text-danger">*</span></label>
-                            <select name="post_id" id="edit_post" class="form-select" required>
+                            <select name="poste_id" id="edit_post" class="form-select" required>
                                 <option value="">-- Choisir --</option>
-                                @foreach($posts as $post)
-                                    <option value="{{ $post->id }}">{{ $post->name }}</option>
+                                @foreach($postes as $poste)
+                                    <option value="{{ $poste->id }}">{{ $poste->name }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -393,8 +393,8 @@
                             <label class="form-label">Type de Contrat <span class="text-danger">*</span></label>
                             <select name="contract_type" id="edit_type_contrat" class="form-select" required>
                                 <option value="">-- Choisir --</option>
-                                @foreach($contracts as $contract)
-                                    <option value="{{ $contract->name }}">{{ $contract->name }}</option>
+                                @foreach($contractTypes as $contractType)
+                                    <option value="{{ $contractType->name }}">{{ $contractType->name }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -478,8 +478,8 @@ const employers = {
         gender:                  "{{ $employer->gender }}",
         rib:                     "{{ $employer->rib }}",
         rib_image:               "{{ $employer->rib_image ? asset('storage/' . $employer->rib_image) : '' }}",
-        department_id:           "{{ $employer->department_id }}",
-        post_id:                 "{{ $employer->post_id }}",
+        departement_id:          "{{ $employer->departement_id }}",
+        poste_id:                "{{ $employer->poste_id }}",
         schedule_id:             "{{ $employer->schedule_id }}",
         contract_type:           "{{ $employer->contract_type }}",
         start_date:              "{{ $employer->start_date }}",
@@ -512,8 +512,8 @@ function openEditModal(id) {
     document.getElementById('edit_nombre_enfants_infirmes').value  = e.disabled_children_count;
     document.getElementById('edit_nombre_enfants_etudiants').value = e.student_children_count;
     document.getElementById('edit_cnss').value                     = e.cnss;
-    document.getElementById('edit_department').value               = e.department_id;
-    document.getElementById('edit_post').value                     = e.post_id;
+    document.getElementById('edit_department').value               = e.departement_id;
+    document.getElementById('edit_post').value                     = e.poste_id;
     document.getElementById('edit_schedule').value                 = e.schedule_id;
     document.getElementById('edit_type_contrat').value             = e.contract_type;
 
