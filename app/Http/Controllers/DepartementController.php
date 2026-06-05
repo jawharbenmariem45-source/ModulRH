@@ -63,7 +63,16 @@ class DepartementController extends Controller
                 $employer->payments()->delete();
                 $employer->conges()->delete();
                 $employer->attendances()->delete();
-                $employer->contracts()->detach();
+
+                // Contrat stocké dans users — on remet à null
+                $employer->update([
+                    'contract_type' => null,
+                    'start_date'    => null,
+                    'end_date'      => null,
+                    'rib'           => null,
+                    'cnss'          => null,
+                ]);
+
                 $employer->delete();
             }
 

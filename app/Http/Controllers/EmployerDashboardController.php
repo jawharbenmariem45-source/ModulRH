@@ -13,62 +13,25 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class EmployerDashboardController extends Controller
 {
-    // ── Jours fériés officiels Tunisie 2026 ───────────────────────────────────
-
-    /**
-     * Jours fériés fixes (MM-DD) — valables chaque année
-     * Source : Code du Travail tunisien + décrets officiels
-     */
     private static array $FERIES_FIXES = [
-        '01-01', // Nouvel An
-        '03-20', // Fête de l'Indépendance
-        '04-09', // Jour des Martyrs
-        '05-01', // Fête du Travail
-        '06-01', // Fête de la Jeunesse
-        '07-25', // Fête de la République
-        '08-13', // Fête de la Femme
-        '10-15', // Fête de l'Évacuation
-        '12-17', // Fête de la Révolution
+        '01-01', '03-20', '04-09', '05-01', '06-01',
+        '07-25', '08-13', '10-15', '12-17',
     ];
 
-    /**
-     * Jours fériés variables 2026 — fêtes religieuses islamiques
-     * ⚠ Dates prévisionnelles — peuvent être ajustées d'1-2 jours selon l'observation lunaire
-     *
-     * Aïd al-Fitr      : 20-21 mars 2026
-     * Aïd al-Adha      : 26-27 mai 2026
-     * Ras El Am        : 15 juin 2026
-     * Mouled           : 24 août 2026
-     */
     private static array $FERIES_VARIABLES_2026 = [
-        '2026-03-20', // Aïd al-Fitr - Jour 1 (coïncide avec Fête de l'Indépendance)
-        '2026-03-21', // Aïd al-Fitr - Jour 2
-        '2026-05-26', // Aïd al-Adha - Jour 1
-        '2026-05-27', // Aïd al-Adha - Jour 2
-        '2026-06-15', // Ras El Am Hégirien (Nouvel An islamique)
-        '2026-08-24', // Mouled (Anniversaire du Prophète Mohamed)
+        '2026-03-20', '2026-03-21', '2026-05-26',
+        '2026-05-27', '2026-06-15', '2026-08-24',
     ];
 
-    /**
-     * Vérifie si une date donnée est un jour férié tunisien
-     */
     private function estJourFerie(Carbon $date): bool
     {
-        // Vérification fériés fixes (MM-DD)
-        if (in_array($date->format('m-d'), self::$FERIES_FIXES)) {
-            return true;
-        }
-        // Vérification fériés variables
+        if (in_array($date->format('m-d'), self::$FERIES_FIXES)) return true;
         return in_array($date->format('Y-m-d'), self::$FERIES_VARIABLES_2026);
     }
 
-    /**
-     * Retourne la liste de tous les jours fériés 2026 avec leurs noms
-     */
     public static function getJoursFeries2026(): array
     {
         return [
-            // Fixes
             '2026-01-01' => 'Nouvel An',
             '2026-03-20' => 'Fête de l\'Indépendance + Aïd al-Fitr Jour 1',
             '2026-03-21' => 'Aïd al-Fitr - Jour 2',
@@ -86,10 +49,6 @@ class EmployerDashboardController extends Controller
         ];
     }
 
-    /**
-     * Compte les jours ouvrés entre deux dates
-     * Exclut : samedis, dimanches, jours fériés tunisiens
-     */
     private function compterJoursOuvres(string $startDate, string $endDate): int
     {
         try {
@@ -97,11 +56,8 @@ class EmployerDashboardController extends Controller
             $fin   = Carbon::parse($endDate)->startOfDay();
             $jours = 0;
             $jour  = $debut->copy();
-
             while ($jour->lte($fin)) {
-                if (!$jour->isWeekend() && !$this->estJourFerie($jour)) {
-                    $jours++;
-                }
+                if (!$jour->isWeekend() && !$this->estJourFerie($jour)) $jours++;
                 $jour->addDay();
             }
             return $jours;
@@ -110,22 +66,8 @@ class EmployerDashboardController extends Controller
         }
     }
 
-    // ── Calcul solde congés ───────────────────────────────────────────────────
-
-    /**
-     * Calcule le solde de congés selon le Code du Travail tunisien
-     *
-     * Règles appliquées :
-     * - CIVP : 0 jour légal (stage)
-     * - CDI / CDD / Karama : 1.833 j/mois (convention collective) = 22j/an
-     * - Bonus ancienneté (Art. 115 Code du Travail) :
-     *     +1j par tranche de 5 ans, max +4j (18j ouvrables légaux max)
-     * - Maladie & Maternité : ne déduisent pas le solde annuel
-     * - Jours déduits = jours ouvrés (lun-ven, hors fériés tunisiens)
-     */
     private function calculerSoldeConges(User $user): array
     {
-        // CIVP : pas de congé légal
         if ($user->contract_type === 'CIVP') {
             return [
                 'droits_annuels'   => 0,
@@ -139,7 +81,6 @@ class EmployerDashboardController extends Controller
             ];
         }
 
-        // Ancienneté
         $ancienneteAns  = 0;
         $moisTravailles = 0;
 
@@ -151,43 +92,30 @@ class EmployerDashboardController extends Controller
             } catch (\Exception $e) {}
         }
 
-        // Bonus ancienneté Art. 115 Code du Travail
-        // +1j par 5 ans, plafonné à +4j (soit 22+4 = 26j max convention collective)
         $bonusAnciennete = 0;
         if ($ancienneteAns >= 20)     $bonusAnciennete = 4;
         elseif ($ancienneteAns >= 15) $bonusAnciennete = 3;
         elseif ($ancienneteAns >= 10) $bonusAnciennete = 2;
         elseif ($ancienneteAns >= 5)  $bonusAnciennete = 1;
 
-        $droitsAnnuels     = 22 + $bonusAnciennete;
-        $tauxMensuel       = round($droitsAnnuels / 12, 3);
+        $droitsAnnuels = 22 + $bonusAnciennete;
+        $tauxMensuel   = round($droitsAnnuels / 12, 3);
+        $joursAcquis   = min(round($moisTravailles * $tauxMensuel, 1), $droitsAnnuels);
 
-        // Jours acquis (plafonné aux droits annuels)
-        $joursAcquis = min(
-            round($moisTravailles * $tauxMensuel, 1),
-            $droitsAnnuels
-        );
-
-        // Jours pris — uniquement congés annuels et sans solde (pas maladie/maternité)
         $congesApprouves = Conge::where('user_id', $user->id)
-            ->where('status', 'Approuvé')
+            ->where('status', 'approved')
             ->whereNotIn('type', ['Maladie', 'Maternité'])
             ->get();
 
         $joursPris = 0;
         foreach ($congesApprouves as $conge) {
-            $joursPris += $this->compterJoursOuvres(
-                $conge->start_date,
-                $conge->end_date
-            );
+            $joursPris += $this->compterJoursOuvres($conge->start_date, $conge->end_date);
         }
 
         $solde = max(round($joursAcquis - $joursPris, 1), 0);
-
-        $note = '';
-        if ($bonusAnciennete > 0) {
-            $note = "Bonus ancienneté : +{$bonusAnciennete}j ({$ancienneteAns} ans de service — Art. 115 Code du Travail)";
-        }
+        $note  = $bonusAnciennete > 0
+            ? "Bonus ancienneté : +{$bonusAnciennete}j ({$ancienneteAns} ans de service — Art. 115 Code du Travail)"
+            : '';
 
         return [
             'droits_annuels'   => $droitsAnnuels,
@@ -201,12 +129,8 @@ class EmployerDashboardController extends Controller
         ];
     }
 
-    /**
-     * Valide une demande de congé selon le solde disponible
-     */
     private function validerDemandeConge(User $user, string $startDate, string $endDate, string $type): array
     {
-        // Maladie et Maternité : pas de vérification du solde
         if (in_array($type, ['Maladie', 'Maternité'])) {
             $jours = $this->compterJoursOuvres($startDate, $endDate);
             return ['valide' => true, 'jours' => $jours, 'message' => ''];
@@ -226,8 +150,6 @@ class EmployerDashboardController extends Controller
         return ['valide' => true, 'jours' => $joursOuvres, 'message' => ''];
     }
 
-    // ── Pages ─────────────────────────────────────────────────────────────────
-
     public function dashboard()
     {
         $user = auth()->user();
@@ -241,8 +163,8 @@ class EmployerDashboardController extends Controller
             $contrat = $user->contract_type ? true : false;
         }
 
-        $congesEnAttente  = $user->conges()->whereIn('status', ['En attente', 'en attente', 'en_attente'])->count();
-        $congesApprouves  = $user->conges()->whereIn('status', ['Approuvé', 'approuvé', 'accepte', 'APPROUVE'])->count();
+        $congesEnAttente  = $user->conges()->where('status', 'pending')->count();
+        $congesApprouves  = $user->conges()->where('status', 'approved')->count();
         $totalPaiements   = $user->payments()->count();
         $dernierConges    = $user->conges()->latest()->take(5)->get();
         $dernierPaiements = $user->payments()->latest()->take(5)->get();
@@ -282,7 +204,9 @@ class EmployerDashboardController extends Controller
         $isPaymentDay = $company ? intval(date('d')) == intval($company->payment_date) : false;
 
         $query = Payment::where('user_id', $user->id);
-        if ($request->filled('month')) $query->where('month', strtoupper($request->month));
+
+        // ✅ month stocké en int — pas de strtoupper
+        if ($request->filled('month')) $query->where('month', $request->month);
         if ($request->filled('year'))  $query->where('year', $request->year);
 
         $payments = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
@@ -298,7 +222,7 @@ class EmployerDashboardController extends Controller
         [$debut, $fin] = $this->getPeriodeMois($fullPaymentInfo);
 
         $conges = Conge::where('user_id', $user->id)
-            ->whereIn('status', ['Approuvé', 'approuvé', 'accepte'])
+            ->where('status', 'approved')
             ->where(fn($q) => $q->whereBetween('start_date', [$debut, $fin])
                 ->orWhereBetween('end_date', [$debut, $fin]))->get();
 
@@ -315,7 +239,7 @@ class EmployerDashboardController extends Controller
         [$debut, $fin] = $this->getPeriodeMois($fullPaymentInfo);
 
         $conges = Conge::where('user_id', $user->id)
-            ->whereIn('status', ['Approuvé', 'approuvé', 'accepte'])
+            ->where('status', 'approved')
             ->where(fn($q) => $q->whereBetween('start_date', [$debut, $fin])
                 ->orWhereBetween('end_date', [$debut, $fin]))->get();
 
@@ -325,11 +249,7 @@ class EmployerDashboardController extends Controller
 
     private function getPeriodeMois($payment): array
     {
-        $moisMap = [
-            'JANVIER'=>1,'FEVRIER'=>2,'MARS'=>3,'AVRIL'=>4,'MAI'=>5,'JUIN'=>6,
-            'JUILLET'=>7,'AOUT'=>8,'SEPTEMBRE'=>9,'OCTOBRE'=>10,'NOVEMBRE'=>11,'DECEMBRE'=>12,
-        ];
-        $moisInt = $moisMap[strtoupper($payment->month)] ?? 1;
+        $moisInt = is_numeric($payment->month) ? (int) $payment->month : 1;
         return [
             Carbon::create($payment->year, $moisInt, 1)->startOfMonth(),
             Carbon::create($payment->year, $moisInt, 1)->endOfMonth(),
@@ -381,7 +301,7 @@ class EmployerDashboardController extends Controller
             'type'       => $request->type,
             'reason'     => $request->reason,
             'document'   => $documentPath,
-            'status'     => 'En attente',
+            'status'     => 'pending',
         ]);
 
         return redirect()->route('employer_space.conges')
@@ -392,7 +312,7 @@ class EmployerDashboardController extends Controller
     {
         $user = auth()->user();
 
-        if ($conge->user_id !== $user->id || !in_array($conge->status, ['En attente', 'en attente', 'en_attente'])) {
+        if ($conge->user_id !== $user->id || $conge->status !== 'pending') {
             return redirect()->route('employer_space.conges')->with('error', 'Modification impossible.');
         }
 
@@ -404,7 +324,7 @@ class EmployerDashboardController extends Controller
     {
         $user = auth()->user();
 
-        if ($conge->user_id !== $user->id || !in_array($conge->status, ['En attente', 'en attente', 'en_attente'])) {
+        if ($conge->user_id !== $user->id || $conge->status !== 'pending') {
             return redirect()->route('employer_space.conges');
         }
 
@@ -437,20 +357,22 @@ class EmployerDashboardController extends Controller
             'document'   => $documentPath,
         ]);
 
-        return redirect()->route('employer_space.conges')->with('success', 'Demande modifiée avec succès !');
+        return redirect()->route('employer_space.conges')
+            ->with('success', 'Demande modifiée avec succès !');
     }
 
     public function deleteConge(Conge $conge)
     {
         $user = auth()->user();
 
-        if ($conge->user_id !== $user->id || !in_array($conge->status, ['En attente', 'en attente', 'en_attente'])) {
+        if ($conge->user_id !== $user->id || $conge->status !== 'pending') {
             return redirect()->route('employer_space.conges')->with('error', 'Suppression impossible.');
         }
 
         if ($conge->document) Storage::disk('public')->delete($conge->document);
         $conge->delete();
 
-        return redirect()->route('employer_space.conges')->with('success', 'Demande annulée avec succès.');
+        return redirect()->route('employer_space.conges')
+            ->with('success', 'Demande annulée avec succès.');
     }
 }

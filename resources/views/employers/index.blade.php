@@ -82,7 +82,7 @@
                 <tbody>
                     @forelse($employers as $employer)
                     <tr>
-                        <td>{{ $loop->iteration }}</td>
+                        <td>{{ ($employers->currentPage() - 1) * $employers->perPage() + $loop->iteration }}</td>
                         <td>{{ $employer->departement->name ?? '-' }}</td>
                         <td>{{ $employer->last_name }}</td>
                         <td>{{ $employer->first_name }}</td>
@@ -109,11 +109,14 @@
                         <td>
                             @if($employer->end_date)
                                 @php
-                                    try { $jours = \Carbon\Carbon::today()->diffInDays(\Carbon\Carbon::parse($employer->end_date), false); }
-                                    catch(\Exception $e) { $jours = null; }
+                                    try {
+                                        $jours = \Carbon\Carbon::today()->diffInDays(
+                                            \Carbon\Carbon::parse($employer->end_date), false
+                                        );
+                                    } catch(\Exception $e) { $jours = null; }
                                 @endphp
                                 <span class="{{ isset($jours) && $jours <= 30 && $jours >= 0 ? 'text-danger fw-bold' : '' }}">
-                                    {{ $employer->end_date }}
+                                    {{ \Carbon\Carbon::parse($employer->end_date)->format('d/m/Y') }}
                                     @if(isset($jours) && $jours <= 30 && $jours >= 0)
                                         <span class="badge bg-danger">{{ $jours }}j</span>
                                     @endif
@@ -482,8 +485,8 @@ const employers = {
         poste_id:                "{{ $employer->poste_id }}",
         schedule_id:             "{{ $employer->schedule_id }}",
         contract_type:           "{{ $employer->contract_type }}",
-        start_date:              "{{ $employer->start_date }}",
-        end_date:                "{{ $employer->end_date }}",
+        start_date:              "{{ $employer->start_date ? \Carbon\Carbon::parse($employer->start_date)->format('Y-m-d') : '' }}",
+        end_date:                "{{ $employer->end_date ? \Carbon\Carbon::parse($employer->end_date)->format('Y-m-d') : '' }}",
         salary:                  "{{ $employer->salary }}",
         family_head:             "{{ $employer->family_head ? 1 : 0 }}",
         children_count:          "{{ $employer->children_count ?? 0 }}",

@@ -5,7 +5,10 @@
 <hr class="mb-4">
 
 @if(Session::get('success_message'))
-    <div class="alert alert-success">{{ Session::get('success_message') }}</div>
+    <div class="alert alert-success alert-dismissible fade show">
+        {{ Session::get('success_message') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
 @endif
 
 {{-- Filtres --}}
@@ -13,15 +16,15 @@
     <div class="col-auto">
         <select name="month" class="form-select">
             <option value="">Tous les mois</option>
-            @foreach(['JANVIER','FEVRIER','MARS','AVRIL','MAI','JUIN','JUILLET','AOUT','SEPTEMBRE','OCTOBRE','NOVEMBRE','DECEMBRE'] as $m)
-                <option value="{{ $m }}" {{ request('month') == $m ? 'selected' : '' }}>{{ $m }}</option>
+            @foreach([1=>'JANVIER',2=>'FEVRIER',3=>'MARS',4=>'AVRIL',5=>'MAI',6=>'JUIN',7=>'JUILLET',8=>'AOUT',9=>'SEPTEMBRE',10=>'OCTOBRE',11=>'NOVEMBRE',12=>'DECEMBRE'] as $num => $nom)
+                <option value="{{ $num }}" {{ request('month') == $num ? 'selected' : '' }}>{{ $nom }}</option>
             @endforeach
         </select>
     </div>
     <div class="col-auto">
         <select name="year" class="form-select">
             <option value="">Toutes les années</option>
-            @for($y = date('Y'); $y >= date('Y') - 3; $y--)
+            @for($y = date('Y') + 1; $y >= date('Y') - 5; $y--)
                 <option value="{{ $y }}" {{ request('year') == $y ? 'selected' : '' }}>{{ $y }}</option>
             @endfor
         </select>
@@ -42,7 +45,8 @@
             <table class="table app-table-hover mb-0 text-left">
                 <thead>
                     <tr>
-                        <th>Reference</th>
+                        <th>#</th>
+                        <th>Référence</th>
                         <th>Montant</th>
                         <th>Date</th>
                         <th>Mois</th>
@@ -52,18 +56,25 @@
                     </tr>
                 </thead>
                 <tbody>
+                    @php
+                        $moisNoms = [
+                            1=>'JANVIER',2=>'FEVRIER',3=>'MARS',4=>'AVRIL',
+                            5=>'MAI',6=>'JUIN',7=>'JUILLET',8=>'AOUT',
+                            9=>'SEPTEMBRE',10=>'OCTOBRE',11=>'NOVEMBRE',12=>'DECEMBRE'
+                        ];
+                    @endphp
                     @forelse($payments as $payment)
                     <tr>
+                        <td>{{ ($payments->currentPage() - 1) * $payments->perPage() + $loop->iteration }}</td>
                         <td>{{ $payment->reference }}</td>
-                        <td>{{ $payment->amount }} DT</td>
-                        <td>{{ date('d-m-Y', strtotime($payment->done_time)) }}</td>
-                        <td>{{ $payment->month }}</td>
+                        <td>{{ number_format($payment->amount, 3, '.', ' ') }} DT</td>
+                        <td>{{ date('d/m/Y', strtotime($payment->done_time)) }}</td>
+                        <td>{{ $moisNoms[$payment->month] ?? $payment->month }}</td>
                         <td>{{ $payment->year }}</td>
                         <td><span class="badge bg-success">{{ $payment->status }}</span></td>
                         <td>
                             <a href="{{ route('employer_space.paiements.preview', $payment->id) }}"
-                               title="Voir PDF"
-                               target="_blank"
+                               title="Voir PDF" target="_blank"
                                class="btn btn-sm btn-outline-info me-1">
                                 <i class="fa fa-eye"></i>
                             </a>
@@ -76,7 +87,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="text-center text-muted" style="padding: 3rem;">
+                        <td colspan="8" class="text-center text-muted" style="padding: 3rem;">
                             Aucune transaction effectuée
                         </td>
                     </tr>

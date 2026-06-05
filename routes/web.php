@@ -7,7 +7,7 @@ use App\Http\Controllers\ConfigurationController;
 use App\Http\Controllers\DepartementController;
 use App\Http\Controllers\EmployerController;
 use App\Http\Controllers\PaymentController;
-use App\Http\Controllers\ContratController;
+use App\Http\Controllers\ContractController;
 use App\Http\Controllers\ContractTypeController;
 use App\Http\Controllers\CongeController;
 use App\Http\Controllers\PermissionController;
@@ -81,14 +81,14 @@ Route::middleware(['auth', 'can:view employers'])->prefix('employer')->name('emp
     Route::get('/delete/{user}', [EmployerController::class, 'delete'])->name('delete');
 });
 
-// ── Contrats employés (historique) ────────────────────────
+// ── Contrats employés ─────────────────────────────────────
 Route::middleware(['auth', 'can:view contracts'])->prefix('contrats')->name('contrat.')->group(function () {
-    Route::get('/', [ContratController::class, 'index'])->name('index');
-    Route::post('/store', [ContratController::class, 'store'])->name('store');
-    Route::get('/edit/{contrat}', [ContratController::class, 'edit'])->name('edit');
-    Route::put('/update/{contrat}', [ContratController::class, 'update'])->name('update');
-    Route::get('/delete/{contrat}', [ContratController::class, 'delete'])->name('delete');
-    Route::get('/pdf/{contrat}', [ContratController::class, 'downloadPdf'])->name('pdf');
+    Route::get('/', [ContractController::class, 'index'])->name('index');
+    Route::post('/store', [ContractController::class, 'store'])->name('store');
+    Route::get('/edit/{contrat}', [ContractController::class, 'edit'])->name('edit');
+    Route::put('/update/{contrat}', [ContractController::class, 'update'])->name('update');
+    Route::get('/delete/{contrat}', [ContractController::class, 'delete'])->name('delete');
+    Route::get('/pdf/{contrat}', [ContractController::class, 'downloadPdf'])->name('pdf');
 });
 
 // ── Types de contrats ─────────────────────────────────────

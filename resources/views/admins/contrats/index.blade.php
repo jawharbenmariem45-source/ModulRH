@@ -13,6 +13,53 @@
     <div class="alert alert-success">{{ session('success_message') }}</div>
 @endif
 
+<style>
+    /* Ligne désactivée */
+    tr.row-inactive {
+        background-color: #fdf0f0 !important;
+        opacity: 0.75;
+    }
+    tr.row-inactive td {
+        color: #aaa;
+    }
+    tr.row-inactive .badge {
+        background-color: #ccc !important;
+        color: #666 !important;
+    }
+    tr.row-inactive td:first-child {
+        border-left: 4px solid #e74c3c;
+    }
+
+    /* Toggle iOS */
+    .ios-toggle {
+        position: relative;
+        display: inline-block;
+        width: 44px;
+        height: 24px;
+        border-radius: 12px;
+        border: none;
+        cursor: pointer;
+        transition: background 0.3s;
+        padding: 0;
+        vertical-align: middle;
+    }
+    .ios-toggle.on  { background-color: #19a891; }
+    .ios-toggle.off { background-color: #ccc; }
+
+    .ios-knob {
+        position: absolute;
+        top: 2px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: white;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        transition: left 0.3s;
+    }
+    .ios-toggle.on  .ios-knob { left: 22px; }
+    .ios-toggle.off .ios-knob { left: 2px; }
+</style>
+
 <div class="app-card shadow-sm mb-5">
     <div class="app-card-body">
         <div class="table-responsive">
@@ -28,7 +75,7 @@
                 </thead>
                 <tbody>
                     @forelse($contracts as $contract)
-                    <tr>
+                    <tr class="{{ $contract->active ? '' : 'row-inactive' }}">
                         <td>{{ $loop->iteration }}</td>
                         <td><span class="badge bg-primary">{{ $contract->name }}</span></td>
                         <td>{{ $contract->details ?? '-' }}</td>
@@ -40,14 +87,14 @@
                                 Éditer
                             </button>
                             <form action="{{ route('contracts.toggle', $contract->id) }}" method="POST" style="display:inline">
-    @csrf
-    @method('PATCH')
-    <button type="submit" class="ios-toggle {{ $contract->active ? 'on' : 'off' }}" title="{{ $contract->active ? 'Désactiver' : 'Activer' }}">
-        <span class="ios-knob"></span>
-    </button>
-</form>
-                            
-                        
+                                @csrf
+                                @method('PATCH')
+                                <button type="submit"
+                                    class="ios-toggle {{ $contract->active ? 'on' : 'off' }}"
+                                    title="{{ $contract->active ? 'Désactiver' : 'Activer' }}">
+                                    <span class="ios-knob"></span>
+                                </button>
+                            </form>
                         </td>
                     </tr>
 

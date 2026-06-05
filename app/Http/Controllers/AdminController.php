@@ -11,17 +11,19 @@ use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
+use Spatie\Permission\Models\Permission;
 
 class AdminController extends Controller
 {
     public function index()
     {
-        // Afficher seulement admin, rh, manager — pas les employers
         $admins = User::whereHas('roles', function ($q) {
             $q->whereIn('name', ['admin', 'rh', 'manager', 'employer']);
         })->orWhereDoesntHave('roles')->paginate(10);
 
-        return view('admins/index', compact('admins'));
+        $permissions = Permission::all();
+
+        return view('admins/index', compact('admins', 'permissions'));
     }
 
     public function store(Request $request)
@@ -41,6 +43,10 @@ class AdminController extends Controller
             ]);
 
             $user->assignRole($request->role);
+
+            if ($request->has('permissions')) {
+                $user->syncPermissions($request->permissions);
+            }
 
             $code = rand(1000, 4000);
             ResetCodePassword::updateOrCreate(['email' => $user->email], ['code' => $code]);
@@ -71,6 +77,8 @@ class AdminController extends Controller
             ]);
 
             $administrateur->syncRoles([$request->role]);
+
+            $administrateur->syncPermissions($request->permissions ?? []);
 
             return redirect()->route('administrateurs.index')
                 ->with('success_message', 'Membre mis à jour avec succès');

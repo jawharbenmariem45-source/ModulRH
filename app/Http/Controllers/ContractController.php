@@ -2,27 +2,29 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Departement;
-use App\Models\Contract;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\Request;
 
-class ContratController extends Controller
+class ContractController extends Controller
 {
     public function index(Request $request)
     {
         $companyId = auth()->user()->company_id;
-        $query     = User::role('employer')
-                         ->with('departement')
-                         ->where('company_id', $companyId);
+
+        $query = User::whereHas('roles', function ($q) {
+                $q->where('name', 'employer');
+            })
+            ->with('departement')
+            ->where('company_id', $companyId);
 
         if ($request->filled('type_contrat')) {
             $query->where('contract_type', $request->type_contrat);
         }
         if ($request->filled('department_id')) {
-            $query->where('department_id', $request->department_id);
+            $query->where('departement_id', $request->department_id);
         }
         if ($request->filled('date_debut')) {
             $query->where('start_date', '>=', $request->date_debut);
@@ -50,25 +52,24 @@ class ContratController extends Controller
             });
         }
 
-        $contrats     = $query->get();
+        $contrats     = $query->orderBy('last_name')->paginate(10)->withQueryString();
         $departements = Departement::all();
-        $employers    = User::role('employer')
-                            ->where('company_id', $companyId)
-                            ->orderBy('last_name')
-                            ->get();
 
-        $alertes = User::role('employer')
+        $employers = User::whereHas('roles', function ($q) {
+                $q->where('name', 'employer');
+            })
+            ->where('company_id', $companyId)
+            ->orderBy('last_name')
+            ->get();
+
+        $alertes = User::whereHas('roles', function ($q) {
+                $q->where('name', 'employer');
+            })
             ->where('company_id', $companyId)
             ->whereNotNull('end_date')
-            ->get()
-            ->filter(function ($e) {
-                try {
-                    $fin = Carbon::parse($e->end_date);
-                    return $fin->gte(Carbon::today()) && $fin->lte(Carbon::today()->addDays(7));
-                } catch (\Exception $ex) {
-                    return false;
-                }
-            });
+            ->whereRaw('end_date >= ?', [Carbon::today()])
+            ->whereRaw('end_date <= ?', [Carbon::today()->addDays(7)])
+            ->get();
 
         return view('contrats.index', compact('contrats', 'departements', 'alertes', 'employers'));
     }
@@ -88,17 +89,11 @@ class ContratController extends Controller
             'end_date'      => $request->date_fin,
         ]);
 
-        return redirect()->route('contrat.index')->with('success', 'Contrat ajouté avec succès !');
+        return redirect()->route('contrat.index')
+            ->with('success', 'Contrat ajouté avec succès !');
     }
 
-    public function edit(User $user)
-    {
-        $departements = Departement::all();
-        $employer     = $user;
-        return view('contrats.edit', compact('employer', 'departements'));
-    }
-
-    public function update(Request $request, User $user)
+    public function update(Request $request, User $contrat)
     {
         $request->validate([
             'type_contrat' => 'required|in:CDI,CDD,CIVP,Karama',
@@ -108,7 +103,7 @@ class ContratController extends Controller
             'date_fin'     => 'nullable|date|after:date_debut',
         ]);
 
-        $user->update([
+        $contrat->update([
             'contract_type' => $request->type_contrat,
             'rib'           => $request->rib,
             'cnss'          => $request->cnss,
@@ -116,12 +111,13 @@ class ContratController extends Controller
             'end_date'      => $request->date_fin,
         ]);
 
-        return redirect()->route('contrat.index')->with('success', 'Contrat mis à jour avec succès !');
+        return redirect()->route('contrat.index')
+            ->with('success', 'Contrat mis à jour avec succès !');
     }
 
-    public function delete(User $user)
+    public function delete(User $contrat)
     {
-        $user->update([
+        $contrat->update([
             'contract_type' => null,
             'rib'           => null,
             'cnss'          => null,
@@ -129,13 +125,14 @@ class ContratController extends Controller
             'end_date'      => null,
         ]);
 
-        return redirect()->route('contrat.index')->with('success', 'Contrat supprimé avec succès !');
+        return redirect()->route('contrat.index')
+            ->with('success', 'Contrat supprimé avec succès !');
     }
 
-    public function downloadPdf(User $user)
+    public function downloadPdf(User $contrat)
     {
-        $employer = $user;
+        $employer = $contrat;
         $pdf      = Pdf::loadView('contrats.pdf', compact('employer'));
-        return $pdf->download('contrat-' . $user->last_name . '-' . $user->first_name . '.pdf');
+        return $pdf->download('contrat-' . $contrat->last_name . '-' . $contrat->first_name . '.pdf');
     }
 }
