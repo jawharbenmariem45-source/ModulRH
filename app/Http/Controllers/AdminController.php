@@ -21,9 +21,11 @@ class AdminController extends Controller
             $q->whereIn('name', ['admin', 'rh', 'manager', 'employer']);
         })->orWhereDoesntHave('roles')->paginate(10);
 
-        $permissions = Permission::all();
+        $permissions  = Permission::all();
+        $alertes      = collect();
+        $departements = collect();
 
-        return view('admins/index', compact('admins', 'permissions'));
+        return view('admins/index', compact('admins', 'permissions', 'alertes', 'departements'));
     }
 
     public function store(Request $request)
@@ -78,7 +80,12 @@ class AdminController extends Controller
 
             $administrateur->syncRoles([$request->role]);
 
-            $administrateur->syncPermissions($request->permissions ?? []);
+            $perms = $request->input('permissions');
+            if (is_array($perms)) {
+                $administrateur->syncPermissions($perms);
+            } else {
+                $administrateur->syncPermissions([]);
+            }
 
             return redirect()->route('administrateurs.index')
                 ->with('success_message', 'Membre mis à jour avec succès');

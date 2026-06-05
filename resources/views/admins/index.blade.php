@@ -1,189 +1,166 @@
 @extends('layouts.template')
 
 @section('content')
-
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="app-page-title mb-0">Contrats</h1>
-    <button type="button" class="btn app-btn-primary" data-bs-toggle="modal" data-bs-target="#modalAjoutContrat">
-        + Ajouter un contrat
+    <h1 class="app-page-title mb-0">Gestion des Rôles</h1>
+    <button type="button" class="btn app-btn-secondary" data-bs-toggle="modal" data-bs-target="#modalAjout">
+        + Ajouter un membre
     </button>
 </div>
 <hr class="mb-4">
 
-@if(session('success'))
-<div class="alert alert-success alert-dismissible fade show">
-    {{ session('success') }}
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-@endif
-
 @if(session('success_message'))
-<div class="alert alert-success alert-dismissible fade show">
-    {{ session('success_message') }}
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
+    <div class="alert alert-success alert-dismissible fade show">
+        {{ session('success_message') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
 @endif
 
-@if($alertes->count() > 0)
-<div class="alert alert-warning alert-dismissible fade show">
-    <strong>⚠️ {{ $alertes->count() }} contrat(s) expirent dans les 7 prochains jours :</strong>
-    <ul class="mb-0 mt-1">
-        @foreach($alertes as $alerte)
-        <li>
-            <strong>{{ $alerte->last_name }} {{ $alerte->first_name }}</strong>
-            — {{ $alerte->contract_type }}
-            — expire le <strong>{{ $alerte->end_date ? \Carbon\Carbon::parse($alerte->end_date)->format('d/m/Y') : '-' }}</strong>
-        </li>
-        @endforeach
-    </ul>
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
+@if(session('error_message'))
+    <div class="alert alert-danger alert-dismissible fade show">
+        {{ session('error_message') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
 @endif
 
-{{-- Filtres --}}
-<form method="GET" action="{{ route('contrat.index') }}" class="row g-2 mb-4 align-items-center">
-    <div class="col-auto">
-        <input type="text" name="search" class="form-control"
-            placeholder="Rechercher..." value="{{ request('search') }}">
-    </div>
-    <div class="col-auto">
-        <select name="type_contrat" class="form-select">
-            <option value="">Tous les types</option>
-            @foreach(['CDI','CDD','CIVP','Karama'] as $type)
-            <option value="{{ $type }}" {{ request('type_contrat') == $type ? 'selected' : '' }}>
-                {{ $type }}
-            </option>
-            @endforeach
-        </select>
-    </div>
-    <div class="col-auto">
-        <select name="department_id" class="form-select">
-            <option value="">Tous les départements</option>
-            @foreach($departements as $dep)
-            <option value="{{ $dep->id }}" {{ request('department_id') == $dep->id ? 'selected' : '' }}>
-                {{ $dep->name }}
-            </option>
-            @endforeach
-        </select>
-    </div>
-    <div class="col-auto">
-        <input type="date" name="date_debut" class="form-control" value="{{ request('date_debut') }}">
-    </div>
-    <div class="col-auto">
-        <input type="date" name="date_fin" class="form-control" value="{{ request('date_fin') }}">
-    </div>
-    <div class="col-auto">
-        <button type="submit" class="btn app-btn-secondary">Filtrer</button>
-    </div>
-    @if(request('search') || request('type_contrat') || request('department_id') || request('date_debut') || request('date_fin'))
-    <div class="col-auto">
-        <a href="{{ route('contrat.index') }}" class="btn btn-outline-secondary">Réinitialiser</a>
-    </div>
-    @endif
-</form>
-
-<div class="app-card app-card-orders-table shadow-sm mb-5">
+<div class="app-card shadow-sm mb-5">
     <div class="app-card-body">
         <div class="table-responsive">
-            <table class="table app-table-hover mb-0 text-left">
+            <table class="table app-table-hover mb-0">
                 <thead>
                     <tr>
                         <th>#</th>
-                        <th>Employé</th>
-                        <th>Département</th>
-                        <th>Statut</th>
-                        <th>Date début</th>
-                        <th>Date fin</th>
-                        <th>RIB</th>
-                        <th>CNSS</th>
-                        <th>Type</th>
+                        <th>Nom complet</th>
+                        <th>Rôle</th>
+                        <th>Permissions</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($contrats as $contrat)
-                    @php
-                        $today   = \Carbon\Carbon::today();
-                        $dateFin = null;
-                        $jours   = null;
-
-                        if ($contrat->end_date) {
-                            try {
-                                $dateFin = \Carbon\Carbon::parse($contrat->end_date);
-                                $jours   = $today->diffInDays($dateFin, false);
-                            } catch (\Exception $e) {}
-                        }
-
-                        if (!$dateFin) {
-                            $badge = '<span class="badge" style="background:#19a891">Actif</span>';
-                        } elseif ($jours < 0) {
-                            $badge = '<span class="badge bg-danger">Expiré</span>';
-                        } elseif ($jours <= 7) {
-                            $badge = '<span class="badge bg-warning text-dark">Expire dans '.$jours.'j</span>';
-                        } else {
-                            $badge = '<span class="badge" style="background:#19a891">Actif</span>';
-                        }
-
-                        $startFormatted = $contrat->start_date
-                            ? \Carbon\Carbon::parse($contrat->start_date)->format('Y-m-d')
-                            : '';
-                        $endFormatted = $contrat->end_date
-                            ? \Carbon\Carbon::parse($contrat->end_date)->format('Y-m-d')
-                            : '';
-                    @endphp
-                    <tr class="{{ $jours !== null && $jours <= 7 && $jours >= 0 ? 'table-warning' : ($jours !== null && $jours < 0 ? 'table-danger' : '') }}">
-                        <td>{{ ($contrats->currentPage() - 1) * $contrats->perPage() + $loop->iteration }}</td>
-                        <td>{{ $contrat->last_name }} {{ $contrat->first_name }}</td>
-                        <td>{{ $contrat->departement->name ?? '-' }}</td>
-                        <td>{!! $badge !!}</td>
-                        <td>{{ $contrat->start_date ? \Carbon\Carbon::parse($contrat->start_date)->format('d/m/Y') : '-' }}</td>
-                        <td>{{ $contrat->end_date ? \Carbon\Carbon::parse($contrat->end_date)->format('d/m/Y') : '—' }}</td>
+                    @forelse($admins as $admin)
+                    <tr>
+                        <td>{{ ($admins->currentPage() - 1) * $admins->perPage() + $loop->iteration }}</td>
+                        <td>{{ $admin->name }}</td>
                         <td>
-                            @if($contrat->rib_image)
-                                @php $ext = pathinfo($contrat->rib_image, PATHINFO_EXTENSION); @endphp
-                                @if(in_array(strtolower($ext), ['jpg','jpeg','png','gif','webp']))
-                                    <a href="{{ asset('storage/' . $contrat->rib_image) }}" target="_blank">
-                                        <img src="{{ asset('storage/' . $contrat->rib_image) }}"
-                                             alt="RIB" style="width:60px; height:40px; object-fit:cover; border-radius:4px; border:1px solid #ddd;">
-                                    </a>
-                                @else
-                                    <a href="{{ asset('storage/' . $contrat->rib_image) }}" target="_blank"
-                                       class="btn btn-sm btn-outline-secondary">📄 PDF</a>
-                                @endif
+                            @php $role = $admin->getRoleNames()->first() @endphp
+                            @if($role === 'admin')
+                                <span class="badge" style="background:#6c3483; color:white">Admin</span>
+                            @elseif($role === 'rh')
+                                <span class="badge" style="background:#19a891; color:white">RH</span>
+                            @elseif($role === 'manager')
+                                <span class="badge" style="background:#e67e22; color:white">Manager</span>
+                            @elseif($role === 'employer')
+                                <span class="badge" style="background:#2980b9; color:white">Employer</span>
                             @else
-                                <span class="text-muted">-</span>
+                                <span class="badge bg-secondary">Aucun rôle</span>
                             @endif
                         </td>
-                        <td>{{ $contrat->cnss ?? '-' }}</td>
-                        <td>{{ $contrat->contract_type ?? '-' }}</td>
                         <td>
-                            <div class="d-flex gap-1">
-                                <button class="btn btn-sm btn-outline-secondary"
-                                    onclick="openEditContrat(
-                                        {{ $contrat->id }},
-                                        '{{ addslashes($contrat->contract_type) }}',
-                                        '{{ addslashes($contrat->cnss ?? '') }}',
-                                        '{{ addslashes($contrat->rib ?? '') }}',
-                                        '{{ $startFormatted }}',
-                                        '{{ $endFormatted }}'
-                                    )">Éditer</button>
-                                <a href="{{ route('contrat.delete', $contrat->id) }}"
-                                    class="btn btn-sm btn-outline-danger"
-                                    onclick="return confirm('Supprimer ce contrat ?')">Supprimer</a>
-                                <a href="{{ route('contrat.pdf', $contrat->id) }}"
-                                    class="btn btn-sm btn-outline-info"
-                                    title="Télécharger PDF">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                                        <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                                        <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-                                    </svg>
-                                </a>
-                            </div>
+                            @php $userPermissions = $admin->getAllPermissions()->pluck('name') @endphp
+                            @if($userPermissions->isEmpty())
+                                <span class="text-muted small">Aucune permission</span>
+                            @else
+                                <div style="display:flex; flex-wrap:wrap; gap:4px;">
+                                    @foreach($userPermissions as $perm)
+                                        <span class="badge" style="background:#f0f0f0; color:#333; font-size:10px; border:1px solid #ddd">
+                                            {{ $perm }}
+                                        </span>
+                                    @endforeach
+                                </div>
+                            @endif
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-secondary me-1"
+                                data-bs-toggle="modal"
+                                data-bs-target="#modalEdit{{ $admin->id }}">
+                                Éditer
+                            </button>
+                            <form action="{{ route('administrateurs.delete', $admin->id) }}"
+                                method="POST" style="display:inline"
+                                onsubmit="return confirm('Supprimer ce membre ?')">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Supprimer</button>
+                            </form>
                         </td>
                     </tr>
+
+                    {{-- Modal Edit --}}
+                    <div class="modal fade" id="modalEdit{{ $admin->id }}" tabindex="-1">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Modifier — {{ $admin->name }}</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <form action="{{ route('administrateurs.update', $admin->id) }}" method="POST">
+                                    @csrf
+                                    @method('PUT')
+                                    <div class="modal-body">
+                                        <div class="mb-3">
+                                            <label class="form-label">Nom</label>
+                                            <input type="text" name="name" class="form-control"
+                                                value="{{ $admin->name }}" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Email</label>
+                                            <input type="email" name="email" class="form-control"
+                                                value="{{ $admin->email }}" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Rôle</label>
+                                            <select name="role" class="form-select" required>
+                                                <option value="admin"    {{ $admin->hasRole('admin')    ? 'selected' : '' }}>Admin</option>
+                                                <option value="rh"       {{ $admin->hasRole('rh')       ? 'selected' : '' }}>RH</option>
+                                                <option value="manager"  {{ $admin->hasRole('manager')  ? 'selected' : '' }}>Manager</option>
+                                                <option value="employer" {{ $admin->hasRole('employer') ? 'selected' : '' }}>Employer</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label fw-semibold">Permissions</label>
+                                            <div class="border rounded p-3" style="max-height:220px; overflow-y:auto; background:#f9f9f9;">
+                                                <div class="row g-2">
+                                                    @foreach($permissions as $permission)
+                                                    <div class="col-6 col-md-4">
+                                                        <div class="form-check">
+                                                            <input class="form-check-input perm-edit-{{ $admin->id }}"
+                                                                type="checkbox"
+                                                                name="permissions[]"
+                                                                value="{{ $permission->name }}"
+                                                                id="perm_edit_{{ $admin->id }}_{{ $permission->id }}"
+                                                                {{ $admin->hasPermissionTo($permission->name) ? 'checked' : '' }}>
+                                                            <label class="form-check-label small"
+                                                                for="perm_edit_{{ $admin->id }}_{{ $permission->id }}">
+                                                                {{ $permission->name }}
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    @endforeach
+                                                </div>
+                                            </div>
+                                            <div class="mt-2 d-flex gap-2">
+                                                <button type="button" class="btn btn-sm btn-outline-primary"
+                                                    onclick="toggleAll('perm-edit-{{ $admin->id }}', true)">
+                                                    ✅ Tout cocher
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary"
+                                                    onclick="toggleAll('perm-edit-{{ $admin->id }}', false)">
+                                                    ❌ Tout décocher
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                        <button type="submit" class="btn app-btn-primary">Mettre à jour</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
                     @empty
                     <tr>
-                        <td colspan="10" class="text-center text-muted py-5">Aucun contrat trouvé.</td>
+                        <td colspan="5" class="text-center text-muted">Aucun membre ajouté</td>
                     </tr>
                     @endforelse
                 </tbody>
@@ -193,100 +170,71 @@
 </div>
 
 <nav class="app-pagination">
-    {{ $contrats->links() }}
+    {{ $admins->links() }}
 </nav>
 
-{{-- Modal Ajout Contrat --}}
-<div class="modal fade" id="modalAjoutContrat" tabindex="-1" aria-hidden="true">
+{{-- Modal Ajout --}}
+<div class="modal fade" id="modalAjout" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title fw-bold">Ajouter un contrat</h5>
+                <h5 class="modal-title">Ajouter un membre</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form action="{{ route('contrat.store') }}" method="POST">
+            <form action="{{ route('administrateurs.store') }}" method="POST">
                 @csrf
                 <div class="modal-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Employé <span class="text-danger">*</span></label>
-                            <select name="employer_id" class="form-select" required>
-                                <option value="">-- Choisir un employé --</option>
-                                @foreach($employers as $employer)
-                                    <option value="{{ $employer->id }}">
-                                        {{ $employer->last_name }} {{ $employer->first_name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Type de contrat <span class="text-danger">*</span></label>
-                            <select name="type_contrat" class="form-select" required>
-                                <option value="">-- Choisir --</option>
-                                <option value="CDI">CDI</option>
-                                <option value="CDD">CDD</option>
-                                <option value="CIVP">CIVP</option>
-                                <option value="Karama">Karama</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Date de début <span class="text-danger">*</span></label>
-                            <input type="date" name="date_debut" class="form-control" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Date de fin</label>
-                            <input type="date" name="date_fin" class="form-control">
-                        </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nom</label>
+                        <input type="text" name="name" class="form-control" required>
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn app-btn-primary">Enregistrer</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-{{-- Modal Edit Contrat --}}
-<div class="modal fade" id="modalEditContrat" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold">Modifier le contrat</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form id="editContratForm" action="" method="POST">
-                @csrf
-                @method('PUT')
-                <div class="modal-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Type de contrat <span class="text-danger">*</span></label>
-                            <select name="type_contrat" id="edit_type_contrat" class="form-select" required>
-                                <option value="">-- Choisir --</option>
-                                @foreach(['CDI','CDD','CIVP','Karama'] as $type)
-                                    <option value="{{ $type }}">{{ $type }}</option>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" name="email" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mot de passe</label>
+                        <input type="password" name="password" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Rôle</label>
+                        <select name="role" class="form-select" required>
+                            <option value="">-- Choisir --</option>
+                            <option value="admin">Admin</option>
+                            <option value="rh">RH</option>
+                            <option value="manager">Manager</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Permissions</label>
+                        <div class="border rounded p-3" style="max-height:220px; overflow-y:auto; background:#f9f9f9;">
+                            <div class="row g-2">
+                                @foreach($permissions as $permission)
+                                <div class="col-6 col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input perm-add"
+                                            type="checkbox"
+                                            name="permissions[]"
+                                            value="{{ $permission->name }}"
+                                            id="perm_add_{{ $permission->id }}">
+                                        <label class="form-check-label small"
+                                            for="perm_add_{{ $permission->id }}">
+                                            {{ $permission->name }}
+                                        </label>
+                                    </div>
+                                </div>
                                 @endforeach
-                            </select>
+                            </div>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Numéro CNSS</label>
-                            <input type="text" name="cnss" id="edit_cnss" class="form-control"
-                                inputmode="numeric"
-                                oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)">
-                        </div>
-                        <div class="col-md-12">
-                            <label class="form-label">RIB bancaire</label>
-                            <input type="text" name="rib" id="edit_rib" class="form-control" maxlength="23">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Date de début <span class="text-danger">*</span></label>
-                            <input type="date" name="date_debut" id="edit_date_debut" class="form-control" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Date de fin <small class="text-muted">(optionnel)</small></label>
-                            <input type="date" name="date_fin" id="edit_date_fin" class="form-control">
+                        <div class="mt-2 d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-primary"
+                                onclick="toggleAll('perm-add', true)">
+                                ✅ Tout cocher
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary"
+                                onclick="toggleAll('perm-add', false)">
+                                ❌ Tout décocher
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -300,14 +248,8 @@
 </div>
 
 <script>
-function openEditContrat(id, type, cnss, rib, dateDebut, dateFin) {
-    document.getElementById('edit_type_contrat').value = type;
-    document.getElementById('edit_cnss').value         = cnss;
-    document.getElementById('edit_rib').value          = rib;
-    document.getElementById('edit_date_debut').value   = dateDebut;
-    document.getElementById('edit_date_fin').value     = dateFin;
-    document.getElementById('editContratForm').action  = '/contrats/update/' + id;
-    new bootstrap.Modal(document.getElementById('modalEditContrat')).show();
+function toggleAll(cssClass, check) {
+    document.querySelectorAll('.' + cssClass).forEach(cb => cb.checked = check);
 }
 </script>
 

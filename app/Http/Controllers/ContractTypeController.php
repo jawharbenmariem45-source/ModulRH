@@ -2,130 +2,66 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
-use App\Models\Departement;
-use Carbon\Carbon;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Models\ContractType;
 use Illuminate\Http\Request;
 
-class ContractController extends Controller
+class ContractTypeController extends Controller
 {
-    public function index(Request $request)
+    public function index()
     {
-        $companyId = auth()->user()->company_id;
-        $query     = User::role('employer')
-                         ->with('departement')
-                         ->where('company_id', $companyId);
-
-        if ($request->filled('type_contrat')) {
-            $query->where('contract_type', $request->type_contrat);
-        }
-        if ($request->filled('department_id')) {
-            $query->where('departement_id', $request->department_id);
-        }
-        if ($request->filled('date_debut')) {
-            $query->where('start_date', '>=', $request->date_debut);
-        }
-        if ($request->filled('date_fin')) {
-            $query->where('end_date', '<=', $request->date_fin);
-        }
-        if ($request->filled('search')) {
-            $search = trim($request->search);
-            $mots   = array_filter(explode(' ', $search));
-            $query->where(function ($q) use ($search, $mots) {
-                $q->where('last_name', 'like', "%$search%")
-                  ->orWhere('first_name', 'like', "%$search%")
-                  ->orWhere('email', 'like', "%$search%");
-                if (count($mots) >= 2) {
-                    $q->orWhere(function ($sub) use ($mots) {
-                        foreach ($mots as $mot) {
-                            $sub->where(function ($inner) use ($mot) {
-                                $inner->where('last_name', 'like', "%$mot%")
-                                      ->orWhere('first_name', 'like', "%$mot%");
-                            });
-                        }
-                    });
-                }
-            });
-        }
-
-        $contrats     = $query->paginate(10)->withQueryString();
-        $departements = Departement::all();
-        $employers    = User::role('employer')
-                            ->where('company_id', $companyId)
-                            ->orderBy('last_name')
-                            ->get();
-
-        // Alertes séparées — pas de filter() sur le paginator
-        $alertes = User::role('employer')
-            ->where('company_id', $companyId)
-            ->whereNotNull('end_date')
-            ->whereRaw('end_date >= ?', [Carbon::today()])
-            ->whereRaw('end_date <= ?', [Carbon::today()->addDays(7)])
-            ->get();
-
-        return view('contrats.index', compact('contrats', 'departements', 'alertes', 'employers'));
+        $contracts = ContractType::all();
+        return view('admins.contrats.index', compact('contracts'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'employer_id'  => 'required|exists:users,id',
-            'type_contrat' => 'required|in:CDI,CDD,CIVP,Karama',
-            'date_debut'   => 'required|date',
-            'date_fin'     => 'nullable|date|after:date_debut',
+            'name'          => 'required|string|max:255|unique:contract_types,name',
+            'details'       => 'nullable|string',
+            'duration_days' => 'nullable|integer|min:1',
         ]);
 
-        User::find($request->employer_id)->update([
-            'contract_type' => $request->type_contrat,
-            'start_date'    => $request->date_debut,
-            'end_date'      => $request->date_fin,
+        ContractType::create([
+            'name'          => $request->name,
+            'details'       => $request->details,
+            'duration_days' => $request->duration_days,
+            'active'        => true,
         ]);
 
-        return redirect()->route('contrat.index')
-            ->with('success', 'Contrat ajouté avec succès !');
+        return redirect()->route('contracts.index')
+            ->with('success_message', 'Type de contrat ajouté !');
     }
 
-    public function update(Request $request, User $contrat)
+    public function update(Request $request, ContractType $contractType)
     {
         $request->validate([
-            'type_contrat' => 'required|in:CDI,CDD,CIVP,Karama',
-            'rib'          => 'nullable',
-            'cnss'         => 'nullable|digits:10',
-            'date_debut'   => 'required|date',
-            'date_fin'     => 'nullable|date|after:date_debut',
+            'name'          => 'required|string|max:255|unique:contract_types,name,' . $contractType->id,
+            'details'       => 'nullable|string',
+            'duration_days' => 'nullable|integer|min:1',
         ]);
 
-        $contrat->update([
-            'contract_type' => $request->type_contrat,
-            'rib'           => $request->rib,
-            'cnss'          => $request->cnss,
-            'start_date'    => $request->date_debut,
-            'end_date'      => $request->date_fin,
+        $contractType->update([
+            'name'          => $request->name,
+            'details'       => $request->details,
+            'duration_days' => $request->duration_days,
         ]);
 
-        return redirect()->route('contrat.index')
-            ->with('success', 'Contrat mis à jour avec succès !');
+        return redirect()->route('contracts.index')
+            ->with('success_message', 'Type de contrat mis à jour !');
     }
 
-    public function delete(User $contrat)
+    public function destroy(ContractType $contractType)
     {
-        $contrat->update([
-            'contract_type' => null,
-            'rib'           => null,
-            'cnss'          => null,
-            'start_date'    => null,
-            'end_date'      => null,
-        ]);
-
-        return redirect()->route('contrat.index')
-            ->with('success', 'Contrat supprimé avec succès !');
+        $contractType->delete();
+        return redirect()->route('contracts.index')
+            ->with('success_message', 'Type de contrat supprimé !');
     }
 
-    public function downloadPdf(User $contrat)
+    public function toggle(ContractType $contractType)
     {
-        $employer = $contrat;
-        $pdf      = Pdf::loadView('contrats.pdf', compact('employer'));
-        return $pdf->download('contrat-' . $contrat->last_name . '-' . $contrat->first_name . '.pdf');
+        $contractType->update(['active' => !$contractType->active]);
+        $message = $contractType->active ? 'Contrat activé !' : 'Contrat désactivé !';
+        return redirect()->route('contracts.index')
+            ->with('success_message', $message);
     }
 }
