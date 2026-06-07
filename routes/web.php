@@ -50,15 +50,21 @@ Route::middleware(['auth', 'can:view settings'])->prefix('configurations')->grou
 
 // ── Permissions & Rôles ───────────────────────────────────
 Route::middleware('auth')->group(function () {
+
     Route::prefix('permissions')->name('permissions.')->group(function () {
-        Route::get('/', [PermissionController::class, 'index'])->name('index');
-        Route::put('/{user}', [PermissionController::class, 'updateUser'])->name('updateUser');
+        // Routes statiques EN PREMIER
         Route::get('/manage', [PermissionController::class, 'managePermissions'])->name('manage');
         Route::get('/create', [PermissionController::class, 'createPermission'])->name('create');
         Route::post('/store', [PermissionController::class, 'storePermission'])->name('store');
         Route::get('/edit/{permission}', [PermissionController::class, 'editPermission'])->name('edit');
         Route::put('/update/{permission}', [PermissionController::class, 'updatePermission'])->name('update');
         Route::delete('/delete/{permission}', [PermissionController::class, 'deletePermission'])->name('delete');
+
+        // Page principale permissions par rôle
+        Route::get('/', [PermissionController::class, 'index'])->name('index');
+
+        // Mise à jour permissions d'un rôle
+        Route::put('/role/{role}', [PermissionController::class, 'updateRole'])->name('updateRole');
     });
 
     Route::prefix('roles')->name('roles.')->group(function () {

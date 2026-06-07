@@ -3,10 +3,12 @@
 
 <div class="row g-3 mb-4 align-items-center justify-content-between">
     <div class="col-auto">
-        <h1 class="app-page-title mb-0">Permissions des membres</h1>
+        <h1 class="app-page-title mb-0">Permissions par Rôle</h1>
     </div>
     <div class="col-auto d-flex gap-2">
-        <a href="{{ route('roles.manage') }}" class="btn app-btn-secondary btn-sm">Gérer Rôles</a>
+        <a href="{{ route('administrateurs.index') }}" class="btn app-btn-secondary btn-sm">
+            Gérer Membres
+        </a>
     </div>
 </div>
 
@@ -17,34 +19,19 @@
 </div>
 @endif
 
-@php
-$categories = [
-    'Employers'      => ['voir employers', 'ajouter employer', 'modifier employer', 'supprimer employer'],
-    'Contrats'       => ['voir contrats', 'modifier contrat', 'supprimer contrat', 'telecharger contrat pdf'],
-    'Paiements'      => ['voir paiements', 'lancer paiements', 'telecharger facture'],
-    'Congés'         => ['voir conges', 'valider conge', 'refuser conge'],
-    'Départements'   => ['voir departements', 'ajouter departement', 'modifier departement', 'supprimer departement'],
-    'Rôles'          => ['voir roles', 'ajouter role', 'supprimer role'],
-    'Configurations' => ['voir configurations', 'modifier configurations'],
-];
-@endphp
-
 <div class="app-card shadow-sm mb-5">
     <div class="app-card-body">
         <div class="table-responsive">
             <table class="table app-table-hover mb-0">
                 <thead>
                     <tr>
-                        <th style="width:15%">Membre</th>
-                        <th style="width:10%">Rôle</th>
+                        <th style="width:120px">Rôle</th>
                         @foreach($categories as $cat => $perms)
                             <th class="text-center" style="font-size:12px">{{ $cat }}</th>
                         @endforeach
-                        <th>Action</th>
+                        <th style="width:120px">Action</th>
                     </tr>
-                    {{-- Sous-titres permissions --}}
                     <tr class="table-light" style="font-size:10px">
-                        <td></td>
                         <td></td>
                         @foreach($categories as $cat => $perms)
                         <td>
@@ -59,48 +46,60 @@ $categories = [
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($users as $user)
+                    @foreach($roles as $role)
+                    @php
+                        $rolePerms = $role->permissions->pluck('name');
+                    @endphp
+
+                    {{-- Le formulaire est OUTSIDE du tr, les inputs sont liés par form= --}}
+                    <form id="form-role-{{ $role->id }}"
+                          action="{{ route('permissions.updateRole', $role) }}"
+                          method="POST">
+                        @csrf
+                        @method('PUT')
+                    </form>
+
                     <tr>
-                        <form action="{{ route('permissions.updateUser', $user) }}" method="POST">
-                            @csrf @method('PUT')
+                        <td>
+                            @if($role->name === 'admin')
+                                <span class="badge" style="background:#6c3483;color:white;font-size:13px">Admin</span>
+                            @elseif($role->name === 'rh')
+                                <span class="badge" style="background:#19a891;color:white;font-size:13px">RH</span>
+                            @elseif($role->name === 'manager')
+                                <span class="badge" style="background:#e67e22;color:white;font-size:13px">Manager</span>
+                            @elseif($role->name === 'employer')
+                                <span class="badge" style="background:#2980b9;color:white;font-size:13px">Employé</span>
+                            @else
+                                <span class="badge bg-secondary" style="font-size:13px">{{ ucfirst($role->name) }}</span>
+                            @endif
+                        </td>
 
-                            <td>
-                                <strong>{{ $user->name }}</strong>
-                                <div class="text-muted small">{{ $user->email }}</div>
-                            </td>
-                            <td>
-                                @php $role = $user->getRoleNames()->first() @endphp
-                                @if($role === 'admin')
-                                    <span class="badge" style="background:#6c3483; color:white">Admin</span>
-                                @elseif($role === 'rh')
-                                    <span class="badge" style="background:#19a891; color:white">RH</span>
-                                @elseif($role === 'manager')
-                                    <span class="badge" style="background:#e67e22; color:white">Manager</span>
-                                @else
-                                    <span class="badge bg-secondary">{{ $role ?? 'Aucun' }}</span>
-                                @endif
-                            </td>
-
-                            @foreach($categories as $cat => $perms)
-                            <td>
-                                <div class="d-flex flex-column gap-1">
-                                    @foreach($perms as $perm)
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox"
-                                            name="permissions[]" value="{{ $perm }}"
-                                            {{ $user->getAllPermissions()->contains('name', $perm) ? 'checked' : '' }}>
-                                    </div>
-                                    @endforeach
+                        @foreach($categories as $cat => $perms)
+                        <td>
+                            <div class="d-flex flex-column gap-1">
+                                @foreach($perms as $perm)
+                                <div class="form-check" style="min-height:20px">
+                                    {{-- form= lie cet input au formulaire externe --}}
+                                    <input class="form-check-input"
+                                        type="checkbox"
+                                        name="permissions[]"
+                                        value="{{ $perm }}"
+                                        form="form-role-{{ $role->id }}"
+                                        {{ $rolePerms->contains($perm) ? 'checked' : '' }}
+                                        style="accent-color:#19a891">
                                 </div>
-                            </td>
-                            @endforeach
+                                @endforeach
+                            </div>
+                        </td>
+                        @endforeach
 
-                            <td>
-                                <button type="submit" class="btn btn-sm app-btn-primary">
-                                    Enregistrer
-                                </button>
-                            </td>
-                        </form>
+                        <td>
+                            <button type="submit"
+                                form="form-role-{{ $role->id }}"
+                                class="btn btn-sm app-btn-primary">
+                                Enregistrer
+                            </button>
+                        </td>
                     </tr>
                     @endforeach
                 </tbody>
