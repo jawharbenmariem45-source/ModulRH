@@ -26,16 +26,14 @@ class RolesAndPermissionsSeeder extends Seeder
             Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
         }
 
-        // Admin
+        // Admin → types contrats + rôles uniquement
         $admin = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
-        $admin->syncPermissions(
-            Permission::where('guard_name', 'web')
-                ->whereNotIn('name', ['view settings', 'edit settings'])
-                ->pluck('name')
-                ->toArray()
-        );
+        $admin->syncPermissions([
+            'view roles', 'create role', 'delete role',
+            'view settings', 'edit settings',
+        ]);
 
-        // RH
+        // RH → tout sauf rôles et types contrats
         $rh = Role::firstOrCreate(['name' => 'rh', 'guard_name' => 'web']);
         $rh->syncPermissions([
             'view employers', 'create employer', 'edit employer', 'delete employer',
@@ -43,16 +41,15 @@ class RolesAndPermissionsSeeder extends Seeder
             'view payments', 'process payments', 'download invoice',
             'view leaves', 'create leave', 'edit leave', 'approve leave', 'reject leave',
             'view departments', 'create department', 'edit department', 'delete department',
-            'view settings', 'edit settings',
         ]);
 
-        // Manager
+        // Manager → consulter demandes congés
         $manager = Role::firstOrCreate(['name' => 'manager', 'guard_name' => 'web']);
         $manager->syncPermissions([
             'view leaves', 'approve leave', 'reject leave',
         ]);
 
-        // Employer — guard web
+        // Employer → pointage + congés + fiches paie + contrat
         $employer = Role::firstOrCreate(['name' => 'employer', 'guard_name' => 'web']);
         $employer->syncPermissions([
             'view leaves', 'create leave', 'edit leave',
@@ -60,6 +57,6 @@ class RolesAndPermissionsSeeder extends Seeder
             'view contracts', 'download contract pdf',
         ]);
 
-        $this->command->info('✓ Roles and permissions created.');
+        $this->command->info('✓ Roles and permissions créés correctement.');
     }
 }
