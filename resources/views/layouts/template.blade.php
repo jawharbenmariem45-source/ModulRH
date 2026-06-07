@@ -139,9 +139,7 @@
             background: linear-gradient(135deg, var(--rt-primary) 0%, var(--rt-secondary) 100%) !important;
         }
 
-        /* =====================
-           IOS TOGGLE SWITCH
-           ===================== */
+        /* IOS TOGGLE SWITCH */
         button.ios-toggle {
             position: relative !important;
             display: inline-block !important;
@@ -159,12 +157,8 @@
             transition: background 0.3s ease !important;
             outline: none !important;
         }
-        button.ios-toggle.on {
-            background: #19a891 !important;
-        }
-        button.ios-toggle.off {
-            background: #cc0000 !important;
-        }
+        button.ios-toggle.on  { background: #19a891 !important; }
+        button.ios-toggle.off { background: #cc0000 !important; }
         button.ios-toggle .ios-knob {
             position: absolute !important;
             top: 3px !important;
@@ -176,12 +170,8 @@
             transition: left 0.3s ease !important;
             display: block !important;
         }
-        button.ios-toggle.on .ios-knob {
-            left: 31px !important;
-        }
-        button.ios-toggle.off .ios-knob {
-            left: 3px !important;
-        }
+        button.ios-toggle.on  .ios-knob { left: 31px !important; }
+        button.ios-toggle.off .ios-knob { left: 3px !important; }
     </style>
 
 </head> 
@@ -194,7 +184,7 @@
     
     <div class="app-wrapper">
         <div class="app-content pt-3 p-md-3 p-lg-4">
-            <div class="container-xl">
+            <div class="container-fluid px-3">
                 @yield('content')
             </div>
         </div>

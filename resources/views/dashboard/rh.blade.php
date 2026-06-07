@@ -1,60 +1,61 @@
 @extends('layouts.template')
 
 @section('content')
-<h1 class="app-page-title">Dashboard</h1>
 
-<div class="row mt-2 mb-2 p-2">
-    @if($paymentNotification)
-    <div class="alert alert-warning"><b>Attention : </b>{{ $paymentNotification }}</div>
-    @endif
-    @if($contratsAlertes > 0)
-    <div class="alert alert-warning">
-        ⚠️ <b>{{ $contratsAlertes }} contrat(s)</b> expirent dans les 30 prochains jours !
-        <a href="{{ route('contrat.index') }}" class="alert-link">Voir les contrats</a>
-    </div>
-    @endif
+@php
+    $company    = auth()->user()->company ?? null;
+    $nomCompany = $company?->name ?? 'SummitRise';
+    $baseGlobal = 'https://app.powerbi.com/reportEmbed?reportId=0643e799-939f-40b1-a5ba-be88ef722437&autoAuth=true&ctid=b7bd4715-4217-48c7-919e-2ea97f592fa7';
+    $baseDetail = 'https://app.powerbi.com/reportEmbed?reportId=fea33fef-12d4-44ba-88f9-0f1429d34768&autoAuth=true&ctid=b7bd4715-4217-48c7-919e-2ea97f592fa7';
+    $filtre     = '&filterPaneEnabled=false&navContentPaneEnabled=false&filter=dim_employer/nom_company eq \'' . urlencode($nomCompany) . '\'';
+    $urlGlobal  = $baseGlobal . $filtre;
+    $urlDetail  = $baseDetail . $filtre;
+@endphp
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h1 class="app-page-title mb-0">Dashboard RH</h1>
+    <ul class="nav nav-tabs border-0" id="dashboardTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="global-tab"
+                data-bs-toggle="tab" data-bs-target="#global"
+                type="button" role="tab">
+                📊 Vue Globale
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="detaille-tab"
+                data-bs-toggle="tab" data-bs-target="#detaille"
+                type="button" role="tab">
+                🔍 Vue Détaillée
+            </button>
+        </li>
+    </ul>
 </div>
 
-<div class="row g-4 mb-4">
-    <div class="col-6 col-lg-3">
-        <div class="app-card app-card-stat shadow-sm h-100">
-            <div class="app-card-body p-3 p-lg-4">
-                <h4 class="stats-type mb-1">Total Employers</h4>
-                <div class="stats-figure">{{ $totalEmployers }}</div>
-            </div>
-            <a class="app-card-link-mask" href="{{ route('employer.index') }}"></a>
-        </div>
+<div class="tab-content" id="dashboardTabsContent">
+
+    {{-- Vue Globale --}}
+    <div class="tab-pane fade show active" id="global" role="tabpanel">
+        <iframe
+            title="Dashboard Rh"
+            src="{{ $urlGlobal }}"
+            frameborder="0"
+            allowFullScreen="true"
+            style="width:100%; height:calc(100vh - 160px); min-height:700px; display:block; border:none;">
+        </iframe>
     </div>
-    <div class="col-6 col-lg-3">
-        <div class="app-card app-card-stat shadow-sm h-100">
-            <div class="app-card-body p-3 p-lg-4">
-                <h4 class="stats-type mb-1">Contrats Expirant</h4>
-                <div class="stats-figure {{ $contratsAlertes > 0 ? 'text-warning' : '' }}">
-                    {{ $contratsAlertes }}
-                </div>
-            </div>
-            <a class="app-card-link-mask" href="{{ route('contrat.index') }}"></a>
-        </div>
+
+    {{-- Vue Détaillée --}}
+    <div class="tab-pane fade" id="detaille" role="tabpanel">
+        <iframe
+            title="Dashboard Rh Détaillé"
+            src="{{ $urlDetail }}"
+            frameborder="0"
+            allowFullScreen="true"
+            style="width:100%; height:calc(100vh - 160px); min-height:700px; display:block; border:none;">
+        </iframe>
     </div>
-    <div class="col-6 col-lg-3">
-        <div class="app-card app-card-stat shadow-sm h-100">
-            <div class="app-card-body p-3 p-lg-4">
-                <h4 class="stats-type mb-1">Congés en attente</h4>
-                <div class="stats-figure {{ $congesEnAttente > 0 ? 'text-warning' : '' }}">
-                    {{ $congesEnAttente }}
-                </div>
-            </div>
-            <a class="app-card-link-mask" href="{{ route('conge.index') }}"></a>
-        </div>
-    </div>
-    <div class="col-6 col-lg-3">
-        <div class="app-card app-card-stat shadow-sm h-100">
-            <div class="app-card-body p-3 p-lg-4">
-                <h4 class="stats-type mb-1">Paiements ce mois</h4>
-                <div class="stats-figure">{{ $paiementsMoisActuel }}</div>
-            </div>
-            <a class="app-card-link-mask" href=""></a>
-        </div>
-    </div>
+
 </div>
+
 @endsection

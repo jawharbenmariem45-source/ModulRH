@@ -16,6 +16,8 @@ class UserSeeder extends Seeder
         $company1     = Company::where('name', 'SummitRise')->first();
         $deptProd     = Departement::where('name', 'Production')->first();
         $posteTech    = Poste::where('name', 'Technicien')->first();
+        
+        $deptDirection = Departement::where('name', 'Direction')->first();
 
         // Admin
         $admin = User::updateOrCreate(
@@ -39,13 +41,13 @@ class UserSeeder extends Seeder
         );
         $rh->syncRoles(['rh']);
 
-        // Manager
         $manager = User::updateOrCreate(
             ['email' => 'manager@gmail.com'],
             [
-                'name'       => 'Manager',
-                'password'   => Hash::make('123456'),
-                'company_id' => $company1?->id,
+                'name'           => 'Manager',
+                'password'       => Hash::make('123456'),
+                'company_id'     => $company1?->id,
+                'departement_id' => $deptDirection?->id, 
             ]
         );
         $manager->syncRoles(['manager']);
