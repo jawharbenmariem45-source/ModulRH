@@ -52,18 +52,13 @@ Route::middleware(['auth', 'can:view settings'])->prefix('configurations')->grou
 Route::middleware('auth')->group(function () {
 
     Route::prefix('permissions')->name('permissions.')->group(function () {
-        // Routes statiques EN PREMIER
         Route::get('/manage', [PermissionController::class, 'managePermissions'])->name('manage');
         Route::get('/create', [PermissionController::class, 'createPermission'])->name('create');
         Route::post('/store', [PermissionController::class, 'storePermission'])->name('store');
         Route::get('/edit/{permission}', [PermissionController::class, 'editPermission'])->name('edit');
         Route::put('/update/{permission}', [PermissionController::class, 'updatePermission'])->name('update');
         Route::delete('/delete/{permission}', [PermissionController::class, 'deletePermission'])->name('delete');
-
-        // Page principale permissions par rôle
         Route::get('/', [PermissionController::class, 'index'])->name('index');
-
-        // Mise à jour permissions d'un rôle
         Route::put('/role/{role}', [PermissionController::class, 'updateRole'])->name('updateRole');
     });
 
@@ -92,9 +87,11 @@ Route::middleware(['auth', 'can:view contracts'])->prefix('contrats')->name('con
     Route::get('/', [ContractController::class, 'index'])->name('index');
     Route::post('/store', [ContractController::class, 'store'])->name('store');
     Route::get('/edit/{contrat}', [ContractController::class, 'edit'])->name('edit');
-    Route::put('/update/{contrat}', [ContractController::class, 'update'])->name('update');
     Route::get('/delete/{contrat}', [ContractController::class, 'delete'])->name('delete');
     Route::get('/pdf/{contrat}', [ContractController::class, 'downloadPdf'])->name('pdf');
+
+    // ← POST au lieu de PUT pour le fetch AJAX
+    Route::post('/update/{contrat}', [ContractController::class, 'update'])->name('update');
 });
 
 // ── Types de contrats ─────────────────────────────────────
@@ -159,12 +156,10 @@ Route::middleware('auth')->prefix('espace-employe')->name('employer_space.')->gr
 
     Route::get('/dashboard', fn() => redirect()->route('dashboard'))->name('dashboard');
 
-    // Paiements employé
     Route::get('/paiements', [EmployerDashboardController::class, 'paiements'])->name('paiements');
     Route::get('/paiements/pdf/{payment}', [EmployerDashboardController::class, 'downloadPaiement'])->name('paiements.pdf');
     Route::get('/paiements/preview/{payment}', [EmployerDashboardController::class, 'previewPaiement'])->name('paiements.preview');
 
-    // Congés employé
     Route::get('/conges', [EmployerDashboardController::class, 'conges'])->name('conges');
     Route::get('/conges/create', [EmployerDashboardController::class, 'createConge'])->name('conges.create');
     Route::post('/conges/store', [EmployerDashboardController::class, 'storeConge'])->name('conges.store');
@@ -172,10 +167,8 @@ Route::middleware('auth')->prefix('espace-employe')->name('employer_space.')->gr
     Route::put('/conges/update/{conge}', [EmployerDashboardController::class, 'updateConge'])->name('conges.update');
     Route::delete('/conges/delete/{conge}', [EmployerDashboardController::class, 'deleteConge'])->name('conges.delete');
 
-    // Contrat employé
     Route::get('/contrat', [EmployerDashboardController::class, 'contrat'])->name('contrat');
 
-    // Pointage employé
     Route::get('/pointage', [PointageController::class, 'index'])->name('pointage.index');
     Route::post('/pointage/check-in-matin', [PointageController::class, 'checkInMatin'])->name('pointage.check_in_matin');
     Route::post('/pointage/check-out-matin', [PointageController::class, 'checkOutMatin'])->name('pointage.check_out_matin');

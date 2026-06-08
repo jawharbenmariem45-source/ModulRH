@@ -19,7 +19,7 @@ class PointageController extends Controller
             ->first();
 
         $historique = Attendance::where('user_id', $user->id)
-            ->whereMonth('date', Carbon::now()->month)
+            ->whereYear('date', Carbon::now()->year)
             ->orderBy('date', 'desc')
             ->get();
 

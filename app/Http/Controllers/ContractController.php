@@ -12,13 +12,17 @@ class ContractController extends Controller
 {
     public function index(Request $request)
     {
-        $companyId = auth()->user()->company_id;
+        $user      = auth()->user();
+        $companyId = $user->company_id;
 
         $query = User::whereHas('roles', function ($q) {
                 $q->where('name', 'employer');
             })
-            ->with('departement')
-            ->where('company_id', $companyId);
+            ->with('departement');
+
+        if (!$user->hasRole('admin')) {
+            $query->where('company_id', $companyId);
+        }
 
         if ($request->filled('type_contrat')) {
             $query->where('contract_type', $request->type_contrat);
@@ -55,23 +59,32 @@ class ContractController extends Controller
         $contrats     = $query->orderBy('last_name')->paginate(10)->withQueryString();
         $departements = Departement::all();
 
-        $employers = User::whereHas('roles', function ($q) {
-                $q->where('name', 'employer');
-            })
-            ->where('company_id', $companyId)
-            ->orderBy('last_name')
-            ->get();
+        $employersQuery = User::whereHas('roles', function ($q) {
+            $q->where('name', 'employer');
+        });
+        if (!$user->hasRole('admin')) {
+            $employersQuery->where('company_id', $companyId);
+        }
+        $employers = $employersQuery->orderBy('last_name')->get();
 
-        $alertes = User::whereHas('roles', function ($q) {
-                $q->where('name', 'employer');
-            })
-            ->where('company_id', $companyId)
-            ->whereNotNull('end_date')
-            ->whereRaw('end_date >= ?', [Carbon::today()])
-            ->whereRaw('end_date <= ?', [Carbon::today()->addDays(7)])
-            ->get();
+        $alertesQuery = User::whereHas('roles', function ($q) {
+            $q->where('name', 'employer');
+        })
+        ->whereNotNull('end_date')
+        ->whereRaw('end_date >= ?', [Carbon::today()])
+        ->whereRaw('end_date <= ?', [Carbon::today()->addDays(7)]);
+        if (!$user->hasRole('admin')) {
+            $alertesQuery->where('company_id', $companyId);
+        }
+        $alertes = $alertesQuery->get();
 
         return view('contrats.index', compact('contrats', 'departements', 'alertes', 'employers'));
+    }
+
+    public function edit(User $contrat)
+    {
+        $employer = $contrat;
+        return view('contrats.edit', compact('employer'));
     }
 
     public function store(Request $request)
@@ -80,7 +93,7 @@ class ContractController extends Controller
             'employer_id'  => 'required|exists:users,id',
             'type_contrat' => 'required|in:CDI,CDD,CIVP,Karama',
             'date_debut'   => 'required|date',
-            'date_fin'     => 'nullable|date|after:date_debut',
+            'date_fin'     => 'nullable|date',
         ]);
 
         User::find($request->employer_id)->update([
@@ -98,9 +111,9 @@ class ContractController extends Controller
         $request->validate([
             'type_contrat' => 'required|in:CDI,CDD,CIVP,Karama',
             'rib'          => 'nullable',
-            'cnss'         => 'nullable|digits:10',
+            'cnss'         => 'nullable',
             'date_debut'   => 'required|date',
-            'date_fin'     => 'nullable|date|after:date_debut',
+            'date_fin'     => 'nullable|date',
         ]);
 
         $contrat->update([

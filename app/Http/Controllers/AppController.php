@@ -29,10 +29,10 @@ class AppController extends Controller
 
     private function dashboardAdmin()
     {
+        $totalCompanies       = Company::count();
         $totalDepartements    = Departement::count();
         $totalEmployers       = User::role('employer')->count();
         $totalAdministrateurs = User::count();
-        $paymentNotification  = '';
 
         $contratsAlertes = User::role('employer')
             ->whereNotNull('end_date')
@@ -40,10 +40,18 @@ class AppController extends Controller
             ->whereDate('end_date', '<=', Carbon::today()->addDays(7))
             ->count();
 
+        $congesEnAttente = Conge::where('status', 'En attente')->count();
+
+        $companies = Company::withCount([
+            'users as total_employers' => fn($q) => $q->whereHas('roles',
+                fn($r) => $r->where('name', 'employer')
+            )
+        ])->get();
+
         return view('dashboard.admin', compact(
-            'totalDepartements', 'totalEmployers',
-            'totalAdministrateurs', 'paymentNotification',
-            'contratsAlertes'
+            'totalCompanies', 'totalDepartements', 'totalEmployers',
+            'totalAdministrateurs', 'contratsAlertes', 'congesEnAttente',
+            'companies'
         ));
     }
 

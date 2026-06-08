@@ -13,7 +13,6 @@
 @endphp
 
 <div class="d-flex align-items-center justify-content-between mb-3">
-    <h1 class="app-page-title mb-0">Dashboard RH</h1>
     <ul class="nav nav-tabs border-0" id="dashboardTabs" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active" id="global-tab"
@@ -41,7 +40,8 @@
             src="{{ $urlGlobal }}"
             frameborder="0"
             allowFullScreen="true"
-            style="width:100%; height:calc(100vh - 160px); min-height:700px; display:block; border:none;">
+            style="width:100%; height:calc(100vh - 120px); min-height:700px; display:block; border:none;">
+
         </iframe>
     </div>
 
@@ -52,7 +52,7 @@
             src="{{ $urlDetail }}"
             frameborder="0"
             allowFullScreen="true"
-            style="width:100%; height:calc(100vh - 160px); min-height:700px; display:block; border:none;">
+            style="width:100%; height:calc(100vh - 120px); min-height:700px; display:block; border:none;">
         </iframe>
     </div>
 

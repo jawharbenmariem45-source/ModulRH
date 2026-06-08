@@ -41,7 +41,7 @@
 @endif
 
 {{-- Filtres --}}
-<form method="GET" action="{{ route('contrat.index') }}" class="row g-2 mb-4 align-items-center">
+<form id="filtreForm" method="GET" action="{{ route('contrat.index') }}" class="row g-2 mb-4 align-items-center">
     <div class="col-auto">
         <input type="text" name="search" class="form-control"
             placeholder="Rechercher..." value="{{ request('search') }}">
@@ -158,15 +158,15 @@
                         <td>{{ $contrat->contract_type ?? '-' }}</td>
                         <td>
                             <div class="d-flex gap-1">
-                                <button class="btn btn-sm btn-outline-secondary"
-                                    onclick="openEditContrat(
-                                        {{ $contrat->id }},
-                                        '{{ addslashes($contrat->contract_type) }}',
-                                        '{{ addslashes($contrat->cnss ?? '') }}',
-                                        '{{ addslashes($contrat->rib ?? '') }}',
-                                        '{{ $startFormatted }}',
-                                        '{{ $endFormatted }}'
-                                    )">Éditer</button>
+                                <button type="button"
+                                    class="btn btn-sm btn-outline-secondary"
+                                    data-id="{{ $contrat->id }}"
+                                    data-type="{{ $contrat->contract_type }}"
+                                    data-cnss="{{ $contrat->cnss ?? '' }}"
+                                    data-rib="{{ $contrat->rib ?? '' }}"
+                                    data-debut="{{ $startFormatted }}"
+                                    data-fin="{{ $endFormatted }}"
+                                    onclick="openEditContrat(this)">Éditer</button>
                                 <a href="{{ route('contrat.delete', $contrat->id) }}"
                                     class="btn btn-sm btn-outline-danger"
                                     onclick="return confirm('Supprimer ce contrat ?')">Supprimer</a>
@@ -204,46 +204,46 @@
                 <h5 class="modal-title fw-bold">Ajouter un contrat</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form action="{{ route('contrat.store') }}" method="POST">
-                @csrf
-                <div class="modal-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Employé <span class="text-danger">*</span></label>
-                            <select name="employer_id" class="form-select" required>
-                                <option value="">-- Choisir un employé --</option>
-                                @foreach($employers as $employer)
-                                    <option value="{{ $employer->id }}">
-                                        {{ $employer->last_name }} {{ $employer->first_name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Type de contrat <span class="text-danger">*</span></label>
-                            <select name="type_contrat" class="form-select" required>
-                                <option value="">-- Choisir --</option>
-                                <option value="CDI">CDI</option>
-                                <option value="CDD">CDD</option>
-                                <option value="CIVP">CIVP</option>
-                                <option value="Karama">Karama</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Date de début <span class="text-danger">*</span></label>
-                            <input type="date" name="date_debut" class="form-control" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Date de fin</label>
-                            <input type="date" name="date_fin" class="form-control">
-                        </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Employé <span class="text-danger">*</span></label>
+                        <select id="add_employer_id" class="form-select">
+                            <option value="">-- Choisir un employé --</option>
+                            @foreach($employers as $employer)
+                                <option value="{{ $employer->id }}">
+                                    {{ $employer->last_name }} {{ $employer->first_name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Type de contrat <span class="text-danger">*</span></label>
+                        <select id="add_type_contrat" class="form-select"
+                            onchange="toggleDateFin('add_date_fin', this.value)">
+                            <option value="">-- Choisir --</option>
+                            <option value="CDI">CDI</option>
+                            <option value="CDD">CDD</option>
+                            <option value="CIVP">CIVP</option>
+                            <option value="Karama">Karama</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Date de début <span class="text-danger">*</span></label>
+                        <input type="date" id="add_date_debut" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Date de fin <small class="text-muted">(optionnel)</small></label>
+                        <input type="date" id="add_date_fin" class="form-control">
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn app-btn-primary">Enregistrer</button>
-                </div>
-            </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn app-btn-primary" onclick="submitAddContrat()">
+                    Enregistrer
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -256,58 +256,124 @@
                 <h5 class="modal-title fw-bold">Modifier le contrat</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form id="editContratForm" action="" method="POST">
-                @csrf
-                @method('PUT')
-                <div class="modal-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Type de contrat <span class="text-danger">*</span></label>
-                            <select name="type_contrat" id="edit_type_contrat" class="form-select" required>
-                                <option value="">-- Choisir --</option>
-                                @foreach(['CDI','CDD','CIVP','Karama'] as $type)
-                                    <option value="{{ $type }}">{{ $type }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Numéro CNSS</label>
-                            <input type="text" name="cnss" id="edit_cnss" class="form-control"
-                                inputmode="numeric"
-                                oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)">
-                        </div>
-                        <div class="col-md-12">
-                            <label class="form-label">RIB bancaire</label>
-                            <input type="text" name="rib" id="edit_rib" class="form-control" maxlength="23">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Date de début <span class="text-danger">*</span></label>
-                            <input type="date" name="date_debut" id="edit_date_debut" class="form-control" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Date de fin <small class="text-muted">(optionnel)</small></label>
-                            <input type="date" name="date_fin" id="edit_date_fin" class="form-control">
-                        </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Type de contrat <span class="text-danger">*</span></label>
+                        <select id="edit_type_contrat" class="form-select"
+                            onchange="toggleDateFin('edit_date_fin', this.value)">
+                            <option value="">-- Choisir --</option>
+                            @foreach(['CDI','CDD','CIVP','Karama'] as $type)
+                                <option value="{{ $type }}">{{ $type }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Numéro CNSS</label>
+                        <input type="text" id="edit_cnss" class="form-control"
+                            inputmode="numeric"
+                            oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)">
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">RIB bancaire</label>
+                        <input type="text" id="edit_rib" class="form-control" maxlength="23">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Date de début <span class="text-danger">*</span></label>
+                        <input type="date" id="edit_date_debut" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Date de fin <small class="text-muted">(optionnel)</small></label>
+                        <input type="date" id="edit_date_fin" class="form-control">
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn app-btn-primary">Enregistrer</button>
-                </div>
-            </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn app-btn-primary" onclick="submitEditContrat()">
+                    Enregistrer
+                </button>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
-function openEditContrat(id, type, cnss, rib, dateDebut, dateFin) {
-    document.getElementById('edit_type_contrat').value = type;
-    document.getElementById('edit_cnss').value         = cnss;
-    document.getElementById('edit_rib').value          = rib;
-    document.getElementById('edit_date_debut').value   = dateDebut;
-    document.getElementById('edit_date_fin').value     = dateFin;
-    document.getElementById('editContratForm').action  = '/contrats/update/' + id;
+var csrfToken     = '{{ csrf_token() }}';
+var storeUrl      = '{{ route("contrat.store") }}';
+var editContratId = null;
+
+function toggleDateFin(inputId, type) {
+    const input = document.getElementById(inputId);
+    if (type === 'CDI') {
+        input.value    = '';
+        input.readOnly = true;
+        input.style.background = '#f0f0f0';
+        input.style.cursor     = 'not-allowed';
+    } else {
+        input.readOnly = false;
+        input.style.background = '';
+        input.style.cursor     = '';
+    }
+}
+
+function openEditContrat(btn) {
+    editContratId = btn.dataset.id;
+    document.getElementById('edit_type_contrat').value = btn.dataset.type;
+    document.getElementById('edit_cnss').value         = btn.dataset.cnss;
+    document.getElementById('edit_rib').value          = btn.dataset.rib;
+    document.getElementById('edit_date_debut').value   = btn.dataset.debut;
+    document.getElementById('edit_date_fin').value     = btn.dataset.fin;
+    toggleDateFin('edit_date_fin', btn.dataset.type);
     new bootstrap.Modal(document.getElementById('modalEditContrat')).show();
+}
+
+function submitAddContrat() {
+    const employerId  = document.getElementById('add_employer_id').value;
+    const typeContrat = document.getElementById('add_type_contrat').value;
+    const dateDebut   = document.getElementById('add_date_debut').value;
+    const dateFin     = document.getElementById('add_date_fin').value;
+
+    if (!employerId || !typeContrat || !dateDebut) {
+        alert('Veuillez remplir tous les champs obligatoires.');
+        return;
+    }
+
+    const data = new FormData();
+    data.append('_token',       csrfToken);
+    data.append('employer_id',  employerId);
+    data.append('type_contrat', typeContrat);
+    data.append('date_debut',   dateDebut);
+    data.append('date_fin',     dateFin);
+
+    fetch(storeUrl, { method: 'POST', body: data, redirect: 'follow' })
+    .then(() => { window.location.href = '/contrats'; })
+    .catch(err => { alert('Erreur: ' + err); });
+}
+
+function submitEditContrat() {
+    const typeContrat = document.getElementById('edit_type_contrat').value;
+    const cnss        = document.getElementById('edit_cnss').value;
+    const rib         = document.getElementById('edit_rib').value;
+    const dateDebut   = document.getElementById('edit_date_debut').value;
+    const dateFin     = document.getElementById('edit_date_fin').value;
+
+    if (!typeContrat || !dateDebut) {
+        alert('Veuillez remplir tous les champs obligatoires.');
+        return;
+    }
+
+    const data = new FormData();
+    data.append('_token',       csrfToken);
+    data.append('type_contrat', typeContrat);
+    data.append('cnss',         cnss);
+    data.append('rib',          rib);
+    data.append('date_debut',   dateDebut);
+    data.append('date_fin',     dateFin);
+
+    fetch('/contrats/update/' + editContratId, { method: 'POST', body: data, redirect: 'follow' })
+    .then(() => { window.location.href = '/contrats'; })
+    .catch(err => { alert('Erreur: ' + err); });
 }
 </script>
 

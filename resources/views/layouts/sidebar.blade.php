@@ -16,7 +16,8 @@
         <nav id="app-nav-main" class="app-nav app-nav-main flex-grow-1">
             <ul class="app-menu list-unstyled accordion" id="menu-accordion">
 
-                {{-- Dashboard — tous --}}
+                {{-- Dashboard — pas pour admin --}}
+                @if(!$user->hasRole('admin'))
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
                         <span class="nav-icon">
@@ -28,6 +29,7 @@
                         <span class="nav-link-text">Dashboard</span>
                     </a>
                 </li>
+                @endif
 
                 {{-- Rôles — admin seulement --}}
                 @if($user && $user->hasRole('admin'))
