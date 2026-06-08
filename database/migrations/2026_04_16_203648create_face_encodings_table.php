@@ -8,17 +8,18 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('departements', function (Blueprint $table) {
+        Schema::create('face_encodings', function (Blueprint $table) {
             $table->bigIncrements('id');
-            $table->string('name')->unique();
-            $table->unsignedBigInteger('manager_id')->nullable();
-            $table->foreignId('company_id')->nullable()->constrained('companies')->onDelete('set null');
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->string('image_path');
+            $table->json('encoding');
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('departements');
+        Schema::dropIfExists('face_encodings');
     }
 };

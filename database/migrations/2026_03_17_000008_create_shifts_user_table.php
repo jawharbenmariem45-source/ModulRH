@@ -8,17 +8,16 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('departements', function (Blueprint $table) {
+        Schema::create('shift_user', function (Blueprint $table) {
             $table->bigIncrements('id');
-            $table->string('name')->unique();
-            $table->unsignedBigInteger('manager_id')->nullable();
-            $table->foreignId('company_id')->nullable()->constrained('companies')->onDelete('set null');
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('shift_id')->constrained('shifts')->onDelete('cascade');
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('departements');
+        Schema::dropIfExists('shift_user');
     }
 };

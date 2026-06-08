@@ -9,10 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('postes', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('departement_id')->constrained('departements')->onDelete('cascade');
-            $table->string('name', 191);
-            $table->string('description', 191)->nullable();
+             $table->bigIncrements('id');
+            $table->string('name');
+            $table->foreignId('company_id')->nullable()->constrained('companies')->onDelete('set null');
             $table->timestamps();
         });
     }
