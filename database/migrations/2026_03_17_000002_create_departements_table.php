@@ -12,7 +12,7 @@ return new class extends Migration
             $table->bigIncrements('id');
             $table->string('name')->unique();
             $table->unsignedBigInteger('manager_id')->nullable();
-            $table->foreignId('company_id')->nullable()->constrained('companies')->onDelete('set null');
+            $table->foreignId('company_id')->constrained()->onDelete('set null');
             $table->timestamps();
         });
     }

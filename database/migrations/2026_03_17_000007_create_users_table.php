@@ -23,7 +23,6 @@ return new class extends Migration
             $table->foreignId('company_id')->nullable()->constrained('companies')->onDelete('set null');
             $table->foreignId('departement_id')->nullable()->constrained('departements')->onDelete('set null');
             $table->foreignId('poste_id')->nullable()->constrained('postes')->onDelete('set null');
-            $table->foreignId('shift_id')->nullable()->constrained('shifts')->onDelete('set null');
 
             // Infos RH
             $table->decimal('salary', 10, 3)->nullable();
