@@ -4,14 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Poste extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $table = 'postes';
 
-    protected $fillable = ['departement_id', 'name', 'description'];
+    protected $fillable = ['departement_id', 'company_id', 'name'];
 
     public function departement()
     {
@@ -23,7 +24,6 @@ class Poste extends Model
         return $this->hasMany(User::class, 'poste_id');
     }
 
-    // Alias compatibilité
     public function employers()
     {
         return $this->users();

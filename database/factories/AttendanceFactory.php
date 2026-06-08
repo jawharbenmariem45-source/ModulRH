@@ -13,71 +13,35 @@ class AttendanceFactory extends Factory
 
     public function definition(): array
     {
-        $status = $this->faker->randomElement([
-            'present', 'present', 'present', 'present',
-            'absent', 'late', 'on_leave',
-        ]);
+        $user = User::role('employer')->inRandomOrder()->first();
+        $date = Carbon::instance($this->faker->dateTimeBetween('-6 months', 'now'));
 
-        $date = Carbon::instance(
-            $this->faker->dateTimeBetween('-6 months', 'now')
-        )->toDateString();
+        $isLate = $this->faker->boolean(20);
+        $heure  = $isLate ? rand(9, 10) : 8;
+        $minute = rand(0, 59);
 
-        $morningCheckIn    = null;
-        $morningCheckOut   = null;
-        $afternoonCheckIn  = null;
-        $afternoonCheckOut = null;
-
-        if (in_array($status, ['present', 'late'])) {
-            $heureEntree = $status === 'late' ? $this->faker->numberBetween(9, 10) : 8;
-            $min = str_pad(rand(0, 59), 2, '0', STR_PAD_LEFT);
-
-            $casIncomplet = $this->faker->randomElement([
-                'complet', 'complet', 'complet', 'complet', 'complet', 'complet',
-                'no_checkout_matin', 'no_checkin_apmidi',
-                'no_checkout_apmidi', 'matin_seulement', 'apmidi_seulement',
-            ]);
-
-            switch ($casIncomplet) {
-                case 'complet':
-                    $morningCheckIn    = $date . ' ' . $heureEntree . ':' . $min . ':00';
-                    $morningCheckOut   = $date . ' 12:' . str_pad(rand(0, 30), 2, '0', STR_PAD_LEFT) . ':00';
-                    $afternoonCheckIn  = $date . ' 13:' . str_pad(rand(0, 30), 2, '0', STR_PAD_LEFT) . ':00';
-                    $afternoonCheckOut = $date . ' 17:' . str_pad(rand(0, 59), 2, '0', STR_PAD_LEFT) . ':00';
-                    break;
-                case 'no_checkout_matin':
-                    $morningCheckIn    = $date . ' ' . $heureEntree . ':' . $min . ':00';
-                    $afternoonCheckIn  = $date . ' 13:' . str_pad(rand(0, 30), 2, '0', STR_PAD_LEFT) . ':00';
-                    $afternoonCheckOut = $date . ' 17:' . str_pad(rand(0, 59), 2, '0', STR_PAD_LEFT) . ':00';
-                    break;
-                case 'no_checkin_apmidi':
-                    $morningCheckIn    = $date . ' ' . $heureEntree . ':' . $min . ':00';
-                    $morningCheckOut   = $date . ' 12:' . str_pad(rand(0, 30), 2, '0', STR_PAD_LEFT) . ':00';
-                    $afternoonCheckOut = $date . ' 17:' . str_pad(rand(0, 59), 2, '0', STR_PAD_LEFT) . ':00';
-                    break;
-                case 'no_checkout_apmidi':
-                    $morningCheckIn   = $date . ' ' . $heureEntree . ':' . $min . ':00';
-                    $morningCheckOut  = $date . ' 12:' . str_pad(rand(0, 30), 2, '0', STR_PAD_LEFT) . ':00';
-                    $afternoonCheckIn = $date . ' 13:' . str_pad(rand(0, 30), 2, '0', STR_PAD_LEFT) . ':00';
-                    break;
-                case 'matin_seulement':
-                    $morningCheckIn  = $date . ' ' . $heureEntree . ':' . $min . ':00';
-                    $morningCheckOut = $date . ' 12:' . str_pad(rand(0, 30), 2, '0', STR_PAD_LEFT) . ':00';
-                    break;
-                case 'apmidi_seulement':
-                    $afternoonCheckIn  = $date . ' 13:' . str_pad(rand(0, 30), 2, '0', STR_PAD_LEFT) . ':00';
-                    $afternoonCheckOut = $date . ' 17:' . str_pad(rand(0, 59), 2, '0', STR_PAD_LEFT) . ':00';
-                    break;
-            }
-        }
-
+        // Entrée
         return [
-            'user_id'             => User::role('employer')->inRandomOrder()->first()?->id ?? 1,
-            'date'                => $date,
-            'morning_check_in'    => $morningCheckIn,
-            'morning_check_out'   => $morningCheckOut,
-            'afternoon_check_in'  => $afternoonCheckIn,
-            'afternoon_check_out' => $afternoonCheckOut,
-            'status'              => $status,
+            'user_id'           => $user?->id ?? 1,
+            'type'              => 'entree',
+            'pointage_at'       => $date->copy()->setTime($heure, $minute)->toDateTimeString(),
+            'shift_user_id'     => null,
+            'face_matched'      => false,
+            'tx_hash'           => null,
+            'block_number'      => null,
+            'blockchain_statut' => 'pending',
+            'device_ref'        => null,
         ];
+    }
+
+    public function sortie(): static
+    {
+        return $this->state(function (array $attributes) {
+            $pointageAt = Carbon::parse($attributes['pointage_at']);
+            return [
+                'type'        => 'sortie',
+                'pointage_at' => $pointageAt->copy()->setTime(rand(17, 18), rand(0, 59))->toDateTimeString(),
+            ];
+        });
     }
 }

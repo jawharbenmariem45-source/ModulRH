@@ -3,10 +3,9 @@
 namespace Database\Factories;
 
 use App\Models\User;
-use App\Models\Company;
 use App\Models\Departement;
 use App\Models\Poste;
-use App\Models\Schedule;
+use App\Models\Shift;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -119,7 +118,7 @@ class UserFactory extends Factory
         $contractType = $this->faker->randomElement(['CDI', 'CDD', 'CIVP', 'Karama']);
 
         $poste    = Poste::where('departement_id', $deptId)->inRandomOrder()->first();
-        $schedule = Schedule::inRandomOrder()->first();
+        $shift    = Shift::inRandomOrder()->first();
 
         $prenom = $this->genererPrenom();
         $nom    = $this->genererNom();
@@ -128,7 +127,6 @@ class UserFactory extends Factory
         $nomAscii    = strtolower(iconv('UTF-8', 'ASCII//TRANSLIT', explode(' ', $nom)[0]));
         $compteur    = self::$compteur++;
 
-        // Email temporaire — sera corrigé par afterCreating selon company_id réel
         $email = $prenomAscii . '.' . $nomAscii . '.' . $compteur . '@entreprise.tn';
 
         $startDate = $this->faker->dateTimeBetween('-3 years', '-1 month');
@@ -146,9 +144,9 @@ class UserFactory extends Factory
             'phone'                   => $this->genererTelephone(),
             'gender'                  => $this->faker->randomElement(['Homme', 'Femme']),
             'departement_id'          => $deptId,
-            'company_id'              => 3, // sera overridé par state()
+            'company_id'              => 3,
             'poste_id'                => $poste?->id,
-            'schedule_id'             => $schedule?->id,
+            'shift_id'             => $shift?->id,
             'salary'                  => $this->genererSalaire($deptId, $contractType),
             'discipline_score'        => $this->genererDisciplineScore(),
             'family_head'             => $this->faker->boolean(30),
@@ -165,7 +163,6 @@ class UserFactory extends Factory
         ];
     }
 
-    // ── Corriger l'email après création selon company_id réel ─────────────────
     public function configure(): static
     {
         return $this->afterCreating(function (User $user) {
@@ -179,8 +176,6 @@ class UserFactory extends Factory
             ]);
         });
     }
-
-    // ── States ────────────────────────────────────────────────────────────────
 
     public function unverified(): static
     {

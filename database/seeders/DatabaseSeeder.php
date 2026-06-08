@@ -19,17 +19,10 @@ class DatabaseSeeder extends Seeder
             CompanySeeder::class,
             DepartementSeeder::class,
             PostSeeder::class,
-            ScheduleSeeder::class,
+            ShiftSeeder::class,
             UserSeeder::class,
             ContractSeeder::class,
         ]);
-
-        $moisFrancais = [
-            1  => 'JANVIER',  2  => 'FEVRIER',  3  => 'MARS',
-            4  => 'AVRIL',    5  => 'MAI',       6  => 'JUIN',
-            7  => 'JUILLET',  8  => 'AOUT',      9  => 'SEPTEMBRE',
-            10 => 'OCTOBRE',  11 => 'NOVEMBRE',  12 => 'DECEMBRE',
-        ];
 
         // ── Employé fixe ──────────────────────────────────────────────────────
         $employerFixe = User::where('email', 'employer@gmail.com')->first();
@@ -79,10 +72,10 @@ class DatabaseSeeder extends Seeder
             $this->command->info("  {$company->name}");
             $this->command->line('══════════════════════════════════════════════');
 
-            $nbCDI    = (int) round($nombreEmployes * 0.55);
-            $nbCDD    = (int) round($nombreEmployes * 0.25);
-            $nbCIVP   = (int) round($nombreEmployes * 0.12);
-            $nbKarama = max(0, $nombreEmployes - $nbCDI - $nbCDD - $nbCIVP);
+            $nbCDI     = (int) round($nombreEmployes * 0.55);
+            $nbCDD     = (int) round($nombreEmployes * 0.25);
+            $nbCIVP    = (int) round($nombreEmployes * 0.12);
+            $nbKarama  = max(0, $nombreEmployes - $nbCDI - $nbCDD - $nbCIVP);
             $nbAnciens = (int) round($nbCDI * 0.30);
             $nbRecents = $nbCDI - $nbAnciens;
 
@@ -156,9 +149,8 @@ class DatabaseSeeder extends Seeder
             'on_leave',
         ];
 
-        $now  = now()->toDateTimeString();
-        $data = [];
-
+        $now   = now()->toDateTimeString();
+        $data  = [];
         $debut = Carbon::now()->subMonths($mois)->startOfDay();
         $fin   = Carbon::now();
         $jour  = $debut->copy();
@@ -167,34 +159,40 @@ class DatabaseSeeder extends Seeder
             if (!$jour->isWeekend()) {
                 $statut = $statuts[array_rand($statuts)];
 
-                $morningIn  = null;
-                $morningOut = null;
-                $afterIn    = null;
-                $afterOut   = null;
-
                 if (in_array($statut, ['present', 'late'])) {
-                    $heure      = $statut === 'late' ? rand(9, 10) : 8;
-                    $minute     = rand(0, 59);
-                    $morningIn  = $jour->copy()->setTime($heure, $minute)->toDateTimeString();
-                    $morningOut = $jour->copy()->setTime(12, rand(0, 30))->toDateTimeString();
-                    $afterIn    = $jour->copy()->setTime(13, rand(0, 30))->toDateTimeString();
+                    $heure  = $statut === 'late' ? rand(9, 10) : 8;
+                    $minute = rand(0, 59);
 
-                    if (rand(1, 100) > 15) {
-                        $afterOut = $jour->copy()->setTime(17, rand(0, 59))->toDateTimeString();
-                    }
+                    // Entrée
+                    $data[] = [
+                        'user_id'           => $userId,
+                        'type'              => 'entree',
+                        'pointage_at'       => $jour->copy()->setTime($heure, $minute)->toDateTimeString(),
+                        'shift_user_id'     => null,
+                        'face_matched'      => false,
+                        'tx_hash'           => null,
+                        'block_number'      => null,
+                        'blockchain_statut' => 'pending',
+                        'device_ref'        => null,
+                        'created_at'        => $now,
+                        'updated_at'        => $now,
+                    ];
+
+                    // Sortie
+                    $data[] = [
+                        'user_id'           => $userId,
+                        'type'              => 'sortie',
+                        'pointage_at'       => $jour->copy()->setTime(rand(17, 18), rand(0, 59))->toDateTimeString(),
+                        'shift_user_id'     => null,
+                        'face_matched'      => false,
+                        'tx_hash'           => null,
+                        'block_number'      => null,
+                        'blockchain_statut' => 'pending',
+                        'device_ref'        => null,
+                        'created_at'        => $now,
+                        'updated_at'        => $now,
+                    ];
                 }
-
-                $data[] = [
-                    'user_id'             => $userId,
-                    'date'                => $jour->format('Y-m-d'),
-                    'morning_check_in'    => $morningIn,
-                    'morning_check_out'   => $morningOut,
-                    'afternoon_check_in'  => $afterIn,
-                    'afternoon_check_out' => $afterOut,
-                    'status'              => $statut,
-                    'created_at'          => $now,
-                    'updated_at'          => $now,
-                ];
             }
             $jour->addDay();
         }

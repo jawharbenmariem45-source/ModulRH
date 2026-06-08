@@ -6,7 +6,7 @@ use App\Models\User;
 use App\Models\Departement;
 use App\Models\ContractType;
 use App\Models\Poste;
-use App\Models\Schedule;
+use App\Models\Shift;
 use App\Models\ResetCodePassword;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -53,9 +53,9 @@ class EmployerController extends Controller
         $employers     = $query->paginate(10)->withQueryString();
         $contractTypes = ContractType::where('active', true)->get();
         $postes        = Poste::all();
-        $schedules     = Schedule::all();
+        $shifts        = Shift::all();
 
-        return view('employers.index', compact('employers', 'departements', 'contractTypes', 'postes', 'schedules'));
+        return view('employers.index', compact('employers', 'departements', 'contractTypes', 'postes', 'shifts'));
     }
 
     public function create()
@@ -63,8 +63,8 @@ class EmployerController extends Controller
         $departements  = Departement::all();
         $contractTypes = ContractType::where('active', true)->get();
         $postes        = Poste::all();
-        $schedules     = Schedule::all();
-        return view('employers.create', compact('departements', 'contractTypes', 'postes', 'schedules'));
+        $shifts        = Shift::all();
+        return view('employers.create', compact('departements', 'contractTypes', 'postes', 'shifts'));
     }
 
     public function store(Request $request)
@@ -72,7 +72,7 @@ class EmployerController extends Controller
         $request->validate([
             'departement_id'          => 'required|exists:departements,id',
             'poste_id'                => 'required|exists:postes,id',
-            'schedule_id'             => 'required|exists:schedules,id',
+            'shift_id'                => 'required|exists:shifts,id',
             'last_name'               => 'required|string|max:255',
             'first_name'              => 'required|string|max:255',
             'email'                   => 'required|email|unique:users,email',
@@ -104,7 +104,7 @@ class EmployerController extends Controller
                 'company_id'              => $companyId,
                 'departement_id'          => $request->departement_id,
                 'poste_id'                => $request->poste_id,
-                'schedule_id'             => $request->schedule_id,
+                'shift_id'                => $request->shift_id,
                 'last_name'               => $request->last_name,
                 'first_name'              => $request->first_name,
                 'email'                   => $request->email,
@@ -145,9 +145,9 @@ class EmployerController extends Controller
         $departements  = Departement::all();
         $contractTypes = ContractType::where('active', true)->get();
         $postes        = Poste::all();
-        $schedules     = Schedule::all();
+        $shifts        = Shift::all();
         $employer      = $user;
-        return view('employers.edit', compact('employer', 'departements', 'contractTypes', 'postes', 'schedules'));
+        return view('employers.edit', compact('employer', 'departements', 'contractTypes', 'postes', 'shifts'));
     }
 
     public function update(Request $request, User $user)
@@ -155,7 +155,7 @@ class EmployerController extends Controller
         $request->validate([
             'departement_id'          => 'required|exists:departements,id',
             'poste_id'                => 'required|exists:postes,id',
-            'schedule_id'             => 'required|exists:schedules,id',
+            'shift_id'                => 'required|exists:shifts,id',
             'last_name'               => 'required|string|max:255',
             'first_name'              => 'required|string|max:255',
             'email'                   => 'required|email|unique:users,email,' . $user->id,
@@ -179,7 +179,7 @@ class EmployerController extends Controller
                 'name'                    => $request->first_name . ' ' . $request->last_name,
                 'departement_id'          => $request->departement_id,
                 'poste_id'                => $request->poste_id,
-                'schedule_id'             => $request->schedule_id,
+                'shift_id'                => $request->shift_id,
                 'last_name'               => $request->last_name,
                 'first_name'              => $request->first_name,
                 'email'                   => $request->email,

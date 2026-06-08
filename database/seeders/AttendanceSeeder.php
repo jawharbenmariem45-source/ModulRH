@@ -5,149 +5,132 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
-use App\Models\Employer;
+use App\Models\User;
 
 class AttendanceSeeder extends Seeder
 {
     public function run(): void
     {
         DB::table('attendances')->truncate();
-        DB::table('leaves')->where('status', 'Approuvé')->delete();
+        DB::table('leaves')->where('status', 'approved')->delete();
 
-        $employers = [
-            'cdd'    => Employer::where('email', 'employer@gmail.com')->first(),
-            'cdi'    => Employer::where('email', 'ahmed.ben.ali@gmail.com')->first(),
-            'civp'   => Employer::where('email', 'salma.trabelsi@gmail.com')->first(),
-            'karama' => Employer::where('email', 'yassine.maaloul@gmail.com')->first(),
+        $users = User::all();
+
+        if ($users->isEmpty()) {
+            $this->command->warn('Aucun utilisateur trouvé — lancez d\'abord UserSeeder.');
+            return;
+        }
+
+        $bar = $this->command->getOutput()->createProgressBar($users->count());
+        $bar->start();
+
+        foreach ($users as $user) {
+            $this->genererPointages($user->id, 3);
+            $this->genererConges($user->id);
+            $bar->advance();
+        }
+
+        $bar->finish();
+        $this->command->newLine();
+        $this->command->info('✓ Pointages et congés générés.');
+    }
+
+    // =========================================================
+    // Génère les pointages entrée/sortie sur N mois
+    // =========================================================
+    private function genererPointages(int $userId, int $mois): void
+    {
+        $statuts = [
+            'present', 'present', 'present', 'present', 'present',
+            'present', 'present',
+            'late', 'late',
+            'absent',
+            'on_leave',
         ];
 
-        $mois  = (int) now()->format('m');
-        $annee = (int) now()->format('Y');
+        $debut = Carbon::now()->subMonths($mois)->startOfDay();
+        $fin   = Carbon::now();
+        $jour  = $debut->copy();
+        $rows  = [];
 
-        foreach ($employers as $type => $employer) {
-            if (!$employer) {
-                $this->command->warn("Employé $type introuvable — lancez d'abord EmployerSeeder.");
-                continue;
+        while ($jour->lte($fin)) {
+            if (!$jour->isWeekend()) {
+                $statut = $statuts[array_rand($statuts)];
+
+                if (in_array($statut, ['present', 'late'])) {
+                    $heureEntree = $statut === 'late'
+                        ? $jour->copy()->setTime(rand(9, 10), rand(0, 59))
+                        : $jour->copy()->setTime(8, rand(0, 15));
+
+                    $heureSortie = $jour->copy()->setTime(rand(17, 18), rand(0, 59));
+
+                    // Entrée matin
+                    $rows[] = [
+                        'user_id'            => $userId,
+                        'type'               => 'entree',
+                        'pointage_at'        => $heureEntree->toDateTimeString(),
+                        'shift_user_id'      => null,
+                        'face_matched'       => (bool) rand(0, 1),
+                        'tx_hash'            => null,
+                        'block_number'       => null,
+                        'blockchain_statut'  => 'pending',
+                        'device_ref'         => null,
+                        'created_at'         => now(),
+                        'updated_at'         => now(),
+                    ];
+
+                    // Sortie soir
+                    $rows[] = [
+                        'user_id'            => $userId,
+                        'type'               => 'sortie',
+                        'pointage_at'        => $heureSortie->toDateTimeString(),
+                        'shift_user_id'      => null,
+                        'face_matched'       => (bool) rand(0, 1),
+                        'tx_hash'            => null,
+                        'block_number'       => null,
+                        'blockchain_statut'  => 'pending',
+                        'device_ref'         => null,
+                        'created_at'         => now(),
+                        'updated_at'         => now(),
+                    ];
+                }
             }
+            $jour->addDay();
+        }
 
-            $this->genererPointage($employer->id, $type, $mois, $annee);
-            $this->genererConge($employer->id, $type, $mois, $annee);
-
-            $this->command->info(
-                "✓ Pointage + congé généré pour {$employer->first_name} {$employer->last_name} ($type)"
-            );
+        if (!empty($rows)) {
+            foreach (array_chunk($rows, 500) as $chunk) {
+                DB::table('attendances')->insert($chunk);
+            }
         }
     }
 
     // =========================================================
-    // Pointage du mois selon le profil
+    // Génère 1 à 3 congés par utilisateur
     // =========================================================
-    private function genererPointage(int $employerId, string $profil, int $mois, int $annee): void
+    private function genererConges(int $userId): void
     {
-        $debut = Carbon::create($annee, $mois, 1)->startOfMonth();
-        $fin   = Carbon::create($annee, $mois, 1)->endOfMonth();
+        $types = ['annuel', 'maladie', 'maternité', 'exceptionnel'];
 
-        $config = match($profil) {
-            'cdd'    => ['absences' => [8],     'conges' => [20, 21],     'retards' => [3, 14],    'hs' => true],
-            'cdi'    => ['absences' => [12],    'conges' => [19, 20, 21], 'retards' => [5],        'hs' => true],
-            'civp'   => ['absences' => [7, 15], 'conges' => [22],         'retards' => [2, 9, 16], 'hs' => false],
-            'karama' => ['absences' => [10],    'conges' => [26, 27],     'retards' => [4],        'hs' => true],
-            default  => ['absences' => [],      'conges' => [],           'retards' => [],         'hs' => false],
-        };
+        $nbConges = rand(1, 3);
 
-        $rows = [];
+        for ($i = 0; $i < $nbConges; $i++) {
+            $startDate = Carbon::now()->subMonths(rand(1, 6))->startOfMonth()->addDays(rand(1, 20));
+            $daysCount = rand(1, 5);
+            $endDate   = $startDate->copy()->addDays($daysCount - 1);
+            $statuts   = ['pending', 'approved', 'rejected'];
 
-        for ($date = $debut->copy(); $date->lte($fin); $date->addDay()) {
-            if ($date->isWeekend()) continue;
-
-            $jour   = $date->day;
-            $statut = 'present';
-
-            if (in_array($jour, $config['absences']))     $statut = 'absent';
-            elseif (in_array($jour, $config['conges']))   $statut = 'on_leave';
-            elseif (in_array($jour, $config['retards']))  $statut = 'late';
-
-            $row = [
-                'employer_id'         => $employerId,
-                'date'                => $date->toDateString(),
-                'morning_check_in'    => null,   
-                'morning_check_out'   => null,   
-                'afternoon_check_in'  => null,   
-                'afternoon_check_out' => null,   
-                'status'              => $statut,
-                'created_at'          => now(),
-                'updated_at'          => now(),
-            ];
-
-            if (in_array($statut, ['present', 'late'])) {
-                $sorties = $config['hs']
-                    ? ['17:00', '17:30', '17:30', '18:00']
-                    : ['17:00', '17:00', '17:00'];
-
-                $row['morning_check_in']    = $date->copy()->setTimeFromTimeString($statut === 'late' ? '08:30' : '08:00');
-                $row['morning_check_out']   = $date->copy()->setTimeFromTimeString('12:00');
-                $row['afternoon_check_in']  = $date->copy()->setTimeFromTimeString('13:00');
-                $row['afternoon_check_out'] = $date->copy()->setTimeFromTimeString($sorties[array_rand($sorties)]);
-            }
-
-            $rows[] = $row;
-        }
-
-        DB::table('attendances')->insert($rows);
-    }
-
-    // =========================================================
-    // Congés selon le profil
-    // =========================================================
-    private function genererConge(int $employerId, string $profil, int $mois, int $annee): void
-    {
-        $congesData = match($profil) {
-            'cdd' => [[
-                'type'       => 'Congé annuel',
-                'start_date' => Carbon::create($annee, $mois, 20)->toDateString(),
-                'end_date'   => Carbon::create($annee, $mois, 21)->toDateString(),
-                'days_count' => 2,
-                'reason'     => 'Congé personnel',
-                'status'     => 'Approuvé',
-            ]],
-            'cdi' => [[
-                'type'       => 'Congé annuel',
-                'start_date' => Carbon::create($annee, $mois, 19)->toDateString(),
-                'end_date'   => Carbon::create($annee, $mois, 21)->toDateString(),
-                'days_count' => 3,
-                'reason'     => 'Vacances',
-                'status'     => 'Approuvé',
-            ]],
-            'civp' => [[
-                'type'       => 'Congé maladie',
-                'start_date' => Carbon::create($annee, $mois, 22)->toDateString(),
-                'end_date'   => Carbon::create($annee, $mois, 22)->toDateString(),
-                'days_count' => 1,
-                'reason'     => 'Maladie',
-                'status'     => 'Approuvé',
-            ]],
-            'karama' => [[
-                'type'       => 'Congé annuel',
-                'start_date' => Carbon::create($annee, $mois, 26)->toDateString(),
-                'end_date'   => Carbon::create($annee, $mois, 27)->toDateString(),
-                'days_count' => 2,
-                'reason'     => 'Événement familial',
-                'status'     => 'Approuvé',
-            ]],
-            default => [],
-        };
-
-        foreach ($congesData as $c) {
             DB::table('leaves')->insert([
-                'employer_id' => $employerId,
-                'type'        => $c['type'],
-                'start_date'  => $c['start_date'],   
-                'end_date'    => $c['end_date'],      
-                'days_count'  => $c['days_count'],    
-                'reason'      => $c['reason'],        
-                'status'      => $c['status'],        
-                'created_at'  => now(),
-                'updated_at'  => now(),
+                'user_id'    => $userId,
+                'type'       => $types[array_rand($types)],
+                'start_date' => $startDate->toDateString(),
+                'end_date'   => $endDate->toDateString(),
+                'days_count' => $daysCount,
+                'reason'     => 'Congé généré automatiquement',
+                'document'   => null,
+                'status'     => $statuts[array_rand($statuts)],
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
         }
     }

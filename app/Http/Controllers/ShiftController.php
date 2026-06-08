@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Schedule;
+use App\Models\shift;
 use Illuminate\Http\Request;
 
-class ScheduleController extends Controller
+class ShiftController extends Controller
 {
     public function index()
     {
-        $schedules = Schedule::paginate(10);
-        return view('schedules.index', compact('schedules'));
+        $shifts = Shift::paginate(10);
+        return view('shifts.index', compact('shifts'));
     }
 
     public function store(Request $request)
@@ -23,13 +23,13 @@ class ScheduleController extends Controller
             'break_end'   => 'nullable',
         ]);
 
-        Schedule::create($request->only('name', 'start_time', 'end_time', 'break_start', 'break_end'));
+        Shift::create($request->only('name', 'start_time', 'end_time', 'break_start', 'break_end'));
 
-        return redirect()->route('schedules.index')
+        return redirect()->route('shifts.index')
             ->with('success_message', 'Horaire ajouté avec succès.');
     }
 
-    public function update(Request $request, Schedule $schedule)
+    public function update(Request $request, Shift $schedule)
     {
         $request->validate([
             'name'        => 'required|string|max:255',
@@ -41,14 +41,14 @@ class ScheduleController extends Controller
 
         $schedule->update($request->only('name', 'start_time', 'end_time', 'break_start', 'break_end'));
 
-        return redirect()->route('schedules.index')
+        return redirect()->route('shifts.index')
             ->with('success_message', 'Horaire mis à jour.');
     }
 
-    public function destroy(Schedule $schedule)
+    public function destroy(Shift $schedule)
     {
         $schedule->delete();
-        return redirect()->route('schedules.index')
+        return redirect()->route('shifts.index')
             ->with('success_message', 'Horaire supprimé.');
     }
 }

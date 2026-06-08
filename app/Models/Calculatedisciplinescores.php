@@ -37,23 +37,35 @@ class CalculateDisciplineScores extends Command
         $debut = Carbon::now()->subMonths(6)->startOfDay();
         $fin   = Carbon::now();
 
-        $attendances = Attendance::where('user_id', $user->id)
-            ->whereBetween('date', [$debut->format('Y-m-d'), $fin->format('Y-m-d')])
-            ->get();
+        // Grouper les pointages par jour
+        $pointages = Attendance::where('user_id', $user->id)
+            ->whereBetween('pointage_at', [$debut, $fin])
+            ->get()
+            ->groupBy(fn($a) => Carbon::parse($a->pointage_at)->toDateString());
 
-        $nbTravailles = $attendances->whereIn('status', ['present', 'late'])->count();
-        $nbRetards    = $attendances->where('status', 'late')->count();
-        $nbAbsences   = $attendances->where('status', 'absent')->count();
+        $nbJours    = $pointages->count();
+        $nbRetards  = 0;
+        $nbAbsences = 0;
+
+        foreach ($pointages as $date => $records) {
+            $entree = $records->where('type', 'entree')->first();
+            if (!$entree) {
+                $nbAbsences++;
+                continue;
+            }
+            $heure = Carbon::parse($entree->pointage_at)->hour;
+            if ($heure >= 9) $nbRetards++;
+        }
 
         $joursConge = Leave::where('user_id', $user->id)
             ->whereIn('status', ['approved', 'Approuvé'])
             ->whereBetween('start_date', [$debut->format('Y-m-d'), $fin->format('Y-m-d')])
             ->sum('days_count');
 
-        if ($nbTravailles === 0) return 100;
+        if ($nbJours === 0) return 100;
 
-        $tauxRetard  = ($nbRetards / $nbTravailles) * 100;
-        $tauxAbsence = ($nbAbsences / $nbTravailles) * 100;
+        $tauxRetard  = ($nbRetards / $nbJours) * 100;
+        $tauxAbsence = ($nbAbsences / $nbJours) * 100;
         $congeExcess = max((int) $joursConge - 6, 0);
 
         $score = 100

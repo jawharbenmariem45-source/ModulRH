@@ -4,12 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Departement extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
-    protected $fillable = ['name'];
+    protected $fillable = ['name', 'company_id', 'manager_id'];
 
     public function postes()
     {
@@ -21,7 +22,6 @@ class Departement extends Model
         return $this->hasMany(User::class, 'departement_id');
     }
 
-    // Alias compatibilité
     public function employers()
     {
         return $this->users();

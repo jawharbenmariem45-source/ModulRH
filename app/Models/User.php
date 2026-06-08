@@ -4,12 +4,13 @@ namespace App\Models;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasFactory, HasRoles, Notifiable;
+    use HasFactory, HasRoles, Notifiable, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -22,7 +23,7 @@ class User extends Authenticatable
         'departement_id',
         'company_id',
         'poste_id',
-        'schedule_id',
+        'shift_id',
         'salary',
         'discipline_score',
         'family_head',
@@ -35,6 +36,7 @@ class User extends Authenticatable
         'cnss',
         'start_date',
         'end_date',
+        'solde_conges',
     ];
 
     protected $hidden = ['password', 'remember_token'];
@@ -52,7 +54,6 @@ class User extends Authenticatable
     {
         parent::boot();
 
-        // Quand un employé est créé, on crée son contrat dans l'historique
         static::created(function (User $user) {
             if (!$user->contract_type) return;
             $contractType = ContractType::where('name', $user->contract_type)->where('active', true)->first();
@@ -66,7 +67,6 @@ class User extends Authenticatable
             }
         });
 
-        // Quand le contrat change, on enregistre le nouveau (l'ancien est conservé)
         static::updated(function (User $user) {
             if (!$user->wasChanged(['contract_type', 'start_date', 'end_date'])) return;
             $contractType = ContractType::where('name', $user->contract_type)->where('active', true)->first();
@@ -98,9 +98,9 @@ class User extends Authenticatable
         return $this->belongsTo(Poste::class, 'poste_id');
     }
 
-    public function schedule()
+    public function shift()
     {
-        return $this->belongsTo(Schedule::class);
+        return $this->belongsTo(Shift::class, 'shift_id');
     }
 
     public function contracts()
@@ -123,7 +123,6 @@ class User extends Authenticatable
         return $this->hasMany(Leave::class);
     }
 
-    // Alias pour compatibilité avec ancien code
     public function conges()
     {
         return $this->leaves();

@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('postes', function (Blueprint $table) {
              $table->bigIncrements('id');
             $table->string('name');
+            $table->foreignId('departement_id')->nullable()->constrained('departements')->onDelete('set null');
             $table->foreignId('company_id')->nullable()->constrained('companies')->onDelete('set null');
             $table->timestamps();
         });

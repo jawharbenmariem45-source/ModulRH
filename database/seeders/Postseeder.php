@@ -1,24 +1,40 @@
 <?php
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
+namespace Database\Seeders;
 
-return new class extends Migration
+use Illuminate\Database\Seeder;
+use App\Models\Poste;
+use App\Models\Departement;
+
+class PostSeeder extends Seeder
 {
-    public function up(): void
+    public function run(): void
     {
-        Schema::create('postes', function (Blueprint $table) {
-            $table->bigIncrements('id');
-            $table->string('name');
-            $table->foreignId('departement_id')->nullable()->constrained('departements')->onDelete('set null');
-            $table->foreignId('company_id')->nullable()->constrained('companies')->onDelete('set null');
-            $table->timestamps();
-        });
-    }
+        $postes = [
+            'Direction'           => ['Directeur Général', 'Directeur Adjoint', 'Assistant de Direction'],
+            'Ressources Humaines' => ['Responsable RH', 'Chargé de Recrutement', 'Gestionnaire Paie', 'Assistant RH'],
+            'Finance'             => ['Directeur Financier', 'Comptable', 'Contrôleur de Gestion', 'Assistant Comptable'],
+            'Commercial'          => ['Directeur Commercial', 'Commercial', 'Chargé de Clientèle', 'Responsable Marketing'],
+            'Informatique'        => ['Développeur Full Stack', 'Développeur Backend', 'Développeur Frontend', 'Administrateur Système', 'Chef de Projet IT'],
+            'Production'          => ['Responsable Production', "Chef d'Équipe", 'Technicien', 'Opérateur'],
+            'Logistique'          => ['Responsable Logistique', 'Magasinier', 'Chauffeur', 'Agent de Transit'],
+            'Qualité'             => ['Responsable Qualité', 'Auditeur', 'Technicien Qualité', 'Contrôleur Qualité'],
+        ];
 
-    public function down(): void
-    {
-        Schema::dropIfExists('postes');
+        foreach ($postes as $deptName => $listePostes) {
+            $dept = Departement::where('name', $deptName)->first();
+            if (!$dept) {
+                $this->command->warn("Département introuvable : {$deptName}");
+                continue;
+            }
+            foreach ($listePostes as $posteName) {
+                Poste::firstOrCreate(
+                    ['name' => $posteName, 'departement_id' => $dept->id],
+                    ['company_id' => $dept->company_id]
+                );
+            }
+        }
+
+        $this->command->info('✓ Postes créés.');
     }
-};
+}

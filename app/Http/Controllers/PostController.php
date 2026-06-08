@@ -20,10 +20,9 @@ class PostController extends Controller
         $request->validate([
             'departement_id' => 'required|exists:departements,id',
             'name'           => 'required|string|max:255',
-            'description'    => 'nullable|string|max:500',
         ]);
 
-        Poste::create($request->only('departement_id', 'name', 'description'));
+        Poste::create($request->only('departement_id', 'name'));
 
         return redirect()->route('postes.index')
             ->with('success_message', 'Poste ajouté avec succès.');
@@ -34,10 +33,9 @@ class PostController extends Controller
         $request->validate([
             'departement_id' => 'required|exists:departements,id',
             'name'           => 'required|string|max:255',
-            'description'    => 'nullable|string|max:500',
         ]);
 
-        $poste->update($request->only('departement_id', 'name', 'description'));
+        $poste->update($request->only('departement_id', 'name'));
 
         return redirect()->route('postes.index')
             ->with('success_message', 'Poste mis à jour.');

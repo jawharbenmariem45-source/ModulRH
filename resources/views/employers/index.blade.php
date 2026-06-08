@@ -216,11 +216,11 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Horaire <span class="text-danger">*</span></label>
-                            <select name="schedule_id" class="form-select" required>
+                            <select name="shift_id" class="form-select" required>
                                 <option value="">-- Choisir --</option>
-                                @foreach($schedules as $schedule)
-                                    <option value="{{ $schedule->id }}" {{ old('schedule_id') == $schedule->id ? 'selected' : '' }}>
-                                        {{ $schedule->name }} ({{ $schedule->start_time }} - {{ $schedule->end_time }})
+                                @foreach($shifts as $shift)
+                                    <option value="{{ $shift->id }}" {{ old('shift_id') == $shift->id ? 'selected' : '' }}>
+                                        {{ $shift->name }} ({{ $shift->start_time }} - {{ $shift->end_time }})
                                     </option>
                                 @endforeach
                             </select>
@@ -377,9 +377,9 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Horaire <span class="text-danger">*</span></label>
-                            <select name="schedule_id" id="edit_schedule" class="form-select" required>
+                            <select name="shift_id" id="edit_schedule" class="form-select" required>
                                 <option value="">-- Choisir --</option>
-                                @foreach($schedules as $schedule)
+                                @foreach($shifts as $schedule)
                                     <option value="{{ $schedule->id }}">
                                         {{ $schedule->name }} ({{ $schedule->start_time }} - {{ $schedule->end_time }})
                                     </option>
@@ -483,7 +483,7 @@ const employers = {
         rib_image:               "{{ $employer->rib_image ? asset('storage/' . $employer->rib_image) : '' }}",
         departement_id:          "{{ $employer->departement_id }}",
         poste_id:                "{{ $employer->poste_id }}",
-        schedule_id:             "{{ $employer->schedule_id }}",
+        shift_id:             "{{ $employer->shift_id }}",
         contract_type:           "{{ $employer->contract_type }}",
         start_date:              "{{ $employer->start_date ? \Carbon\Carbon::parse($employer->start_date)->format('Y-m-d') : '' }}",
         end_date:                "{{ $employer->end_date ? \Carbon\Carbon::parse($employer->end_date)->format('Y-m-d') : '' }}",
@@ -517,7 +517,7 @@ function openEditModal(id) {
     document.getElementById('edit_cnss').value                     = e.cnss;
     document.getElementById('edit_department').value               = e.departement_id;
     document.getElementById('edit_post').value                     = e.poste_id;
-    document.getElementById('edit_schedule').value                 = e.schedule_id;
+    document.getElementById('edit_schedule').value                 = e.shift_id;
     document.getElementById('edit_type_contrat').value             = e.contract_type;
 
     document.getElementById('rib-current').innerHTML = e.rib_image

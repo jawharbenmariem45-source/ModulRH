@@ -14,16 +14,23 @@ class PointageController extends Controller
         $user         = auth()->user();
         $selectedDate = $request->get('date', Carbon::today()->toDateString());
 
-        $attendance = Attendance::where('user_id', $user->id)
-            ->where('date', $selectedDate)
+        $entree = Attendance::where('user_id', $user->id)
+            ->where('type', 'entree')
+            ->whereDate('pointage_at', $selectedDate)
+            ->first();
+
+        $sortie = Attendance::where('user_id', $user->id)
+            ->where('type', 'sortie')
+            ->whereDate('pointage_at', $selectedDate)
             ->first();
 
         $historique = Attendance::where('user_id', $user->id)
-            ->whereYear('date', Carbon::now()->year)
-            ->orderBy('date', 'desc')
-            ->get();
+            ->whereYear('pointage_at', Carbon::now()->year)
+            ->orderBy('pointage_at', 'desc')
+            ->get()
+            ->groupBy(fn($a) => Carbon::parse($a->pointage_at)->toDateString());
 
-        return view('employers.pointage', compact('attendance', 'historique', 'selectedDate'));
+        return view('employers.pointage', compact('entree', 'sortie', 'historique', 'selectedDate'));
     }
 
     public function adminIndex(Request $request)
@@ -32,7 +39,7 @@ class PointageController extends Controller
         $selectedEmployerName = $request->get('employer_name');
 
         $query = Attendance::with('user')
-            ->where('date', $selectedDate)
+            ->whereDate('pointage_at', $selectedDate)
             ->whereHas('user', function ($q) use ($selectedEmployerName) {
                 if ($selectedEmployerName) {
                     $q->where(function ($q2) use ($selectedEmployerName) {
@@ -42,8 +49,17 @@ class PointageController extends Controller
                 }
             });
 
-        $attendances = $query->orderBy('user_id')->get();
-        $employers   = User::role('employer')->orderBy('last_name')->get();
+        $attendances = $query->orderBy('user_id')->get()
+            ->groupBy('user_id')
+            ->map(function ($records) {
+                return [
+                    'entree' => $records->where('type', 'entree')->first(),
+                    'sortie' => $records->where('type', 'sortie')->first(),
+                    'user'   => $records->first()->user,
+                ];
+            });
+
+        $employers = User::role('employer')->orderBy('last_name')->get();
 
         return view('pointage.admin', compact(
             'attendances',
@@ -53,66 +69,74 @@ class PointageController extends Controller
         ));
     }
 
-    private function getTodayAttendance()
-    {
-        $user  = auth()->user();
-        $today = Carbon::today()->toDateString();
-
-        return Attendance::firstOrCreate(
-            ['user_id' => $user->id, 'date' => $today],
-            ['status' => 'present']
-        );
-    }
-
     public function checkInMatin()
     {
-        $now        = Carbon::now();
-        $attendance = $this->getTodayAttendance();
+        $user = auth()->user();
+        $today = Carbon::today()->toDateString();
 
-        if ($attendance->morning_check_in) {
-            return back()->with('error', 'Check-in matin déjà enregistré.');
+        $dejaPoinste = Attendance::where('user_id', $user->id)
+            ->where('type', 'entree')
+            ->whereDate('pointage_at', $today)
+            ->exists();
+
+        if ($dejaPoinste) {
+            return back()->with('error', 'Entrée déjà enregistrée aujourd\'hui.');
         }
 
-        $attendance->update(['morning_check_in' => $now]);
-        return back()->with('status', 'Check-in matin enregistré à ' . $now->format('H:i:s'));
+        Attendance::create([
+            'user_id'           => $user->id,
+            'type'              => 'entree',
+            'pointage_at'       => Carbon::now(),
+            'shift_user_id'     => null,
+            'face_matched'      => false,
+            'blockchain_statut' => 'pending',
+        ]);
+
+        return back()->with('status', 'Entrée enregistrée à ' . Carbon::now()->format('H:i:s'));
     }
 
     public function checkOutMatin()
     {
-        $now        = Carbon::now();
-        $attendance = $this->getTodayAttendance();
+        $user  = auth()->user();
+        $today = Carbon::today()->toDateString();
 
-        if (!$attendance->morning_check_in) {
-            return back()->with('error', 'Vous devez d\'abord faire le check-in matin.');
+        $entree = Attendance::where('user_id', $user->id)
+            ->where('type', 'entree')
+            ->whereDate('pointage_at', $today)
+            ->first();
+
+        if (!$entree) {
+            return back()->with('error', 'Vous devez d\'abord enregistrer votre entrée.');
         }
 
-        $attendance->update(['morning_check_out' => $now]);
-        return back()->with('status', 'Check-out matin enregistré à ' . $now->format('H:i:s'));
+        $dejaSorti = Attendance::where('user_id', $user->id)
+            ->where('type', 'sortie')
+            ->whereDate('pointage_at', $today)
+            ->exists();
+
+        if ($dejaSorti) {
+            return back()->with('error', 'Sortie déjà enregistrée aujourd\'hui.');
+        }
+
+        Attendance::create([
+            'user_id'           => $user->id,
+            'type'              => 'sortie',
+            'pointage_at'       => Carbon::now(),
+            'shift_user_id'     => null,
+            'face_matched'      => false,
+            'blockchain_statut' => 'pending',
+        ]);
+
+        return back()->with('status', 'Sortie enregistrée à ' . Carbon::now()->format('H:i:s'));
     }
 
     public function checkInApresMidi()
     {
-        $now        = Carbon::now();
-        $attendance = $this->getTodayAttendance();
-
-        if ($attendance->afternoon_check_in) {
-            return back()->with('error', 'Check-in après-midi déjà enregistré.');
-        }
-
-        $attendance->update(['afternoon_check_in' => $now]);
-        return back()->with('status', 'Check-in après-midi enregistré à ' . $now->format('H:i:s'));
+        return $this->checkInMatin();
     }
 
     public function checkOutApresMidi()
     {
-        $now        = Carbon::now();
-        $attendance = $this->getTodayAttendance();
-
-        if (!$attendance->afternoon_check_in) {
-            return back()->with('error', 'Vous devez d\'abord faire le check-in après-midi.');
-        }
-
-        $attendance->update(['afternoon_check_out' => $now]);
-        return back()->with('status', 'Check-out après-midi enregistré à ' . $now->format('H:i:s'));
+        return $this->checkOutMatin();
     }
 }

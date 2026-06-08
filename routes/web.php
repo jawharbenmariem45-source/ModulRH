@@ -14,7 +14,7 @@ use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\PointageController;
 use App\Http\Controllers\EmployerDashboardController;
 use App\Http\Controllers\PostController;
-use App\Http\Controllers\ScheduleController;
+use App\Http\Controllers\ShiftController;
 use Illuminate\Support\Facades\Route;
 
 // ── Authentification publique ─────────────────────────────
@@ -89,8 +89,6 @@ Route::middleware(['auth', 'can:view contracts'])->prefix('contrats')->name('con
     Route::get('/edit/{contrat}', [ContractController::class, 'edit'])->name('edit');
     Route::get('/delete/{contrat}', [ContractController::class, 'delete'])->name('delete');
     Route::get('/pdf/{contrat}', [ContractController::class, 'downloadPdf'])->name('pdf');
-
-    // ← POST au lieu de PUT pour le fetch AJAX
     Route::post('/update/{contrat}', [ContractController::class, 'update'])->name('update');
 });
 
@@ -143,12 +141,12 @@ Route::middleware('auth')->prefix('postes')->name('postes.')->group(function () 
     Route::delete('/{poste}', [PostController::class, 'destroy'])->name('destroy');
 });
 
-// ── Schedules ─────────────────────────────────────────────
-Route::middleware('auth')->prefix('schedules')->name('schedules.')->group(function () {
-    Route::get('/', [ScheduleController::class, 'index'])->name('index');
-    Route::post('/', [ScheduleController::class, 'store'])->name('store');
-    Route::put('/{schedule}', [ScheduleController::class, 'update'])->name('update');
-    Route::delete('/{schedule}', [ScheduleController::class, 'destroy'])->name('destroy');
+// ── Shifts ────────────────────────────────────────────────
+Route::middleware('auth')->prefix('shifts')->name('shifts.')->group(function () {
+    Route::get('/', [ShiftController::class, 'index'])->name('index');
+    Route::post('/', [ShiftController::class, 'store'])->name('store');
+    Route::put('/{shift}', [ShiftController::class, 'update'])->name('update');
+    Route::delete('/{shift}', [ShiftController::class, 'destroy'])->name('destroy');
 });
 
 // ── Espace employé ────────────────────────────────────────
