@@ -22,11 +22,15 @@
 
     <div class="col-auto">
         <select name="month" class="form-select">
-            <option value="">Tous les mois</option>
-            @foreach([1=>'JANVIER',2=>'FEVRIER',3=>'MARS',4=>'AVRIL',5=>'MAI',6=>'JUIN',7=>'JUILLET',8=>'AOUT',9=>'SEPTEMBRE',10=>'OCTOBRE',11=>'NOVEMBRE',12=>'DECEMBRE'] as $num => $nom)
-                <option value="{{ $num }}" {{ request('month') == $num ? 'selected' : '' }}>{{ $nom }}</option>
-            @endforeach
-        </select>
+    <option value="">Tous les mois</option>
+    @foreach([1=>'JANVIER',2=>'FEVRIER',3=>'MARS',4=>'AVRIL',5=>'MAI',6=>'JUIN',
+              7=>'JUILLET',8=>'AOUT',9=>'SEPTEMBRE',10=>'OCTOBRE',11=>'NOVEMBRE',12=>'DECEMBRE'] 
+             as $num => $nom)
+        <option value="{{ $nom }}" {{ request('month') == $nom ? 'selected' : '' }}>
+            {{ $nom }}
+        </option>
+    @endforeach
+</select>
     </div>
 
     <div class="col-auto">
