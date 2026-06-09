@@ -12,8 +12,8 @@ return new class extends Migration
             $table->bigIncrements('id');
             $table->string('name')->unique();
             $table->unsignedBigInteger('manager_id')->nullable();
-            $table->foreignId('company_id')->constrained()->onDelete('set null');
-            $table->timestamps();
+            $table->enum('status', ['actived', 'inactived', 'archived'])->default('actived');
+            $table->foreignId('company_id')->nullable()->constrained()->onDelete('set null');            $table->timestamps();
         });
     }
 

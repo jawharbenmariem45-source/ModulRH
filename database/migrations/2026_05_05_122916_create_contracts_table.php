@@ -14,6 +14,7 @@ return new class extends Migration
             $table->foreignId('contract_type_id')->constrained('contract_types')->onDelete('cascade');
             $table->date('start_date')->nullable();
             $table->date('end_date')->nullable();    // null = contrat actif en cours
+            $table->enum('status', ['actived', 'inactived', 'archived'])->default('actived');
             $table->timestamps();
         });
     }

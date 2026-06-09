@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             DepartementSeeder::class,
             PostSeeder::class,
             ShiftSeeder::class,
+            ShiftUserSeeder::class,
             UserSeeder::class,
             ContractSeeder::class,
         ]);

@@ -40,7 +40,8 @@ return new class extends Migration
             $table->unsignedTinyInteger('month')->nullable();   // 1-12
             $table->unsignedSmallInteger('year')->nullable();   // ex: 2026
 
-            $table->enum('status', ['pending', 'done', 'cancelled'])->default('pending');
+            $table->enum('archive_status', ['actived', 'inactived', 'archived'])->default('actived');
+
             $table->timestamps();
         });
     }

@@ -30,7 +30,6 @@ class PostSeeder extends Seeder
             foreach ($listePostes as $posteName) {
                 Poste::firstOrCreate(
                     ['name' => $posteName, 'departement_id' => $dept->id],
-                    ['company_id' => $dept->company_id]
                 );
             }
         }

@@ -28,43 +28,40 @@
                         <th>#</th>
                         <th>Poste</th>
                         <th>Département</th>
-                        <th>Description</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($postes as $poste)
                     <tr>
-                        <td>{{ $loop->iteration }}</td>
+                        <td>{{ ($postes->currentPage() - 1) * $postes->perPage() + $loop->iteration }}</td>
                         <td><strong>{{ $poste->name }}</strong></td>
                         <td>
                             <span class="badge" style="background:#19a891; color:white">
                                 {{ $poste->departement->name ?? '-' }}
                             </span>
                         </td>
-                        <td class="text-muted small">{{ $poste->description ?? '-' }}</td>
                         <td>
                             <button class="btn btn-sm app-btn-primary"
                                 data-bs-toggle="modal"
                                 data-bs-target="#modalEditPost"
                                 data-id="{{ $poste->id }}"
                                 data-name="{{ $poste->name }}"
-                                data-description="{{ $poste->description }}"
                                 data-department="{{ $poste->departement_id }}">
                                 Éditer
                             </button>
                             <form action="{{ route('postes.destroy', $poste) }}" method="POST" style="display:inline">
                                 @csrf @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-danger"
-                                    onclick="return confirm('Supprimer ce poste ?')">
-                                    Supprimer
+                                <button type="submit" class="btn btn-sm btn-warning"
+                                    onclick="return confirm('Archiver ce poste ?')">
+                                    Archiver
                                 </button>
                             </form>
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="text-center text-muted py-4">Aucun poste enregistré.</td>
+                        <td colspan="4" class="text-center text-muted py-4">Aucun poste enregistré.</td>
                     </tr>
                     @endforelse
                 </tbody>
@@ -97,10 +94,6 @@
                     <div class="mb-3">
                         <label class="form-label">Nom du poste <span class="text-danger">*</span></label>
                         <input type="text" name="name" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Description</label>
-                        <textarea name="description" class="form-control" rows="2"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer border-0">
@@ -136,10 +129,6 @@
                         <label class="form-label">Nom du poste <span class="text-danger">*</span></label>
                         <input type="text" name="name" id="edit-name" class="form-control" required>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Description</label>
-                        <textarea name="description" id="edit-description" class="form-control" rows="2"></textarea>
-                    </div>
                 </div>
                 <div class="modal-footer border-0">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
@@ -153,10 +142,9 @@
 <script>
 document.getElementById('modalEditPost').addEventListener('show.bs.modal', function(e) {
     const btn = e.relatedTarget;
-    document.getElementById('edit-name').value        = btn.dataset.name;
-    document.getElementById('edit-description').value = btn.dataset.description;
-    document.getElementById('edit-department').value  = btn.dataset.department;
-    document.getElementById('formEditPost').action    = '/postes/' + btn.dataset.id;
+    document.getElementById('edit-name').value       = btn.dataset.name;
+    document.getElementById('edit-department').value = btn.dataset.department;
+    document.getElementById('formEditPost').action   = '/postes/' + btn.dataset.id;
 });
 </script>
 @endsection

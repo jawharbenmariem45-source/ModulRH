@@ -139,13 +139,13 @@ class ContractController extends Controller
         ]);
 
         return redirect()->route('contrat.index')
-            ->with('success', 'Contrat supprimé avec succès !');
+            ->with('success', 'Contrat archivé avec succès !');
     }
 
     public function downloadPdf(User $contrat)
     {
         $employer = $contrat;
         $pdf      = Pdf::loadView('contrats.pdf', compact('employer'));
-        return $pdf->download('contrat-' . $contrat->last_name . '-' . $contrat->first_name . '.pdf');
+        return $pdf->stream('contrat-' . $contrat->last_name . '-' . $contrat->first_name . '.pdf');
     }
 }

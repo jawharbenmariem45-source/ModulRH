@@ -130,10 +130,10 @@
                             <button class="btn btn-sm btn-outline-primary me-1" onclick="openEditModal({{ $employer->id }})">
                                 <i class="fa fa-edit"></i> Éditer
                             </button>
-                            <a class="btn btn-sm btn-outline-danger"
+                            <a class="btn btn-sm btn-warning"
                                href="{{ route('employer.delete', $employer->id) }}"
-                               onclick="return confirm('Supprimer cet employé ?')">
-                                <i class="fa fa-trash"></i> Supprimer
+                               onclick="return confirm('Archiver cet employé ?')">
+                                <i class="fa fa-archive"></i> Archiver
                             </a>
                         </td>
                     </tr>
@@ -220,7 +220,7 @@
                                 <option value="">-- Choisir --</option>
                                 @foreach($shifts as $shift)
                                     <option value="{{ $shift->id }}" {{ old('shift_id') == $shift->id ? 'selected' : '' }}>
-                                        {{ $shift->name }} ({{ $shift->start_time }} - {{ $shift->end_time }})
+                                        {{ $shift->name }} ({{ $shift->starts_at }} - {{ $shift->ends_at }})
                                     </option>
                                 @endforeach
                             </select>
@@ -379,9 +379,9 @@
                             <label class="form-label">Horaire <span class="text-danger">*</span></label>
                             <select name="shift_id" id="edit_schedule" class="form-select" required>
                                 <option value="">-- Choisir --</option>
-                                @foreach($shifts as $schedule)
-                                    <option value="{{ $schedule->id }}">
-                                        {{ $schedule->name }} ({{ $schedule->start_time }} - {{ $schedule->end_time }})
+                                @foreach($shifts as $shift)
+                                    <option value="{{ $shift->id }}">
+                                        {{ $shift->name }} ({{ $shift->starts_at }} - {{ $shift->ends_at }})
                                     </option>
                                 @endforeach
                             </select>
@@ -483,7 +483,7 @@ const employers = {
         rib_image:               "{{ $employer->rib_image ? asset('storage/' . $employer->rib_image) : '' }}",
         departement_id:          "{{ $employer->departement_id }}",
         poste_id:                "{{ $employer->poste_id }}",
-        shift_id:             "{{ $employer->shift_id }}",
+        shift_id:                "{{ $employer->shift_id }}",
         contract_type:           "{{ $employer->contract_type }}",
         start_date:              "{{ $employer->start_date ? \Carbon\Carbon::parse($employer->start_date)->format('Y-m-d') : '' }}",
         end_date:                "{{ $employer->end_date ? \Carbon\Carbon::parse($employer->end_date)->format('Y-m-d') : '' }}",

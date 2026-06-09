@@ -77,9 +77,9 @@
                             </button>
                             <form action="{{ route('administrateurs.delete', $admin->id) }}"
                                 method="POST" style="display:inline"
-                                onsubmit="return confirm('Supprimer ce membre ?')">
+                                onsubmit="return confirm('Archiver ce membre ?')">
                                 @csrf
-                                <button type="submit" class="btn btn-sm btn-outline-danger">Supprimer</button>
+                                <button type="submit" class="btn btn-sm btn-warning">Archiver</button>
                             </form>
                         </td>
                     </tr>

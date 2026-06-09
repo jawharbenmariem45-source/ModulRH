@@ -74,9 +74,9 @@
                             </button>
                             <form action="{{ route('shifts.destroy', $shift) }}" method="POST" style="display:inline">
                                 @csrf @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-outline-danger"
-                                    onclick="return confirm('Supprimer cet horaire ?')">
-                                    <i class="fas fa-trash"></i> Supprimer
+                                <button type="submit" class="btn btn-sm btn-warning"
+                                    onclick="return confirm('Archiver cet horaire ?')">
+                                    <i class="fas fa-archive"></i> Archiver
                                 </button>
                             </form>
                         </td>
@@ -108,8 +108,7 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Nom <span class="text-danger">*</span></label>
-                        <input type="text" name="name" class="form-control"
-                            placeholder="Ex: Matin, Soir, Journée..." required>
+                        <input type="text" name="name" class="form-control" placeholder="Ex: Matin, Soir, Journée..." required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Type <span class="text-danger">*</span></label>
@@ -223,12 +222,12 @@
 <script>
 document.getElementById('modalEditShift').addEventListener('show.bs.modal', function(e) {
     const btn = e.relatedTarget;
-    document.getElementById('edit-name').value        = btn.dataset.name;
-    document.getElementById('edit-type').value        = btn.dataset.type;
-    document.getElementById('edit-starts').value      = btn.dataset.starts;
-    document.getElementById('edit-ends').value        = btn.dataset.ends;
-    document.getElementById('edit-pause-start').value = btn.dataset.pauseStart ?? '';
-    document.getElementById('edit-pause-end').value   = btn.dataset.pauseEnd ?? '';
+    document.getElementById('edit-name').value         = btn.dataset.name;
+    document.getElementById('edit-type').value         = btn.dataset.type;
+    document.getElementById('edit-starts').value       = btn.dataset.starts;
+    document.getElementById('edit-ends').value         = btn.dataset.ends;
+    document.getElementById('edit-pause-start').value  = btn.dataset.pauseStart ?? '';
+    document.getElementById('edit-pause-end').value    = btn.dataset.pauseEnd ?? '';
     document.getElementById('edit-is-default').checked = btn.dataset.isDefault === '1';
     document.getElementById('edit-actif').checked      = btn.dataset.actif === '1';
     document.getElementById('formEditShift').action    = '/shifts/' + btn.dataset.id;

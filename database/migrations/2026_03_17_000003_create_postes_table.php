@@ -11,10 +11,7 @@ return new class extends Migration {
             $table->bigIncrements('id');
             $table->string('name');
             $table->foreignId('departement_id')->nullable()->constrained('departements')->onDelete('set null');
-            $table->foreignId('company_id')->nullable()->constrained('companies')->onDelete('set null');
-
-            $table->enum('status', ['actived', 'inactived', 'archived'])->default('active');
-
+            $table->enum('status', ['actived', 'inactived', 'archived'])->default('actived');
             $table->timestamps();
         });
     }

@@ -31,6 +31,8 @@ return new class extends Migration
             // Index
             $table->index(['user_id', 'pointage_at']);
             $table->index('blockchain_statut');
+            $table->enum('status', ['actived', 'inactived', 'archived'])->default('actived');
+
         });
     }
 

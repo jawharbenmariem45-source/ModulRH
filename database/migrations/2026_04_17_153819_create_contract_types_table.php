@@ -14,6 +14,7 @@ return new class extends Migration
             $table->text('details')->nullable();
             $table->integer('duration_days')->nullable();
             $table->boolean('active')->default(true);
+            $table->enum('status', ['actived', 'inactived', 'archived'])->default('actived');
             $table->timestamps();
         });
     }

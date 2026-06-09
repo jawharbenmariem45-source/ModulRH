@@ -4,7 +4,7 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="app-page-title mb-0">Contrats</h1>
-    <button type="button" class="btn app-btn-primary" data-bs-toggle="modal" data-bs-target="#modalAjoutContrat">
+    <button type="button" class="btn app-btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalAjoutContrat">
         + Ajouter un contrat
     </button>
 </div>
@@ -16,7 +16,6 @@
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 </div>
 @endif
-
 @if(session('success_message'))
 <div class="alert alert-success alert-dismissible fade show">
     {{ session('success_message') }}
@@ -41,18 +40,15 @@
 @endif
 
 {{-- Filtres --}}
-<form id="filtreForm" method="GET" action="{{ route('contrat.index') }}" class="row g-2 mb-4 align-items-center">
+<form method="GET" action="{{ route('contrat.index') }}" class="row g-2 mb-4 align-items-center">
     <div class="col-auto">
-        <input type="text" name="search" class="form-control"
-            placeholder="Rechercher..." value="{{ request('search') }}">
+        <input type="text" name="search" class="form-control" placeholder="Rechercher..." value="{{ request('search') }}">
     </div>
     <div class="col-auto">
         <select name="type_contrat" class="form-select">
             <option value="">Tous les types</option>
             @foreach(['CDI','CDD','CIVP','Karama'] as $type)
-            <option value="{{ $type }}" {{ request('type_contrat') == $type ? 'selected' : '' }}>
-                {{ $type }}
-            </option>
+            <option value="{{ $type }}" {{ request('type_contrat') == $type ? 'selected' : '' }}>{{ $type }}</option>
             @endforeach
         </select>
     </div>
@@ -60,9 +56,7 @@
         <select name="department_id" class="form-select">
             <option value="">Tous les départements</option>
             @foreach($departements as $dep)
-            <option value="{{ $dep->id }}" {{ request('department_id') == $dep->id ? 'selected' : '' }}>
-                {{ $dep->name }}
-            </option>
+            <option value="{{ $dep->id }}" {{ request('department_id') == $dep->id ? 'selected' : '' }}>{{ $dep->name }}</option>
             @endforeach
         </select>
     </div>
@@ -82,10 +76,10 @@
     @endif
 </form>
 
-<div class="app-card app-card-orders-table shadow-sm mb-5">
+<div class="app-card shadow-sm mb-5">
     <div class="app-card-body">
         <div class="table-responsive">
-            <table class="table app-table-hover mb-0 text-left">
+            <table class="table app-table-hover mb-0">
                 <thead>
                     <tr>
                         <th>#</th>
@@ -106,14 +100,12 @@
                         $today   = \Carbon\Carbon::today();
                         $dateFin = null;
                         $jours   = null;
-
                         if ($contrat->end_date) {
                             try {
                                 $dateFin = \Carbon\Carbon::parse($contrat->end_date);
                                 $jours   = $today->diffInDays($dateFin, false);
                             } catch (\Exception $e) {}
                         }
-
                         if (!$dateFin) {
                             $badge = '<span class="badge" style="background:#19a891">Actif</span>';
                         } elseif ($jours < 0) {
@@ -123,17 +115,12 @@
                         } else {
                             $badge = '<span class="badge" style="background:#19a891">Actif</span>';
                         }
-
-                        $startFormatted = $contrat->start_date
-                            ? \Carbon\Carbon::parse($contrat->start_date)->format('Y-m-d')
-                            : '';
-                        $endFormatted = $contrat->end_date
-                            ? \Carbon\Carbon::parse($contrat->end_date)->format('Y-m-d')
-                            : '';
+                        $startFormatted = $contrat->start_date ? \Carbon\Carbon::parse($contrat->start_date)->format('Y-m-d') : '';
+                        $endFormatted   = $contrat->end_date   ? \Carbon\Carbon::parse($contrat->end_date)->format('Y-m-d')   : '';
                     @endphp
                     <tr class="{{ $jours !== null && $jours <= 7 && $jours >= 0 ? 'table-warning' : ($jours !== null && $jours < 0 ? 'table-danger' : '') }}">
                         <td>{{ ($contrats->currentPage() - 1) * $contrats->perPage() + $loop->iteration }}</td>
-                        <td>{{ $contrat->last_name }} {{ $contrat->first_name }}</td>
+                        <td><strong>{{ $contrat->last_name }} {{ $contrat->first_name }}</strong></td>
                         <td>{{ $contrat->departement->name ?? '-' }}</td>
                         <td>{!! $badge !!}</td>
                         <td>{{ $contrat->start_date ? \Carbon\Carbon::parse($contrat->start_date)->format('d/m/Y') : '-' }}</td>
@@ -143,8 +130,8 @@
                                 @php $ext = pathinfo($contrat->rib_image, PATHINFO_EXTENSION); @endphp
                                 @if(in_array(strtolower($ext), ['jpg','jpeg','png','gif','webp']))
                                     <a href="{{ asset('storage/' . $contrat->rib_image) }}" target="_blank">
-                                        <img src="{{ asset('storage/' . $contrat->rib_image) }}"
-                                             alt="RIB" style="width:60px; height:40px; object-fit:cover; border-radius:4px; border:1px solid #ddd;">
+                                        <img src="{{ asset('storage/' . $contrat->rib_image) }}" alt="RIB"
+                                             style="width:60px; height:40px; object-fit:cover; border-radius:4px; border:1px solid #ddd;">
                                     </a>
                                 @else
                                     <a href="{{ asset('storage/' . $contrat->rib_image) }}" target="_blank"
@@ -159,7 +146,7 @@
                         <td>
                             <div class="d-flex gap-1">
                                 <button type="button"
-                                    class="btn btn-sm btn-outline-secondary"
+                                    class="btn btn-sm app-btn-primary"
                                     data-id="{{ $contrat->id }}"
                                     data-type="{{ $contrat->contract_type }}"
                                     data-cnss="{{ $contrat->cnss ?? '' }}"
@@ -168,14 +155,14 @@
                                     data-fin="{{ $endFormatted }}"
                                     onclick="openEditContrat(this)">Éditer</button>
                                 <a href="{{ route('contrat.delete', $contrat->id) }}"
-                                    class="btn btn-sm btn-outline-danger"
-                                    onclick="return confirm('Supprimer ce contrat ?')">Supprimer</a>
+                                    class="btn btn-sm btn-warning"
+                                    onclick="return confirm('Archiver ce contrat ?')">Archiver</a>
                                 <a href="{{ route('contrat.pdf', $contrat->id) }}"
                                     class="btn btn-sm btn-outline-info"
-                                    title="Télécharger PDF">
+                                    title="Visualiser PDF" target="_blank">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                                        <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                                        <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                                        <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
+                                        <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
                                     </svg>
                                 </a>
                             </div>
@@ -189,18 +176,15 @@
                 </tbody>
             </table>
         </div>
+        <div class="mt-3">{{ $contrats->links() }}</div>
     </div>
 </div>
 
-<nav class="app-pagination">
-    {{ $contrats->links() }}
-</nav>
-
 {{-- Modal Ajout Contrat --}}
-<div class="modal fade" id="modalAjoutContrat" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+<div class="modal fade" id="modalAjoutContrat" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header border-0">
                 <h5 class="modal-title fw-bold">Ajouter un contrat</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
@@ -211,16 +195,13 @@
                         <select id="add_employer_id" class="form-select">
                             <option value="">-- Choisir un employé --</option>
                             @foreach($employers as $employer)
-                                <option value="{{ $employer->id }}">
-                                    {{ $employer->last_name }} {{ $employer->first_name }}
-                                </option>
+                                <option value="{{ $employer->id }}">{{ $employer->last_name }} {{ $employer->first_name }}</option>
                             @endforeach
                         </select>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Type de contrat <span class="text-danger">*</span></label>
-                        <select id="add_type_contrat" class="form-select"
-                            onchange="toggleDateFin('add_date_fin', this.value)">
+                        <select id="add_type_contrat" class="form-select" onchange="toggleDateFin('add_date_fin', this.value)">
                             <option value="">-- Choisir --</option>
                             <option value="CDI">CDI</option>
                             <option value="CDD">CDD</option>
@@ -238,21 +219,19 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer border-0">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                <button type="button" class="btn app-btn-primary" onclick="submitAddContrat()">
-                    Enregistrer
-                </button>
+                <button type="button" class="btn app-btn-primary" onclick="submitAddContrat()">Enregistrer</button>
             </div>
         </div>
     </div>
 </div>
 
 {{-- Modal Edit Contrat --}}
-<div class="modal fade" id="modalEditContrat" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+<div class="modal fade" id="modalEditContrat" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header border-0">
                 <h5 class="modal-title fw-bold">Modifier le contrat</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
@@ -260,8 +239,7 @@
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label">Type de contrat <span class="text-danger">*</span></label>
-                        <select id="edit_type_contrat" class="form-select"
-                            onchange="toggleDateFin('edit_date_fin', this.value)">
+                        <select id="edit_type_contrat" class="form-select" onchange="toggleDateFin('edit_date_fin', this.value)">
                             <option value="">-- Choisir --</option>
                             @foreach(['CDI','CDD','CIVP','Karama'] as $type)
                                 <option value="{{ $type }}">{{ $type }}</option>
@@ -270,8 +248,7 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Numéro CNSS</label>
-                        <input type="text" id="edit_cnss" class="form-control"
-                            inputmode="numeric"
+                        <input type="text" id="edit_cnss" class="form-control" inputmode="numeric"
                             oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)">
                     </div>
                     <div class="col-md-12">
@@ -288,11 +265,9 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer border-0">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                <button type="button" class="btn app-btn-primary" onclick="submitEditContrat()">
-                    Enregistrer
-                </button>
+                <button type="button" class="btn app-btn-primary" onclick="submitEditContrat()">Enregistrer</button>
             </div>
         </div>
     </div>
@@ -306,14 +281,10 @@ var editContratId = null;
 function toggleDateFin(inputId, type) {
     const input = document.getElementById(inputId);
     if (type === 'CDI') {
-        input.value    = '';
-        input.readOnly = true;
-        input.style.background = '#f0f0f0';
-        input.style.cursor     = 'not-allowed';
+        input.value = ''; input.readOnly = true;
+        input.style.background = '#f0f0f0'; input.style.cursor = 'not-allowed';
     } else {
-        input.readOnly = false;
-        input.style.background = '';
-        input.style.cursor     = '';
+        input.readOnly = false; input.style.background = ''; input.style.cursor = '';
     }
 }
 
@@ -333,19 +304,13 @@ function submitAddContrat() {
     const typeContrat = document.getElementById('add_type_contrat').value;
     const dateDebut   = document.getElementById('add_date_debut').value;
     const dateFin     = document.getElementById('add_date_fin').value;
-
     if (!employerId || !typeContrat || !dateDebut) {
-        alert('Veuillez remplir tous les champs obligatoires.');
-        return;
+        alert('Veuillez remplir tous les champs obligatoires.'); return;
     }
-
     const data = new FormData();
-    data.append('_token',       csrfToken);
-    data.append('employer_id',  employerId);
-    data.append('type_contrat', typeContrat);
-    data.append('date_debut',   dateDebut);
-    data.append('date_fin',     dateFin);
-
+    data.append('_token', csrfToken); data.append('employer_id', employerId);
+    data.append('type_contrat', typeContrat); data.append('date_debut', dateDebut);
+    data.append('date_fin', dateFin);
     fetch(storeUrl, { method: 'POST', body: data, redirect: 'follow' })
     .then(() => { window.location.href = '/contrats'; })
     .catch(err => { alert('Erreur: ' + err); });
@@ -357,20 +322,13 @@ function submitEditContrat() {
     const rib         = document.getElementById('edit_rib').value;
     const dateDebut   = document.getElementById('edit_date_debut').value;
     const dateFin     = document.getElementById('edit_date_fin').value;
-
     if (!typeContrat || !dateDebut) {
-        alert('Veuillez remplir tous les champs obligatoires.');
-        return;
+        alert('Veuillez remplir tous les champs obligatoires.'); return;
     }
-
     const data = new FormData();
-    data.append('_token',       csrfToken);
-    data.append('type_contrat', typeContrat);
-    data.append('cnss',         cnss);
-    data.append('rib',          rib);
-    data.append('date_debut',   dateDebut);
-    data.append('date_fin',     dateFin);
-
+    data.append('_token', csrfToken); data.append('type_contrat', typeContrat);
+    data.append('cnss', cnss); data.append('rib', rib);
+    data.append('date_debut', dateDebut); data.append('date_fin', dateFin);
     fetch('/contrats/update/' + editContratId, { method: 'POST', body: data, redirect: 'follow' })
     .then(() => { window.location.href = '/contrats'; })
     .catch(err => { alert('Erreur: ' + err); });

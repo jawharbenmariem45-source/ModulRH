@@ -14,6 +14,7 @@ return new class extends Migration
             $table->string('image_path');
             $table->json('encoding');
             $table->boolean('is_active')->default(true);
+            $table->enum('status', ['actived', 'inactived', 'archived'])->default('actived');
             $table->timestamps();
         });
     }

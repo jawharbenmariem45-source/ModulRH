@@ -19,6 +19,7 @@ return new class extends Migration
             $table->json('work_days')->nullable();
             $table->boolean('is_default')->default(false);
             $table->boolean('actif')->default(true);
+            $table->enum('status', ['actived', 'inactived', 'archived'])->default('actived');
             $table->timestamps();
         });
     }
